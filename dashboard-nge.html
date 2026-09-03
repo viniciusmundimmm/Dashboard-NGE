@@ -103,6 +103,28 @@
   .btn:hover{background:#f1f7f3}
   .btn:focus-visible{outline:2px solid var(--verde-medio);outline-offset:1px}
 
+  .btn.forte{background:var(--verde-forte);border-color:var(--verde-forte);color:#fff}
+  .btn.forte:hover{background:#0c5733}
+
+  /* ---------- painel de dados ---------- */
+  .painel{margin:16px 0 0}
+  .painel .ph{margin:0 0 10px;font-size:13px;color:var(--tinta-2);line-height:1.5}
+  .painel .ph code{background:#eef6f0;border-radius:4px;padding:1px 5px;font-size:12px}
+  .painel textarea{
+    width:100%;min-height:150px;resize:vertical;
+    font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    color:var(--tinta);background:#fff;border:1px solid var(--borda);border-radius:10px;padding:10px 12px;
+  }
+  .painel textarea:focus-visible{outline:2px solid var(--verde-medio);outline-offset:1px}
+  .painel-acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+  .lembrar{font-size:12.5px;color:var(--tinta-2);display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+  .msg{margin-top:12px;font-size:13px;line-height:1.55;border-radius:10px;padding:11px 13px}
+  .msg.ok{background:rgba(12,163,12,.09);color:#0b4a2e}
+  .msg.erro{background:rgba(208,59,59,.09);color:#7a2020}
+  .msg b{font-size:14px}
+  .msg ul{margin:7px 0 0;padding-left:18px}
+  .msg li{margin:2px 0}
+
   /* ---------- seções ---------- */
   .secao{margin:30px 0 0}
   .secao > h2{
@@ -269,7 +291,28 @@
         <select id="f-resp"></select>
       </div>
       <button class="btn" id="f-limpa" type="button">Limpar filtros</button>
+      <button class="btn" id="bt-dados" type="button" aria-expanded="false">Dados da planilha</button>
     </div>
+  </div>
+
+  <div class="painel card" id="painel" hidden>
+    <p class="ph">
+      Selecione as seis colunas na planilha (<b>A</b> Semana · <b>B</b> Equip. · <b>C</b> Tipo Eq. ·
+      <b>D</b> Polo · <b>E</b> Dias Indisponíveis SCADA · <b>F</b> Responsável), copie e cole abaixo.
+      Pode colar com ou sem a linha de cabeçalho. Também aceita arquivo <code>.csv</code> separado por
+      <code>;</code> ou <code>,</code>. Datas em <code>dd/mm/aaaa</code> ou <code>aaaa-mm-dd</code>.
+    </p>
+    <textarea id="colar" spellcheck="false" placeholder="31/08/2026&#9;105321&#9;Religador&#9;PM&#9;42&#9;Regional - Manutenção&#10;31/08/2026&#9;204877&#9;Seccionalizador&#9;UR&#9;168&#9;Fornecedor"></textarea>
+    <div class="painel-acoes">
+      <button class="btn forte" id="bt-carregar" type="button">Carregar</button>
+      <label class="btn" for="arq">Abrir arquivo .csv</label>
+      <input type="file" id="arq" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden>
+      <button class="btn" id="bt-bloco" type="button">Copiar bloco para o arquivo</button>
+      <button class="btn" id="bt-demo" type="button">Voltar à demonstração</button>
+      <label class="lembrar"><input type="checkbox" id="lembrar" checked> Guardar neste navegador</label>
+      <button class="btn" id="bt-fechar" type="button" style="margin-left:auto">Fechar</button>
+    </div>
+    <div id="msg-dados"></div>
   </div>
 
   <section class="secao">
@@ -390,13 +433,15 @@
      polo          -> índice em POLOS        (coluna D)
      dias          -> dias indisponíveis     (coluna E)
      responsável   -> índice em RESPONSAVEIS (coluna F)
+   Ela é a base que abre por padrão. Para usar a planilha sem editar o
+   arquivo, use o botão "Dados da planilha" no topo da página.
    ============================================================ */
-const SEMANAS = ["2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31"];
-const TIPOS = ["Religador", "Seccionalizador", "Regulador"];
-const POLOS = ["PM", "PO", "BD", "UR", "AX", "FR", "UL", "AG", "TB"];
-const RESPONSAVEIS = ["Regional - Automação", "Regional - Manutenção", "Não Lançado", "Regional - RD", "Regional - Transporte", "Regional - Projetos", "Oficina", "Fornecedor", "Obras Terceiros", "Corporativo - Suprimentos"];
+const DEMO_SEMANAS = ["2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31"];
+const DEMO_TIPOS = ["Religador", "Seccionalizador", "Regulador"];
+const DEMO_POLOS = ["PM", "PO", "BD", "UR", "AX", "FR", "UL", "AG", "TB"];
+const DEMO_RESPONSAVEIS = ["Regional - Automação", "Regional - Manutenção", "Não Lançado", "Regional - RD", "Regional - Transporte", "Regional - Projetos", "Oficina", "Fornecedor", "Obras Terceiros", "Corporativo - Suprimentos"];
 // [semana, equipamento, tipo, polo, diasIndisponiveis, responsavel]
-const LINHAS = [
+const DEMO_LINHAS = [
 [0,246549,1,2,58,9],
 [0,190047,0,2,6,2],
 [0,154030,0,8,11,5],
@@ -3401,12 +3446,10 @@ const LINHAS = [
 /* ============================================================
    MODELO
    ============================================================ */
-const GER_POLOS = {'TR/PM':['PM','PO','BD'], 'TR/UA':['UR','AX','FR'], 'TR/UD':['UL','AG','TB']};
-const GERS = Object.keys(GER_POLOS);
-const POLO_GER = {};
-GERS.forEach(g => GER_POLOS[g].forEach(p => POLO_GER[p] = g));
-
-const RESP_GRUPO = {
+/* Estrutura da área. Se polos, gerências ou responsabilidades mudarem,
+   estes dois mapas são os únicos pontos a ajustar. */
+const MAPA_GERENCIA = {'TR/PM':['PM','PO','BD'], 'TR/UA':['UR','AX','FR'], 'TR/UD':['UL','AG','TB']};
+const MAPA_RESP = {
   'Regional - Automação'  : 'Execução Regional',
   'Regional - Manutenção' : 'Execução Regional',
   'Não Lançado'           : 'NGE-TR',
@@ -3415,19 +3458,32 @@ const RESP_GRUPO = {
   'Regional - Projetos'   : 'NGE-TR',
   'Oficina'               : 'NGE-TR'
 };
-const grupoResp = r => RESP_GRUPO[r] || r;
-const GRUPOS = ['Execução Regional', 'NGE-TR'].concat(
-  RESPONSAVEIS.filter(r => !RESP_GRUPO[r]).sort((a, b) => a.localeCompare(b, 'pt-BR'))
-);
-const MEMBROS = {};
-GRUPOS.forEach(g => MEMBROS[g] = RESPONSAVEIS.filter(r => grupoResp(r) === g));
+const SEM_GERENCIA = 'Não mapeado';
+
+/* compara rótulos da planilha sem depender de acento, caixa ou espaço extra */
+function chaveTexto(s) {
+  return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\u2010-\u2015]/g, '-').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+const MAPA_RESP_N = {};
+Object.keys(MAPA_RESP).forEach(r => MAPA_RESP_N[chaveTexto(r)] = MAPA_RESP[r]);
+const grupoResp = r => MAPA_RESP_N[chaveTexto(r)] || r;
+function gerenciaDe(polo) {
+  const k = chaveTexto(polo);
+  for (const g in MAPA_GERENCIA) {
+    if (chaveTexto(g) === k) return g;                                   /* coluna D já traz a gerência */
+    if (MAPA_GERENCIA[g].some(p => chaveTexto(p) === k)) return g;
+  }
+  return SEM_GERENCIA;
+}
 
 const FAIXAS = ['Até 30 dias', '30 a 90 dias', '90 a 120 dias', 'Acima de 120 dias'];
 const faixaDe = d => d <= 30 ? 0 : d <= 90 ? 1 : d <= 120 ? 2 : 3;
 
+const CORES_GER = ['#17996a', '#2a78d6', '#a03a86', '#6c7a72'];
 const COR = {
   s1:'#17996a', s2:'#2a78d6', s3:'#a03a86',
-  ger:{'TR/PM':'#17996a', 'TR/UA':'#2a78d6', 'TR/UD':'#a03a86'},
+  ger:{},
   o:['#86b6ef','#5598e7','#256abf','#104281'],
   q:['#cbe6d5','#9ed3b3','#63b287','#2f8f5f','#146b43','#0b4a2e'],
   bom:'#0ca30c', ruim:'#d03b3b',
@@ -3437,8 +3493,43 @@ const COR = {
 };
 
 const S = 0, E = 1, T = 2, P = 3, D = 4, R = 5;
-const PORSEM = SEMANAS.map(() => new Map());
-LINHAS.forEach(l => PORSEM[l[S]].set(l[E], l));
+
+/* base em uso — trocada pelo painel "Dados da planilha" */
+let SEMANAS = [], TIPOS = [], POLOS = [], RESPONSAVEIS = [], LINHAS = [];
+let GERS = [], GER_POLOS = {}, POLO_GER = {}, GRUPOS = [], MEMBROS = {}, PORSEM = [];
+let ORIGEM = 'demonstração';
+
+function aplicaBase(b, origem) {
+  SEMANAS = b.semanas; TIPOS = b.tipos; POLOS = b.polos;
+  RESPONSAVEIS = b.responsaveis; LINHAS = b.linhas;
+  ORIGEM = origem || 'demonstração';
+
+  PORSEM = SEMANAS.map(() => new Map());
+  LINHAS.forEach(l => PORSEM[l[S]].set(l[E], l));
+
+  GER_POLOS = {}; POLO_GER = {};
+  POLOS.forEach(p => {
+    const g = gerenciaDe(p);
+    POLO_GER[p] = g;
+    (GER_POLOS[g] = GER_POLOS[g] || []).push(p);
+  });
+  const ordem = Object.keys(MAPA_GERENCIA);
+  GERS = ordem.filter(g => GER_POLOS[g])
+    .concat(Object.keys(GER_POLOS).filter(g => !MAPA_GERENCIA[g]).sort((a, b) => a.localeCompare(b, 'pt-BR')));
+  /* a cor acompanha a gerência, não a posição na lista */
+  COR.ger = {};
+  GERS.forEach(g => { const i = ordem.indexOf(g); COR.ger[g] = i >= 0 ? CORES_GER[i % 3] : CORES_GER[3]; });
+
+  GRUPOS = ['Execução Regional', 'NGE-TR'].filter(g => RESPONSAVEIS.some(r => grupoResp(r) === g))
+    .concat(RESPONSAVEIS.filter(r => !MAPA_RESP_N[chaveTexto(r)]).sort((a, b) => a.localeCompare(b, 'pt-BR')));
+  MEMBROS = {};
+  GRUPOS.forEach(g => MEMBROS[g] = RESPONSAVEIS.filter(r => grupoResp(r) === g));
+
+  st.b = Math.max(0, SEMANAS.length - 1);
+  st.a = Math.max(0, SEMANAS.length - 2);
+  st.ger = st.polo = st.tipo = st.resp = '';
+  st.det = 'novos'; st.tab = {};
+}
 
 /* ============================================================
    UTILIDADES
@@ -4083,8 +4174,8 @@ function render() {
   pintaDetalhe(mA, mB, novos, reg);
 
   $('#rodape').innerHTML =
-    `Base: ${fmt(LINHAS.length)} registros · ${fmt(SEMANAS.length)} semanas (${dlonga(SEMANAS[0])} a ${dlonga(SEMANAS[SEMANAS.length - 1])}) · ` +
-    `Superintendência TR = PM, PO, BD, UR, AX, FR, UL, AG, TB. ` +
+    `Base ${esc(ORIGEM)}: ${fmt(LINHAS.length)} registros · ${fmt(SEMANAS.length)} semanas (${dlonga(SEMANAS[0])} a ${dlonga(SEMANAS[SEMANAS.length - 1])}) · ` +
+    `Superintendência TR = ${GERS.map(g => (GER_POLOS[g] || []).join(', ')).join(', ')}. ` +
     `Execução Regional = Regional - Automação e Regional - Manutenção. ` +
     `NGE-TR = Não Lançado, Regional - RD, Regional - Transporte, Regional - Projetos e Oficina.`;
 }
@@ -4155,6 +4246,231 @@ document.addEventListener('mousemove', ev => {
 }, {passive: true});
 document.addEventListener('mouseleave', () => tip.style.opacity = 0);
 
+/* ============================================================
+   LEITURA DA PLANILHA
+   ============================================================ */
+function separaLinha(linha, sep) {
+  const out = []; let cur = '', asp = false;
+  for (let i = 0; i < linha.length; i++) {
+    const c = linha[i];
+    if (asp) {
+      if (c === '"') { if (linha[i + 1] === '"') { cur += '"'; i++; } else asp = false; }
+      else cur += c;
+    } else if (c === '"') asp = true;
+    else if (c === sep) { out.push(cur); cur = ''; }
+    else cur += c;
+  }
+  out.push(cur);
+  return out;
+}
+function detectaSep(linhas) {
+  const amostra = linhas.slice(0, 12);
+  const conta = s => amostra.reduce((n, l) => n + (l.split(s).length - 1), 0);
+  const t = conta('\t'), pv = conta(';'), v = conta(',');
+  if (t >= pv && t >= v && t > 0) return '\t';
+  if (pv >= v && pv > 0) return ';';
+  if (v > 0) return ',';
+  return '\t';
+}
+function leData(v) {
+  const s = String(v).trim();
+  let m;
+  if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) {
+    const a = +m[1], mo = +m[2], d = +m[3];
+    return (mo >= 1 && mo <= 12 && d >= 1 && d <= 31)
+      ? `${a}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}` : null;
+  }
+  if ((m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/))) {
+    const d = +m[1], mo = +m[2]; let a = +m[3];
+    if (a < 100) a += 2000;
+    return (mo >= 1 && mo <= 12 && d >= 1 && d <= 31)
+      ? `${a}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}` : null;
+  }
+  if (/^\d{5}(\.\d+)?$/.test(s)) {                       /* número de série do Excel */
+    const dt = new Date(Date.UTC(1899, 11, 30) + Math.round(parseFloat(s)) * 86400000);
+    return isNaN(dt) ? null : dt.toISOString().slice(0, 10);
+  }
+  return null;
+}
+function leNumero(v) {
+  let s = String(v).replace(/\s/g, '');
+  if (!s) return NaN;
+  s = s.replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
+  const n = parseFloat(s);
+  return isFinite(n) ? n : NaN;
+}
+function leTabela(texto) {
+  const linhas = texto.replace(/\r/g, '').split('\n').filter(l => l.trim() !== '');
+  if (!linhas.length) return {erro: 'Não há nada para ler.'};
+  const sep = detectaSep(linhas);
+  const ruins = [], vistos = new Set();
+  const regs = [];
+  let dup = 0, cabecalho = false;
+
+  linhas.forEach((ln, i) => {
+    const c = separaLinha(ln, sep).map(x => x.trim().replace(/\s+/g, ' '));
+    if (c.length < 6) { if (i === 0) { cabecalho = true; return; } ruins.push([i + 1, 'menos de 6 colunas']); return; }
+    const data = leData(c[0]), dias = leNumero(c[4]);
+    if (data === null || !isFinite(dias)) {
+      if (i === 0) { cabecalho = true; return; }
+      ruins.push([i + 1, data === null ? 'data não reconhecida' : 'dias não numérico']);
+      return;
+    }
+    if (!c[1]) { ruins.push([i + 1, 'equipamento em branco']); return; }
+    const k = data + '|' + c[1];
+    if (vistos.has(k)) { dup++; return; }
+    vistos.add(k);
+    regs.push({data, equip: c[1], tipo: c[2] || '(sem tipo)', polo: c[3] || '(sem polo)',
+               dias: Math.round(dias), resp: c[5] || 'Não Lançado'});
+  });
+
+  if (!regs.length) return {erro: 'Nenhuma linha válida foi reconhecida. Confira se as colunas estão na ordem A a F.', ruins};
+
+  const semanas = Array.from(new Set(regs.map(r => r.data))).sort();
+  const tipos = Array.from(new Set(regs.map(r => r.tipo))).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const resps = Array.from(new Set(regs.map(r => r.resp))).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  /* polos ordenados por gerência, para o gráfico continuar agrupado */
+  const polosUnicos = Array.from(new Set(regs.map(r => r.polo)));
+  const ordemGer = Object.keys(MAPA_GERENCIA).concat([SEM_GERENCIA]);
+  const polos = polosUnicos.sort((a, b) => {
+    const ga = ordemGer.indexOf(gerenciaDe(a)), gb = ordemGer.indexOf(gerenciaDe(b));
+    if (ga !== gb) return ga - gb;
+    const la = MAPA_GERENCIA[gerenciaDe(a)] || [], lb = MAPA_GERENCIA[gerenciaDe(b)] || [];
+    const ia = la.findIndex(p => chaveTexto(p) === chaveTexto(a));
+    const ib = lb.findIndex(p => chaveTexto(p) === chaveTexto(b));
+    if (ia !== ib) return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+    return a.localeCompare(b, 'pt-BR');
+  });
+
+  const iS = {}, iT = {}, iP = {}, iR = {};
+  semanas.forEach((v, i) => iS[v] = i); tipos.forEach((v, i) => iT[v] = i);
+  polos.forEach((v, i) => iP[v] = i);   resps.forEach((v, i) => iR[v] = i);
+
+  return {
+    base: {
+      semanas, tipos, polos, responsaveis: resps,
+      linhas: regs.map(r => [iS[r.data], r.equip, iT[r.tipo], iP[r.polo], r.dias, iR[r.resp]])
+    },
+    ruins, dup, cabecalho, lidas: regs.length, total: linhas.length
+  };
+}
+
+/* ============================================================
+   PAINEL DE DADOS
+   ============================================================ */
+const CHAVE_ARMAZEM = 'nge-base-v1';
+function guardaBase(b) {
+  try { localStorage.setItem(CHAVE_ARMAZEM, JSON.stringify(b)); return true; } catch (e) { return false; }
+}
+function esqueceBase() { try { localStorage.removeItem(CHAVE_ARMAZEM); } catch (e) {} }
+function baseGuardada() {
+  try {
+    const s = localStorage.getItem(CHAVE_ARMAZEM);
+    if (!s) return null;
+    const b = JSON.parse(s);
+    return (b && Array.isArray(b.semanas) && Array.isArray(b.linhas) && b.linhas.length) ? b : null;
+  } catch (e) { return null; }
+}
+function aviso(html, erro) {
+  $('#msg-dados').innerHTML = `<div class="msg ${erro ? 'erro' : 'ok'}">${html}</div>`;
+}
+function carrega(texto, origem) {
+  const r = leTabela(texto);
+  if (r.erro) {
+    aviso(`<b>Não foi possível carregar.</b><br>${esc(r.erro)}` +
+      (r.ruins && r.ruins.length ? `<ul>${r.ruins.slice(0, 5).map(x => `<li>linha ${x[0]}: ${esc(x[1])}</li>`).join('')}</ul>` : ''), true);
+    return;
+  }
+  aplicaBase(r.base, origem);
+  montaControles(); render();
+
+  const naoMapeados = POLOS.filter(p => POLO_GER[p] === SEM_GERENCIA);
+  const novosResp = RESPONSAVEIS.filter(x => !MAPA_RESP_N[chaveTexto(x)]);
+  let m = `<b>${fmt(r.lidas)} linhas carregadas</b> · ${fmt(SEMANAS.length)} semanas · ` +
+          `${fmt(POLOS.length)} polos · ${fmt(RESPONSAVEIS.length)} responsáveis.`;
+  const obs = [];
+  if (r.cabecalho) obs.push('primeira linha tratada como cabeçalho');
+  if (r.dup) obs.push(`${fmt(r.dup)} repetição(ões) do mesmo equipamento na mesma data foram ignoradas`);
+  if (r.ruins.length) obs.push(`${fmt(r.ruins.length)} linha(s) ignoradas: ` +
+    r.ruins.slice(0, 4).map(x => `${x[0]} (${x[1]})`).join(', ') + (r.ruins.length > 4 ? '…' : ''));
+  if (naoMapeados.length) obs.push(`fora do mapa de gerências, agrupados em “${SEM_GERENCIA}”: ` + naoMapeados.join(', '));
+  if (novosResp.length) obs.push('apresentados individualmente: ' + novosResp.join(', '));
+  if (obs.length) m += `<ul>${obs.map(o => `<li>${esc(o)}</li>`).join('')}</ul>`;
+  aviso(m, false);
+
+  if ($('#lembrar').checked) {
+    if (!guardaBase(r.base)) aviso(m + '<ul><li>não foi possível guardar neste navegador; ao recarregar a página os dados voltam para a demonstração</li></ul>', false);
+  } else esqueceBase();
+}
+function blocoParaArquivo() {
+  const j = v => JSON.stringify(v);
+  return 'const DEMO_SEMANAS = ' + j(SEMANAS) + ';\n' +
+         'const DEMO_TIPOS = ' + j(TIPOS) + ';\n' +
+         'const DEMO_POLOS = ' + j(POLOS) + ';\n' +
+         'const DEMO_RESPONSAVEIS = ' + j(RESPONSAVEIS) + ';\n' +
+         '// [semana, equipamento, tipo, polo, dias, responsável]\n' +
+         'const DEMO_LINHAS = [\n' + LINHAS.map(l => j(l)).join(',\n') + '\n];';
+}
+function copia(texto) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(texto).then(() => true, () => false);
+  }
+  try {
+    const t = document.createElement('textarea');
+    t.value = texto; t.style.position = 'fixed'; t.style.opacity = '0';
+    document.body.appendChild(t); t.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(t);
+    return Promise.resolve(ok);
+  } catch (e) { return Promise.resolve(false); }
+}
+
+$('#bt-dados').addEventListener('click', () => {
+  const p = $('#painel'), abrir = p.hidden;
+  p.hidden = !abrir;
+  $('#bt-dados').setAttribute('aria-expanded', String(abrir));
+  if (abrir) { p.scrollIntoView({block: 'nearest'}); $('#colar').focus(); }
+});
+$('#bt-fechar').addEventListener('click', () => {
+  $('#painel').hidden = true;
+  $('#bt-dados').setAttribute('aria-expanded', 'false');
+});
+$('#bt-carregar').addEventListener('click', () => {
+  const t = $('#colar').value;
+  if (!t.trim()) { aviso('Cole os dados da planilha na caixa acima, ou use “Abrir arquivo .csv”.', true); return; }
+  carrega(t, 'da planilha');
+});
+$('#arq').addEventListener('change', ev => {
+  const f = ev.target.files && ev.target.files[0];
+  if (!f) return;
+  const fr = new FileReader();
+  fr.onload = () => carrega(String(fr.result), 'do arquivo ' + f.name);
+  fr.onerror = () => aviso('Não foi possível ler o arquivo.', true);
+  fr.readAsText(f, 'utf-8');
+  ev.target.value = '';
+});
+$('#bt-demo').addEventListener('click', () => {
+  esqueceBase();
+  aplicaBase(baseDemo(), 'demonstração');
+  montaControles(); render();
+  $('#colar').value = '';
+  aviso('Voltou para a base de demonstração embutida no arquivo.', false);
+});
+$('#bt-bloco').addEventListener('click', () => {
+  copia(blocoParaArquivo()).then(ok => aviso(ok
+    ? 'Bloco copiado. Abra o arquivo em um editor de texto e substitua o trecho <b>BASE DE DADOS</b> por ele — assim estes dados passam a abrir por padrão, sem precisar colar de novo.'
+    : 'Não foi possível copiar automaticamente neste navegador. Use “Guardar neste navegador” ou copie o bloco pelo console.', !ok));
+});
+
+/* ============================================================
+   INÍCIO
+   ============================================================ */
+function baseDemo() {
+  return {semanas: DEMO_SEMANAS, tipos: DEMO_TIPOS, polos: DEMO_POLOS,
+          responsaveis: DEMO_RESPONSAVEIS, linhas: DEMO_LINHAS};
+}
+const guardada = baseGuardada();
+aplicaBase(guardada || baseDemo(), guardada ? 'da planilha (guardada neste navegador)' : 'demonstração');
 montaControles();
 render();
 </script>
