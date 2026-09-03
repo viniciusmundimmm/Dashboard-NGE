@@ -1,4 +1,4 @@
-# Dashboard NGE — Equipamentos indisponíveis SCADA
+# Dashboard NGE — Análise Equipamentos TRIÂNGULO
 
 Página única em HTML puro (`dashboard-nge.html`), sem bibliotecas externas e com os dados
 embutidos no próprio arquivo. Abre com duplo clique em qualquer navegador, funciona offline
@@ -14,12 +14,34 @@ por padrão a imediatamente anterior):
   Quando o total não muda mas os equipamentos mudam, a diferença aparece como **Novos** e **Regularizados**
   (comparação por número de equipamento, não por quantidade).
 - **Faixa de dias** — até 30, 30 a 90, 90 a 120 e acima de 120 dias, com variação e composição × semana anterior.
-- **Responsabilidade** — carteira por responsável e cruzamento responsável × faixa de dias.
-- **Polo e tipo** — polos coloridos por gerência, totais por gerência e mistura por tipo de equipamento.
-- **Detalhe** — listas de novos, regularizados, maiores prazos e os que permanecem.
+- **Responsabilidade** — carteira por grupo, cruzamento responsável × faixa de dias e um gráfico de
+  colunas por responsável que abre em **TR**, **Gerência** ou **Polo** (a cor mostra a que grupo
+  cada responsável pertence, ou a gerência de cada faixa).
+- **Polo e tipo** — com TR selecionado o gráfico mostra as três gerências; ao escolher uma gerência,
+  abre nos polos dela. Ao lado, a mistura por tipo de equipamento.
+- **Detalhe** — todos os indisponíveis da semana, ordenados por dias, com filtros próprios de
+  responsável (o texto exato da coluna F), gerência, polo, tipo e número do equipamento. Qualquer
+  coluna ordena ao ser clicada. As abas **Novos**, **Regularizados** e **Permanecem** mostram os
+  mesmos recortes da comparação semanal.
+- **Anotações e evidências** — observações da reunião, anotação por equipamento e imagens.
 
 Filtros de semana, comparação, gerência, polo, tipo e responsabilidade valem para a página inteira.
 Cada gráfico tem o botão **Tabela**, que troca o desenho pelos números.
+
+## Anotar, anexar print e gerar o PDF
+
+- **Anotação por equipamento** — na lista de detalhe, clique na coluna **Anotação** da linha, escreva
+  e clique fora (ou `Ctrl+Enter`). A linha fica marcada e a anotação aparece no bloco
+  *Anotações e evidências*, junto com tipo, polo, gerência, dias e responsável do equipamento.
+- **Prints** — arraste a imagem para a área de evidências, cole com `Ctrl+V` ou selecione o arquivo.
+  Cada imagem aceita uma legenda. As imagens são reduzidas para caber no navegador.
+- **Relatório PDF** — o botão **Relatório PDF** abre a impressão do navegador; escolha *Salvar como
+  PDF*. Sai em A4 paisagem com cabeçalho (semana, comparação, escopo e data de emissão), todos os
+  indicadores e gráficos, a lista de detalhe como estiver filtrada na tela e, na última página, as
+  anotações e as evidências. Para um relatório de um responsável específico, filtre a lista antes
+  de imprimir.
+
+Anotações, legendas e imagens ficam guardadas no navegador do computador em uso.
 
 ## Regras de negócio embutidas
 
@@ -40,15 +62,18 @@ Não é preciso editar o arquivo. Abra o dashboard e clique em **Dados da planil
 
 1. **Colar do Excel** — selecione as seis colunas na planilha (A a F, sem precisar tirar o
    cabeçalho), `Ctrl+C`, cole na caixa e clique em **Carregar**.
-2. **Abrir arquivo `.csv`** — exporte a planilha como CSV e selecione o arquivo.
+2. **Abrir arquivo** — selecione a planilha em `.xlsx` (ou `.csv`). No `.xlsx` a leitura procura a
+   primeira aba com dados válidos, então uma aba de instruções antes da base não atrapalha.
 
 A página lê a coluna A como data da coleta, monta as semanas e recalcula tudo: variação,
 novos, regularizados, faixas, responsabilidade, polos e gerências.
 
 O leitor aceita, sem configuração:
 
-- separador tabulação (colagem do Excel), `;` ou `,`, e campos entre aspas;
-- datas em `dd/mm/aaaa`, `aaaa-mm-dd`, `dd-mm-aaaa` ou número de série do Excel;
+- planilha `.xlsx` direto do Excel, ou texto separado por tabulação (colagem), `;` ou `,`,
+  com campos entre aspas;
+- datas como data do Excel, `dd/mm/aaaa`, `aaaa-mm-dd`, `dd-mm-aaaa` ou número de série;
+- células vazias no meio da linha, sem deslocar as colunas;
 - dias como `42`, `1.234` ou `42,0`;
 - acento, caixa alta e espaço extra nos textos — `REGIONAL - AUTOMAÇÃO` cai em Execução
   Regional do mesmo jeito que `Regional - Automação`.

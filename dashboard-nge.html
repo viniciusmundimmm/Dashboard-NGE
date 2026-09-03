@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NGE · Equipamentos indisponíveis SCADA</title>
+<title>NGE · Análise Equipamentos TRIÂNGULO</title>
 <style>
   :root{
     color-scheme: light;
@@ -68,7 +68,7 @@
   }
   .marca{display:flex;align-items:center;gap:12px}
   .marca .nome{font-size:13px;color:var(--tinta-2);letter-spacing:.02em}
-  .marca .nome b{display:block;font-size:17px;color:var(--tinta);letter-spacing:0}
+  .marca .nome b{display:block;font-size:19px;color:var(--tinta);letter-spacing:-.01em}
   .periodo{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .pill{
     background:var(--surface);border:1px solid var(--borda);border-radius:999px;
@@ -214,6 +214,28 @@
   table.dt tr:hover td{background:#f4faf6}
   .tsub td:first-child{padding-left:26px;font-weight:400;color:var(--tinta-2)}
 
+  /* filtros da lista */
+  .filtros-lista{
+    display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;
+    margin:8px 0 12px;padding:11px 13px;background:#f1f8f3;
+    border:1px solid rgba(15,107,63,.12);border-radius:11px;
+  }
+  .filtros-lista .campo{min-width:132px}
+  .filtros-lista select,.filtros-lista input{
+    font:inherit;font-size:13.5px;color:var(--tinta);
+    background:var(--surface);border:1px solid var(--borda);border-radius:8px;
+    padding:7px 9px;min-height:36px;
+  }
+  .filtros-lista input{min-width:130px}
+  .filtros-lista select:focus-visible,.filtros-lista input:focus-visible{outline:2px solid var(--verde-medio);outline-offset:1px}
+  .filtros-lista .btn{min-height:36px;padding:7px 12px;font-size:13px}
+  .filtros-lista .conta{margin-left:auto;font-size:12.5px;color:var(--tinta-2);padding-bottom:8px}
+  .filtros-lista .conta b{font-size:15px;color:var(--tinta)}
+  th.ord{cursor:pointer;user-select:none}
+  th.ord:hover{color:var(--tinta)}
+  th.ord .dir{color:var(--verde-forte);font-size:10px}
+  .tab-wrap.alta{max-height:min(62vh,620px)}
+
   /* abas do detalhe */
   .abas{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
   .aba{
@@ -222,6 +244,47 @@
     padding:5px 13px;cursor:pointer;
   }
   .aba[aria-selected="true"]{background:var(--verde-forte);border-color:var(--verde-forte);color:#fff}
+
+  /* anotações e evidências */
+  .rot-campo{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--tinta-3);font-weight:600;margin:4px 0 6px}
+  .ta-geral{
+    width:100%;min-height:88px;resize:vertical;font:inherit;font-size:13.5px;line-height:1.5;
+    color:var(--tinta);background:#fff;border:1px solid var(--borda);border-radius:10px;padding:9px 11px;
+  }
+  .ta-geral:focus-visible{outline:2px solid var(--verde-medio);outline-offset:1px}
+  .nota-item{border-top:1px solid var(--grade);padding:9px 0}
+  .ni-cab{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;font-size:12.5px;color:var(--tinta-3)}
+  .ni-cab b{font-size:14.5px;color:var(--tinta);font-variant-numeric:tabular-nums}
+  .ni-txt{font-size:13.5px;color:var(--tinta);margin-top:3px;white-space:pre-wrap;cursor:text}
+  .ni-txt:hover{background:#f1f8f3;border-radius:6px}
+  .x{
+    margin-left:auto;font:inherit;font-size:11.5px;color:var(--tinta-3);background:transparent;
+    border:1px solid var(--borda);border-radius:6px;padding:2px 8px;cursor:pointer;
+  }
+  .x:hover{color:var(--ruim);border-color:rgba(208,59,59,.4)}
+  .cel-nota{white-space:normal!important;text-align:left!important;max-width:300px;cursor:text}
+  .cel-nota .add{color:var(--tinta-3);font-size:12px}
+  .cel-nota:hover{background:#eef6f0}
+  tr.tem-nota td:first-child{box-shadow:inset 3px 0 var(--verde-medio)}
+  .ta-nota{
+    width:100%;min-width:200px;font:inherit;font-size:13px;line-height:1.4;resize:vertical;
+    border:1px solid var(--verde-medio);border-radius:7px;padding:5px 7px;color:var(--tinta);
+  }
+  .zona{
+    border:1.5px dashed rgba(15,107,63,.35);border-radius:11px;padding:16px;text-align:center;
+    font-size:13px;color:var(--tinta-2);background:#f4faf6;
+  }
+  .zona.sobre{background:#e4f3e9;border-color:var(--verde-forte)}
+  .zona .btn{margin-left:4px;padding:5px 11px;min-height:0;font-size:13px}
+  .evid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));margin-top:12px}
+  .ev{margin:0;border:1px solid var(--borda);border-radius:10px;overflow:hidden;background:#fff}
+  .ev img{display:block;width:100%;height:auto}
+  .ev figcaption{display:flex;gap:6px;align-items:center;padding:7px 8px;border-top:1px solid var(--grade)}
+  .ev input{
+    flex:1;min-width:0;font:inherit;font-size:12.5px;color:var(--tinta);
+    border:1px solid var(--borda);border-radius:6px;padding:4px 7px;
+  }
+  .ev input:focus-visible{outline:2px solid var(--verde-medio);outline-offset:1px}
 
   /* tooltip */
   #tip{
@@ -235,6 +298,39 @@
 
   .vazio{padding:26px 4px;color:var(--tinta-3);font-size:14px}
   .nota{font-size:12px;color:var(--tinta-3);margin-top:10px}
+  .so-impressao{display:none}
+
+  /* ---------- relatório impresso / PDF ---------- */
+  @media print{
+    @page{size:A4 landscape;margin:9mm}
+    html,body{background:#fff}
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:11px}
+    .wrap{max-width:none;padding:0}
+    .topbar{position:static;border-bottom:1.5px solid var(--verde-forte);background:#fff}
+    .topbar-in{padding:0 0 8px}
+    .filtros,#painel,.tools,.abas,.filtros-lista,.zona,#tip,.btn,.x,#f-limpa{display:none!important}
+    .so-impressao{display:block}
+    .secao{margin:14px 0 0;break-inside:auto}
+    .secao > h2{font-size:10px;margin-bottom:7px}
+    .card,.tile{box-shadow:none;break-inside:avoid;page-break-inside:avoid;background:#fff}
+    .kpis{grid-template-columns:repeat(5,minmax(0,1fr))}
+    .tile{min-height:0;padding:9px 11px}
+    .tile.hero .val{font-size:44px}
+    .tile .val{font-size:28px}
+    .tab-wrap,.tab-wrap.alta{max-height:none!important;overflow:visible!important}
+    table.dt{font-size:9.5px}
+    table.dt th,table.dt td{padding:3px 6px}
+    thead{display:table-header-group}
+    tr{break-inside:avoid}
+    .cel-nota .add,.so-tela{display:none!important}
+    #sec-notas.vazia{display:none}
+    .ta-geral,.ev input{border:none;padding:0;background:#fff;resize:none}
+    .ta-geral{min-height:0}
+    .evid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .ev{break-inside:avoid}
+    #sec-notas{break-before:page}
+    footer{margin-top:16px}
+  }
   footer{margin-top:34px;padding-top:14px;border-top:1px solid rgba(15,107,63,.14);font-size:12px;color:var(--tinta-3)}
 </style>
 </head>
@@ -243,21 +339,22 @@
 <header class="topbar">
   <div class="topbar-in">
     <div class="marca">
-      <svg width="46" height="46" viewBox="0 0 48 48" aria-label="NGE" role="img">
-        <rect x="1" y="1" width="46" height="46" rx="13" fill="#0f6b3f"/>
-        <path d="M15 34 L15 14 L33 34 L33 14" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="33" cy="14" r="4.6" fill="#8fdcb4"/>
-        <circle cx="15" cy="34" r="3" fill="#5cc38d"/>
+      <svg width="92" height="48" viewBox="0 0 92 48" aria-label="NGE" role="img">
+        <rect x="0.5" y="0.5" width="91" height="47" rx="13" fill="#0f6b3f"/>
+        <text x="46" y="30" text-anchor="middle" fill="#ffffff"
+              font-family="system-ui,-apple-system,'Segoe UI',sans-serif"
+              font-size="23" font-weight="700" letter-spacing="2">NGE</text>
+        <rect x="30" y="36" width="32" height="3.2" rx="1.6" fill="#8fdcb4"/>
       </svg>
       <div class="nome">
-        <b>NGE</b>
-        Equipamentos indisponíveis · SCADA
+        <b>Análise Equipamentos TRIÂNGULO</b>
       </div>
     </div>
     <div class="periodo">
       <span class="pill" id="pill-ant">—</span>
       <span class="pill forte" id="pill-atu">—</span>
       <span class="pill" id="pill-escopo">—</span>
+      <span class="so-impressao" id="imp-cab" style="font-size:11px;color:#52514e;width:100%"></span>
     </div>
   </div>
 </header>
@@ -292,6 +389,7 @@
       </div>
       <button class="btn" id="f-limpa" type="button">Limpar filtros</button>
       <button class="btn" id="bt-dados" type="button" aria-expanded="false">Dados da planilha</button>
+      <button class="btn forte" id="bt-pdf" type="button" title="abre a impressão do navegador; escolha Salvar como PDF">Relatório PDF</button>
     </div>
   </div>
 
@@ -299,14 +397,15 @@
     <p class="ph">
       Selecione as seis colunas na planilha (<b>A</b> Semana · <b>B</b> Equip. · <b>C</b> Tipo Eq. ·
       <b>D</b> Polo · <b>E</b> Dias Indisponíveis SCADA · <b>F</b> Responsável), copie e cole abaixo.
-      Pode colar com ou sem a linha de cabeçalho. Também aceita arquivo <code>.csv</code> separado por
-      <code>;</code> ou <code>,</code>. Datas em <code>dd/mm/aaaa</code> ou <code>aaaa-mm-dd</code>.
+      Pode colar com ou sem a linha de cabeçalho. Também aceita a planilha em <code>.xlsx</code>
+      ou <code>.csv</code>. Datas em <code>dd/mm/aaaa</code>, <code>aaaa-mm-dd</code> ou no formato
+      de data do próprio Excel.
     </p>
     <textarea id="colar" spellcheck="false" placeholder="31/08/2026&#9;105321&#9;Religador&#9;PM&#9;42&#9;Regional - Manutenção&#10;31/08/2026&#9;204877&#9;Seccionalizador&#9;UR&#9;168&#9;Fornecedor"></textarea>
     <div class="painel-acoes">
       <button class="btn forte" id="bt-carregar" type="button">Carregar</button>
-      <label class="btn" for="arq">Abrir arquivo .csv</label>
-      <input type="file" id="arq" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden>
+      <label class="btn" for="arq">Abrir arquivo .xlsx ou .csv</label>
+      <input type="file" id="arq" accept=".xlsx,.xlsm,.csv,.tsv,.txt" hidden>
       <button class="btn" id="bt-bloco" type="button">Copiar bloco para o arquivo</button>
       <button class="btn" id="bt-demo" type="button">Voltar à demonstração</button>
       <label class="lembrar"><input type="checkbox" id="lembrar" checked> Guardar neste navegador</label>
@@ -378,6 +477,18 @@
         <div id="mapa"></div>
       </div>
     </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-hd">
+        <h3>Indisponíveis por responsabilidade</h3><span class="sub" id="sub-rcol"></span>
+        <div class="abas" role="tablist" aria-label="abrir por">
+          <button class="aba" role="tab" data-rmodo="tr"   aria-selected="true">TR</button>
+          <button class="aba" role="tab" data-rmodo="ger"  aria-selected="false">Gerência</button>
+          <button class="aba" role="tab" data-rmodo="polo" aria-selected="false">Polo</button>
+        </div>
+        <div class="tools"><button class="tbtn" data-tab="rcol" aria-pressed="false">Tabela</button></div>
+      </div>
+      <div id="rcol"></div>
+    </div>
   </section>
 
   <section class="secao">
@@ -385,10 +496,9 @@
     <div class="grade g-73">
       <div class="card">
         <div class="card-hd">
-          <h3>Indisponíveis por polo</h3><span class="sub">cor = gerência</span>
+          <h3 id="tit-polo">Indisponíveis por gerência</h3><span class="sub" id="sub-polo"></span>
           <div class="tools"><button class="tbtn" data-tab="polo" aria-pressed="false">Tabela</button></div>
         </div>
-        <div id="ger-tiles" class="grade g-3" style="margin-bottom:14px"></div>
         <div id="polo"></div>
       </div>
       <div class="card">
@@ -405,15 +515,46 @@
     <h2>Detalhe</h2>
     <div class="card">
       <div class="card-hd">
-        <h3 id="det-tit">Novos indisponíveis</h3><span class="sub" id="det-sub"></span>
+        <h3 id="det-tit">Todos os indisponíveis</h3><span class="sub" id="det-sub"></span>
         <div class="abas" role="tablist">
-          <button class="aba" role="tab" data-det="novos" aria-selected="true">Novos</button>
+          <button class="aba" role="tab" data-det="todos" aria-selected="true">Todos</button>
+          <button class="aba" role="tab" data-det="novos" aria-selected="false">Novos</button>
           <button class="aba" role="tab" data-det="reg" aria-selected="false">Regularizados</button>
-          <button class="aba" role="tab" data-det="velhos" aria-selected="false">Mais antigos</button>
           <button class="aba" role="tab" data-det="perm" aria-selected="false">Permanecem</button>
         </div>
       </div>
+      <div class="filtros-lista">
+        <div class="campo"><label for="d-resp">Responsável</label><select id="d-resp"></select></div>
+        <div class="campo"><label for="d-ger">Gerência</label><select id="d-ger"></select></div>
+        <div class="campo"><label for="d-polo">Polo</label><select id="d-polo"></select></div>
+        <div class="campo"><label for="d-tipo">Tipo</label><select id="d-tipo"></select></div>
+        <div class="campo"><label for="d-busca">Equipamento</label><input id="d-busca" type="search" placeholder="número" autocomplete="off"></div>
+        <button class="btn" id="d-limpa" type="button">Limpar lista</button>
+        <span class="conta" id="d-conta"></span>
+      </div>
       <div id="det"></div>
+    </div>
+  </section>
+
+  <section class="secao" id="sec-notas">
+    <h2>Anotações e evidências</h2>
+    <div class="grade g-58">
+      <div class="card">
+        <div class="card-hd"><h3>Anotações</h3><span class="sub" id="sub-notas"></span></div>
+        <label class="rot-campo" for="nota-geral">Observações gerais da reunião</label>
+        <textarea id="nota-geral" class="ta-geral" placeholder="pontos discutidos, encaminhamentos, prazos"></textarea>
+        <div id="lista-notas"></div>
+        <div class="nota so-tela">Para anotar um equipamento, clique na coluna <b>Anotação</b> da lista de detalhe.</div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><h3>Evidências</h3><span class="sub" id="sub-evid"></span></div>
+        <div id="zona" class="zona" tabindex="0">
+          Arraste uma imagem aqui, cole com Ctrl+V ou
+          <label class="btn" for="img">selecione um arquivo</label>
+          <input type="file" id="img" accept="image/*" multiple hidden>
+        </div>
+        <div id="lista-evid" class="evid"></div>
+      </div>
     </div>
   </section>
 
@@ -3528,7 +3669,8 @@ function aplicaBase(b, origem) {
   st.b = Math.max(0, SEMANAS.length - 1);
   st.a = Math.max(0, SEMANAS.length - 2);
   st.ger = st.polo = st.tipo = st.resp = '';
-  st.det = 'novos'; st.tab = {};
+  st.det = 'todos'; st.dResp = st.dGer = st.dPolo = st.dTipo = st.dBusca = '';
+  st.dOrd = {col: 'dias', dir: -1}; st.dAssin = ''; st.tab = {};
 }
 
 /* ============================================================
@@ -3620,7 +3762,11 @@ const st = {
   b: SEMANAS.length - 1,
   a: SEMANAS.length - 2,
   ger: '', polo: '', tipo: '', resp: '',
-  det: 'novos',
+  det: 'todos',
+  respModo: 'tr',
+  dResp: '', dGer: '', dPolo: '', dTipo: '', dBusca: '',
+  dOrd: {col: 'dias', dir: -1},
+  dAssin: '',
   tab: {}
 };
 
@@ -3904,6 +4050,110 @@ function gResp(mA, mB) {
   };
 }
 
+/* --- colunas por responsabilidade, abertas por TR, gerência ou polo --- */
+function quebra(texto, max) {
+  const ps = String(texto).split(' '), linhas = [];
+  let cur = '';
+  ps.forEach(w => {
+    if (!cur) cur = w;
+    else if ((cur + ' ' + w).length <= max) cur += ' ' + w;
+    else { linhas.push(cur); cur = w; }
+  });
+  if (cur) linhas.push(cur);
+  if (linhas.length > 2) { linhas[1] = corta(linhas.slice(1).join(' '), max); linhas.length = 2; }
+  return linhas;
+}
+function corGrupo(g) {
+  return g === 'Execução Regional' ? COR.s1 : g === 'NGE-TR' ? COR.s2 : COR.s3;
+}
+function gRespColuna(mA, mB) {
+  const modo = st.respModo;
+  const cats = RESPONSAVEIS.filter(r => {
+    let usa = false;
+    mB.forEach(l => { if (RESPONSAVEIS[l[R]] === r) usa = true; });
+    mA.forEach(l => { if (RESPONSAVEIS[l[R]] === r) usa = true; });
+    return usa;
+  });
+  if (!cats.length) return {svg: '<div class="vazio">Sem dados no filtro atual.</div>', tabela: null};
+
+  const segs = modo === 'tr' ? ['total']
+    : modo === 'ger' ? GERS.filter(g => (GER_POLOS[g] || []).length)
+    : POLOS.filter(p => !st.ger || POLO_GER[p] === st.ger).filter(p => !st.polo || p === st.polo);
+  const segCor = s => modo === 'tr' ? null : (modo === 'ger' ? COR.ger[s] : COR.ger[POLO_GER[s]]);
+  const segDe = l => modo === 'tr' ? 'total' : (modo === 'ger' ? POLO_GER[POLOS[l[P]]] : POLOS[l[P]]);
+
+  const mapa = {}, totB = {}, totA = {};
+  cats.forEach(r => { mapa[r] = {}; segs.forEach(s => mapa[r][s] = 0); totB[r] = 0; totA[r] = 0; });
+  mB.forEach(l => { const r = RESPONSAVEIS[l[R]]; if (!mapa[r]) return; const s = segDe(l);
+    if (s in mapa[r]) mapa[r][s]++; totB[r]++; });
+  mA.forEach(l => { const r = RESPONSAVEIS[l[R]]; if (r in totA) totA[r]++; });
+  cats.sort((a, b) => totB[b] - totB[a] || a.localeCompare(b, 'pt-BR'));
+
+  const W = 1400, H = 430, ml = 58, mr = 24, mt = 44, mb = 108;
+  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
+  const max = escalaMax(Math.max(1, ...cats.map(r => totB[r])) * 1.12);
+  const y = v => py1 - (v / max) * (py1 - py0);
+  const marcas = marcasY(max);
+  let s = grade(px0, px1, marcas.map(y));
+  s += marcas.map(v => txt(px0 - 9, y(v) + 4, fmt(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1})).join('');
+
+  const banda = (px1 - px0) / cats.length;
+  const bw = Math.min(24, banda * 0.44);
+  const maxChars = Math.max(9, Math.floor(banda / 7.4));
+
+  cats.forEach((r, i) => {
+    const cx = px0 + banda * i + banda / 2, grupo = grupoResp(r);
+    let acum = 0;
+    segs.forEach(sg => {
+      const v = mapa[r][sg];
+      if (!v) return;
+      const yTopo = y(acum + v), yBase = y(acum);
+      const alt = Math.max(1, yBase - yTopo - (acum ? 2 : 0));       /* 2px de respiro entre faixas */
+      const cor = modo === 'tr' ? corGrupo(grupo) : segCor(sg);
+      const rot = modo === 'tr' ? grupo : (modo === 'ger' ? sg : 'Polo ' + sg);
+      const dica = `<b>${fmt(v)}</b><br><span class="l">${r} · ${rot}</span>`;
+      const ultimo = acum + v >= totB[r] - 0.5;
+      s += ultimo
+        ? colunaSVG(cx - bw / 2, yTopo, bw, alt, cor, dica)
+        : `<rect x="${cx - bw / 2}" y="${yTopo}" width="${bw}" height="${alt}" fill="${cor}" class="hit" data-t="${esc(dica)}"/>`;
+      if (modo === 'polo' && alt >= 15) {
+        s += txt(cx, yTopo + alt / 2 + 4, sg, {cor: tintaSobre(cor), tam: 10.5, anc: 'middle', peso: 700});
+      } else if (modo === 'ger' && alt >= 17) {
+        s += txt(cx, yTopo + alt / 2 + 5, fmt(v), {cor: tintaSobre(cor), tam: 12, anc: 'middle', peso: 650});
+      }
+      acum += v;
+    });
+    s += txt(cx, y(totB[r]) - 11, fmt(totB[r]), {cor: COR.t1, tam: 19, peso: 650, anc: 'middle'});
+    const linhasRot = quebra(r, maxChars);
+    linhasRot.forEach((ln, k) => s += txt(cx, py1 + 21 + k * 15, ln, {cor: COR.t1, tam: 12.5, anc: 'middle', peso: 600}));
+    const baseY = py1 + 21 + linhasRot.length * 15;
+    if (grupo !== r) s += txt(cx, baseY + 2, grupo, {cor: COR.t3, tam: 11, anc: 'middle'});
+    else s += txt(cx, baseY + 2, 'individual', {cor: COR.t3, tam: 11, anc: 'middle'});
+    const dv = totB[r] - totA[r];
+    s += txt(cx, baseY + 19, `${seta(dv)} ${sinal(dv)}`, {
+      cor: dv === 0 ? COR.t3 : (dv < 0 ? '#006300' : COR.ruim), tam: 12, anc: 'middle', peso: 650
+    });
+  });
+  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+
+  const chaves = modo === 'tr'
+    ? ['Execução Regional', 'NGE-TR', 'individual'].map(g => ({cor: corGrupo(g), rot: g}))
+    : modo === 'ger'
+      ? segs.map(g => ({cor: COR.ger[g], rot: g}))
+      : GERS.filter(g => segs.some(p => POLO_GER[p] === g))
+            .map(g => ({cor: COR.ger[g], rot: g + ' — faixas: ' + (GER_POLOS[g] || []).join(', ')}));
+  return {
+    svg: svgRoot(W, H, s),
+    pe: legenda(chaves),
+    tabela: {
+      cab: ['Responsável', 'Grupo'].concat(modo === 'tr' ? [] : segs).concat(['Total', 'Anterior', 'Variação']),
+      linhas: cats.map(r => [esc(r), esc(grupoResp(r) === r ? 'individual' : grupoResp(r))]
+        .concat(modo === 'tr' ? [] : segs.map(sg => fmt(mapa[r][sg])))
+        .concat([fmt(totB[r]), fmt(totA[r]), sinal(totB[r] - totA[r])]))
+    }
+  };
+}
+
 /* --- mapa de calor: responsabilidade x faixa --- */
 function gMapa(mB) {
   const cats = GRUPOS.slice();
@@ -3947,11 +4197,15 @@ function gMapa(mB) {
   };
 }
 
-/* --- polos --- */
+/* --- polos / gerências: TR abre as três gerências, uma gerência abre seus polos --- */
 function gPolo(mA, mB) {
-  const cA = contaPor(mA, l => POLOS[l[P]]);
-  const cB = contaPor(mB, l => POLOS[l[P]]);
-  const cats = POLOS.filter(p => (!st.ger || POLO_GER[p] === st.ger) && (!st.polo || p === st.polo));
+  const porGerencia = !st.ger;
+  const dim = l => porGerencia ? POLO_GER[POLOS[l[P]]] : POLOS[l[P]];
+  const cA = contaPor(mA, dim);
+  const cB = contaPor(mB, dim);
+  const cats = porGerencia
+    ? GERS.slice()
+    : (GER_POLOS[st.ger] || []).filter(p => !st.polo || p === st.polo);
   const W = 900, H = 330, ml = 50, mr = 20, mt = 44, mb = 66;
   const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
   const max = escalaMax(Math.max(1, ...cats.map(p => Math.max(pega(cB, p), pega(cA, p)))) * 1.12);
@@ -3963,24 +4217,33 @@ function gPolo(mA, mB) {
   const bw = Math.min(24, banda * 0.44);
   cats.forEach((p, i) => {
     const cx = px0 + banda * i + banda / 2, vb = pega(cB, p), va = pega(cA, p), dv = vb - va;
-    const g = POLO_GER[p];
-    const dica = `<b>${fmt(vb)}</b><br><span class="l">Polo ${p} · ${g} · anterior ${fmt(va)} (${sinal(dv)})</span>`;
+    const g = porGerencia ? p : POLO_GER[p];
+    const onde = porGerencia
+      ? `Gerência ${p} · ${(GER_POLOS[p] || []).join(', ')}`
+      : `Polo ${p} · ${g}`;
+    const dica = `<b>${fmt(vb)}</b><br><span class="l">${onde} · anterior ${fmt(va)} (${sinal(dv)})</span>`;
     s += colunaSVG(cx - bw / 2, y(vb), bw, Math.max(2, py1 - y(vb)), COR.ger[g], dica);
     s += `<line x1="${cx - bw / 2 - 7}" y1="${y(va)}" x2="${cx + bw / 2 + 7}" y2="${y(va)}" stroke="${COR.t3}" stroke-width="2" stroke-linecap="round"/>`;
     s += txt(cx, Math.min(y(vb), y(va)) - 11, fmt(vb), {cor: COR.t1, tam: 18, peso: 650, anc: 'middle'});
-    s += txt(cx, py1 + 22, p, {cor: COR.t1, tam: 14, anc: 'middle', peso: 700});
+    s += txt(cx, py1 + 22, p, {cor: COR.t1, tam: porGerencia ? 15 : 14, anc: 'middle', peso: 700});
     s += txt(cx, py1 + 41, `${seta(dv)} ${sinal(dv)}`, {
       cor: dv === 0 ? COR.t3 : (dv < 0 ? '#006300' : COR.ruim), tam: 12.5, anc: 'middle', peso: 650
     });
   });
   s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+  const chaves = porGerencia
+    ? GERS.map(g => ({cor: COR.ger[g], rot: g + ' (' + (GER_POLOS[g] || []).join(', ') + ')'}))
+    : [{cor: COR.ger[st.ger] || COR.s2, rot: st.ger}];
   return {
     svg: svgRoot(W, H, s),
-    pe: legenda(GERS.map(g => ({cor: COR.ger[g], rot: g + ' (' + GER_POLOS[g].join(', ') + ')'}))
-                .concat([{cor: COR.t3, rot: 'traço — semana anterior', linha: true}])),
+    pe: legenda(chaves.concat([{cor: COR.t3, rot: 'traço — semana anterior', linha: true}])),
     tabela: {
-      cab: ['Polo', 'Gerência', 'Atual', 'Anterior', 'Variação'],
-      linhas: cats.map(p => [p, POLO_GER[p], fmt(pega(cB, p)), fmt(pega(cA, p)), sinal(pega(cB, p) - pega(cA, p))])
+      cab: [porGerencia ? 'Gerência' : 'Polo', porGerencia ? 'Polos' : 'Gerência', 'Atual', 'Anterior', 'Variação'],
+      linhas: cats.map(p => [
+        p,
+        porGerencia ? (GER_POLOS[p] || []).join(', ') : POLO_GER[p],
+        fmt(pega(cB, p)), fmt(pega(cA, p)), sinal(pega(cB, p) - pega(cA, p))
+      ])
     }
   };
 }
@@ -4086,55 +4349,277 @@ function pintaKPIs(mA, mB, novos, reg) {
   $('#kpis').innerHTML = tiles.join('');
 }
 
-function pintaGerencias(mA, mB) {
-  const cA = contaPor(mA, l => POLO_GER[POLOS[l[P]]]);
-  const cB = contaPor(mB, l => POLO_GER[POLOS[l[P]]]);
-  $('#ger-tiles').innerHTML = GERS.map(g => {
-    const vb = pega(cB, g), dv = vb - pega(cA, g);
-    return `<div style="border:1px solid var(--borda);border-radius:11px;padding:10px 12px">
-      <div style="display:flex;align-items:center;gap:8px">
-        <i class="sw" style="background:${COR.ger[g]}"></i>
-        <span style="font-size:12.5px;font-weight:650;color:var(--tinta-2)">${g}</span>
-      </div>
-      <div style="display:flex;align-items:baseline;gap:9px;margin-top:2px">
-        <span style="font-size:30px;font-weight:650;letter-spacing:-.02em">${fmt(vb)}</span>
-        ${chip(dv)}
-      </div>
-      <div style="font-size:11.5px;color:var(--tinta-3)">${GER_POLOS[g].join(' · ')}</div>
-    </div>`;
-  }).join('');
+
+const COLS_DET = [
+  {k: 'equip', r: 'Equip.',      num: 0},
+  {k: 'tipo',  r: 'Tipo',        num: 0},
+  {k: 'polo',  r: 'Polo',        num: 0},
+  {k: 'ger',   r: 'Gerência',    num: 0},
+  {k: 'dias',  r: 'Dias',        num: 1},
+  {k: 'faixa', r: 'Faixa',       num: 1},
+  {k: 'resp',  r: 'Responsável', num: 0},
+  {k: 'nota',  r: 'Anotação',    num: 0}
+];
+const VAL_DET = {
+  equip: x => String(x.l[E]),
+  tipo:  x => TIPOS[x.l[T]],
+  polo:  x => POLOS[x.l[P]],
+  ger:   x => POLO_GER[POLOS[x.l[P]]],
+  dias:  x => x.l[D],
+  faixa: x => x.l[D],
+  resp:  x => RESPONSAVEIS[x.l[R]],
+  mais:  x => x.mais || 0,
+  nota:  x => NOTAS[String(x.l[E])] || ''
+};
+
+function opcoesDetalhe(oResp, oGer, oPolo, oTipo) {
+  const assin = [oResp.join('~'), oGer.join('~'), oPolo.join('~'), oTipo.join('~')].join('|');
+  if (assin === st.dAssin) return;
+  st.dAssin = assin;
+  const monta = (sel, itens, rotulo, valor) => opcoes($('#' + sel),
+    [{v: '', r: rotulo}].concat(itens.map(i => ({v: i, r: i}))), valor);
+  monta('d-resp', oResp, 'Todos os responsáveis', st.dResp);
+  monta('d-ger',  oGer,  'Todas as gerências',    st.dGer);
+  monta('d-polo', oPolo, 'Todos os polos',        st.dPolo);
+  monta('d-tipo', oTipo, 'Todos os tipos',        st.dTipo);
 }
 
 function pintaDetalhe(mA, mB, novos, reg) {
-  const tit = {novos:'Novos indisponíveis', reg:'Regularizados na semana', velhos:'Maiores prazos', perm:'Permanecem indisponíveis'};
+  const tit = {
+    todos: 'Todos os indisponíveis', novos: 'Novos indisponíveis',
+    reg: 'Regularizados na semana',  perm: 'Permanecem indisponíveis'
+  };
   $('#det-tit').textContent = tit[st.det];
-  const linha = l => [
-    String(l[E]), TIPOS[l[T]], POLOS[l[P]], POLO_GER[POLOS[l[P]]],
-    fmt(l[D]), FAIXAS[faixaDe(l[D])], RESPONSAVEIS[l[R]]
-  ];
-  const cab = ['Equip.', 'Tipo', 'Polo', 'Gerência', 'Dias', 'Faixa', 'Responsável'];
-  let linhas = [], sub = '';
-  if (st.det === 'novos') {
-    linhas = novos.slice().sort((a, b) => b[D] - a[D]).map(linha);
-    sub = `${fmt(novos.length)} equipamento(s) presentes em ${dcurta(SEMANAS[st.b])} e ausentes em ${dcurta(SEMANAS[st.a])}`;
-  } else if (st.det === 'reg') {
-    linhas = reg.slice().sort((a, b) => b[D] - a[D]).map(linha);
-    sub = `${fmt(reg.length)} equipamento(s) presentes em ${dcurta(SEMANAS[st.a])} e ausentes em ${dcurta(SEMANAS[st.b])}`;
-  } else if (st.det === 'velhos') {
-    const t = Array.from(mB.values()).sort((a, b) => b[D] - a[D]).slice(0, 60);
-    linhas = t.map(linha);
-    sub = `60 maiores prazos em ${dcurta(SEMANAS[st.b])}`;
-  } else {
-    const t = Array.from(mB.values()).filter(l => mA.has(l[E])).sort((a, b) => b[D] - a[D]);
-    linhas = t.map(l => linha(l).concat([fmt(l[D] - mA.get(l[E])[D])]));
-    sub = `${fmt(t.length)} equipamento(s) nas duas semanas`;
+
+  let itens;
+  if (st.det === 'novos')      itens = novos.map(l => ({l}));
+  else if (st.det === 'reg')   itens = reg.map(l => ({l}));
+  else if (st.det === 'perm')  itens = Array.from(mB.values()).filter(l => mA.has(l[E]))
+                                        .map(l => ({l, mais: l[D] - mA.get(l[E])[D]}));
+  else                         itens = Array.from(mB.values()).map(l => ({l}));
+
+  /* cada campo oferece só o que existe considerando os demais, para não cair em lista vazia */
+  const busca = st.dBusca.trim().toLowerCase();
+  const passaDet = (x, exceto) =>
+    (exceto === 'resp' || !st.dResp || VAL_DET.resp(x) === st.dResp) &&
+    (exceto === 'ger'  || !st.dGer  || VAL_DET.ger(x)  === st.dGer)  &&
+    (exceto === 'polo' || !st.dPolo || VAL_DET.polo(x) === st.dPolo) &&
+    (exceto === 'tipo' || !st.dTipo || VAL_DET.tipo(x) === st.dTipo) &&
+    (!busca || String(x.l[E]).toLowerCase().indexOf(busca) >= 0);
+  const unicos = campo => Array.from(new Set(itens.filter(x => passaDet(x, campo)).map(VAL_DET[campo])))
+    .sort((a, b) => String(a).localeCompare(String(b), 'pt-BR'));
+  const oResp = unicos('resp'), oGer = unicos('ger'), oPolo = unicos('polo'), oTipo = unicos('tipo');
+  if (st.dResp && oResp.indexOf(st.dResp) < 0) st.dResp = '';
+  if (st.dGer  && oGer.indexOf(st.dGer)   < 0) st.dGer  = '';
+  if (st.dPolo && oPolo.indexOf(st.dPolo) < 0) st.dPolo = '';
+  if (st.dTipo && oTipo.indexOf(st.dTipo) < 0) st.dTipo = '';
+  opcoesDetalhe(oResp, oGer, oPolo, oTipo);
+
+  const lista = itens.filter(x => passaDet(x, null));
+
+  const cols = st.det === 'perm'
+    ? COLS_DET.slice(0, -1).concat([{k: 'mais', r: 'Dias +', num: 1}, COLS_DET[COLS_DET.length - 1]])
+    : COLS_DET.slice();
+  const oc = cols.some(c => c.k === st.dOrd.col) ? st.dOrd.col : 'dias';
+  const dir = st.dOrd.dir, val = VAL_DET[oc];
+  lista.sort((a, b) => {
+    const va = val(a), vb = val(b);
+    const c = (typeof va === 'number' && typeof vb === 'number')
+      ? va - vb : String(va).localeCompare(String(vb), 'pt-BR');
+    return c * dir || VAL_DET.dias(b) - VAL_DET.dias(a);
+  });
+
+  $('#det-sub').textContent = `semana de ${dlonga(SEMANAS[st.b])}`;
+  $('#d-conta').innerHTML = `<b>${fmt(lista.length)}</b> de ${fmt(itens.length)} equipamentos`;
+
+  if (!lista.length) {
+    $('#det').innerHTML = '<div class="vazio">Nenhum equipamento com os filtros aplicados. ' +
+      'Ajuste os filtros desta lista ou os do topo da página.</div>';
+    return;
   }
-  $('#det-sub').textContent = sub;
-  const c = st.det === 'perm' ? cab.concat(['Dias +']) : cab;
-  $('#det').innerHTML = linhas.length
-    ? tabelaHTML({cab: c, linhas})
-    : '<div class="vazio">Nenhum equipamento nesta condição para o filtro atual.</div>';
+
+  const cab = cols.map(c => {
+    const ativa = c.k === oc;
+    return `<th scope="col" class="ord" data-ord="${c.k}" title="ordenar por ${esc(c.r)}">` +
+           `${esc(c.r)}${ativa ? ` <span class="dir">${dir < 0 ? '▼' : '▲'}</span>` : ''}</th>`;
+  }).join('');
+  const corpo = lista.map(x => {
+    const l = x.l, eq = String(l[E]);
+    const cel = {
+      equip: eq, tipo: TIPOS[l[T]], polo: POLOS[l[P]],
+      ger: POLO_GER[POLOS[l[P]]], dias: fmt(l[D]), faixa: FAIXAS[faixaDe(l[D])],
+      resp: RESPONSAVEIS[l[R]], mais: sinal(x.mais || 0)
+    };
+    const tds = cols.map(c => c.k === 'nota'
+      ? `<td class="cel-nota" data-eq="${esc(eq)}">${celulaNota(eq)}</td>`
+      : `<td>${esc(cel[c.k])}</td>`).join('');
+    return `<tr${NOTAS[eq] ? ' class="tem-nota"' : ''}>${tds}</tr>`;
+  }).join('');
+  $('#det').innerHTML =
+    `<div class="tab-wrap alta"><table class="dt"><thead><tr>${cab}</tr></thead><tbody>${corpo}</tbody></table></div>`;
 }
+
+/* ============================================================
+   ANOTAÇÕES E EVIDÊNCIAS
+   ============================================================ */
+const CHAVE_NOTAS = 'nge-anotacoes-v1';
+let NOTAS = {}, EVID = [], NOTA_GERAL = '', ARMAZEM_OK = true;
+
+function guardaAnotacoes() {
+  try {
+    localStorage.setItem(CHAVE_NOTAS, JSON.stringify({notas: NOTAS, evid: EVID, geral: NOTA_GERAL}));
+    ARMAZEM_OK = true;
+  } catch (e) { ARMAZEM_OK = false; }
+}
+function recuperaAnotacoes() {
+  try {
+    const s = localStorage.getItem(CHAVE_NOTAS);
+    if (!s) return;
+    const o = JSON.parse(s) || {};
+    NOTAS = o.notas || {}; EVID = o.evid || []; NOTA_GERAL = o.geral || '';
+  } catch (e) {}
+}
+function celulaNota(eq) {
+  const t = NOTAS[eq];
+  return t ? esc(t) : '<span class="add">anotar</span>';
+}
+/* procura o equipamento na semana atual e, se não estiver, na mais recente em que aparece */
+function achaEquip(eq) {
+  for (let i = st.b; i >= 0; i--) {
+    for (const l of PORSEM[i].values()) if (String(l[E]) === eq) return {l, semana: i};
+  }
+  for (let i = st.b + 1; i < SEMANAS.length; i++) {
+    for (const l of PORSEM[i].values()) if (String(l[E]) === eq) return {l, semana: i};
+  }
+  return null;
+}
+function editaNota(alvo, eq, aoFechar) {
+  if (alvo.querySelector('textarea')) return;
+  const ta = document.createElement('textarea');
+  ta.className = 'ta-nota'; ta.rows = 2; ta.value = NOTAS[eq] || '';
+  alvo.textContent = ''; alvo.appendChild(ta);
+  ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+  let cancelado = false;
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { cancelado = true; ta.blur(); }
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); ta.blur(); }
+  });
+  ta.addEventListener('blur', () => {
+    if (!cancelado) {
+      const v = ta.value.trim();
+      if (v) NOTAS[eq] = v; else delete NOTAS[eq];
+      guardaAnotacoes();
+    }
+    aoFechar();
+  });
+}
+function pintaAnotacoes() {
+  const eqs = Object.keys(NOTAS).sort((a, b) => {
+    const ea = achaEquip(a), eb = achaEquip(b);
+    return ((eb && eb.l[D]) || 0) - ((ea && ea.l[D]) || 0);
+  });
+  $('#sub-notas').textContent = eqs.length
+    ? `${fmt(eqs.length)} equipamento(s) anotado(s)` : 'nenhum equipamento anotado';
+  $('#lista-notas').innerHTML = eqs.map(eq => {
+    const r = achaEquip(eq);
+    const ctx = r
+      ? `${TIPOS[r.l[T]]} · ${POLOS[r.l[P]]} · ${POLO_GER[POLOS[r.l[P]]]} · ${fmt(r.l[D])} dias · ${RESPONSAVEIS[r.l[R]]}` +
+        (r.semana === st.b ? '' : ` · visto em ${dcurta(SEMANAS[r.semana])}`)
+      : 'equipamento fora da base carregada';
+    return `<div class="nota-item">
+      <div class="ni-cab"><b>${esc(eq)}</b><span>${esc(ctx)}</span>
+        <button class="x" data-rm-nota="${esc(eq)}" type="button">remover</button></div>
+      <div class="ni-txt" data-eq="${esc(eq)}">${esc(NOTAS[eq])}</div>
+    </div>`;
+  }).join('');
+
+  const bytes = EVID.reduce((n, e) => n + (e.url ? e.url.length : 0), 0) * 0.75;
+  const tam = bytes > 1048576 ? (bytes / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(bytes / 1024)) + ' KB';
+  $('#sub-evid').textContent = EVID.length
+    ? `${fmt(EVID.length)} imagem(ns) · ${tam}` + (ARMAZEM_OK ? '' : ' · não coube no navegador, vale só nesta sessão')
+    : 'nenhuma imagem';
+  $('#sec-notas').classList.toggle('vazia', !eqs.length && !EVID.length && !NOTA_GERAL.trim());
+  $('#lista-evid').innerHTML = EVID.map(e => `<figure class="ev">
+      <img src="${e.url}" alt="${esc(e.legenda || 'evidência')}">
+      <figcaption>
+        <input type="text" value="${esc(e.legenda || '')}" data-leg="${e.id}" placeholder="legenda">
+        <button class="x" data-rm-ev="${e.id}" type="button">remover</button>
+      </figcaption>
+    </figure>`).join('');
+  const g = $('#nota-geral');
+  if (document.activeElement !== g && g.value !== NOTA_GERAL) g.value = NOTA_GERAL;
+}
+function adicionaImagem(arq) {
+  if (!arq || !/^image\//.test(arq.type)) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const lim = 1400, k = Math.min(1, lim / img.width);
+      const cv = document.createElement('canvas');
+      cv.width = Math.max(1, Math.round(img.width * k));
+      cv.height = Math.max(1, Math.round(img.height * k));
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      EVID.push({
+        id: 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        legenda: '', url: cv.toDataURL('image/jpeg', 0.75)
+      });
+      guardaAnotacoes(); pintaAnotacoes();
+    };
+    img.onerror = () => {};
+    img.src = String(fr.result);
+  };
+  fr.readAsDataURL(arq);
+}
+
+$('#nota-geral').addEventListener('input', e => { NOTA_GERAL = e.target.value; guardaAnotacoes(); });
+$('#lista-notas').addEventListener('click', ev => {
+  const rm = ev.target.closest && ev.target.closest('[data-rm-nota]');
+  if (rm) { delete NOTAS[rm.dataset.rmNota]; guardaAnotacoes(); render(); return; }
+  const txt = ev.target.closest && ev.target.closest('.ni-txt');
+  if (txt) editaNota(txt, txt.dataset.eq, () => render());
+});
+$('#lista-evid').addEventListener('click', ev => {
+  const rm = ev.target.closest && ev.target.closest('[data-rm-ev]');
+  if (!rm) return;
+  EVID = EVID.filter(x => x.id !== rm.dataset.rmEv);
+  guardaAnotacoes(); pintaAnotacoes();
+});
+$('#lista-evid').addEventListener('input', ev => {
+  const c = ev.target.closest && ev.target.closest('[data-leg]');
+  if (!c) return;
+  const e = EVID.find(x => x.id === c.dataset.leg);
+  if (e) { e.legenda = c.value; guardaAnotacoes(); }
+});
+$('#img').addEventListener('change', ev => {
+  Array.from(ev.target.files || []).forEach(adicionaImagem);
+  ev.target.value = '';
+});
+const zona = $('#zona');
+['dragenter', 'dragover'].forEach(n => zona.addEventListener(n, e => {
+  e.preventDefault(); zona.classList.add('sobre');
+}));
+['dragleave', 'drop'].forEach(n => zona.addEventListener(n, e => {
+  e.preventDefault(); zona.classList.remove('sobre');
+}));
+zona.addEventListener('drop', e => {
+  Array.from((e.dataTransfer && e.dataTransfer.files) || []).forEach(adicionaImagem);
+});
+document.addEventListener('paste', e => {
+  const t = e.target;
+  if (t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT' || t.isContentEditable)) return;
+  const itens = (e.clipboardData && e.clipboardData.items) || [];
+  let achou = false;
+  Array.from(itens).forEach(i => {
+    if (i.type && i.type.indexOf('image') === 0) { adicionaImagem(i.getAsFile()); achou = true; }
+  });
+  if (achou) { e.preventDefault(); $('#sec-notas').scrollIntoView({block: 'nearest'}); }
+});
+$('#bt-pdf').addEventListener('click', () => {
+  $('#painel').hidden = true;
+  $('#bt-dados').setAttribute('aria-expanded', 'false');
+  window.print();
+});
 
 /* ============================================================
    RENDER
@@ -4160,6 +4645,10 @@ function render() {
   $('#sub-faixa').textContent = `semana de ${dlonga(SEMANAS[st.b])}`;
   $('#sub-resp').textContent = `${fmt(mB.size)} equipamentos`;
   $('#sub-tipo').textContent = `semana atual`;
+  $('#tit-polo').textContent = st.ger ? 'Indisponíveis por polo' : 'Indisponíveis por gerência';
+  $('#sub-polo').textContent = st.ger
+    ? `${st.ger} · ${(GER_POLOS[st.ger] || []).join(', ')}`
+    : 'TR · três gerências';
 
   pintaKPIs(mA, mB, novos, reg);
   pinta('casc',  gCascata(mA.size, mB.size, novos.length, reg.length));
@@ -4168,10 +4657,19 @@ function render() {
   pinta('comp',  gComposicao(mA, mB));
   pinta('resp',  gResp(mA, mB));
   pinta('mapa',  gMapa(mB));
-  pintaGerencias(mA, mB);
+  pinta('rcol',  gRespColuna(mA, mB));
+  $('#sub-rcol').textContent = st.respModo === 'tr'
+    ? 'total por responsável · cor = grupo'
+    : st.respModo === 'ger' ? 'aberto por gerência' : 'aberto por polo · cor = gerência';
   pinta('polo',  gPolo(mA, mB));
   pinta('tipo',  gTipo(mA, mB));
   pintaDetalhe(mA, mB, novos, reg);
+  pintaAnotacoes();
+  const agora = new Date();
+  $('#imp-cab').textContent =
+    `Semana ${dlonga(SEMANAS[st.b])} · comparação ${st.a === st.b ? '—' : dlonga(SEMANAS[st.a])} · ` +
+    `escopo ${escopo} · lista: ${$('#det-tit').textContent.toLowerCase()} · ` +
+    `emitido em ${agora.toLocaleDateString('pt-BR')} ${agora.toLocaleTimeString('pt-BR').slice(0, 5)}`;
 
   $('#rodape').innerHTML =
     `Base ${esc(ORIGEM)}: ${fmt(LINHAS.length)} registros · ${fmt(SEMANAS.length)} semanas (${dlonga(SEMANAS[0])} a ${dlonga(SEMANAS[SEMANAS.length - 1])}) · ` +
@@ -4223,10 +4721,49 @@ $$('.tbtn').forEach(b => b.addEventListener('click', () => {
   const id = b.dataset.tab;
   if (st.tab[id]) pinta(id, st.tab[id]);
 }));
-$$('.aba').forEach(b => b.addEventListener('click', () => {
-  $$('.aba').forEach(o => o.setAttribute('aria-selected', 'false'));
+function ligaDetalhe(id, campo) {
+  $('#' + id).addEventListener(id === 'd-busca' ? 'input' : 'change', e => {
+    st[campo] = e.target.value; render();
+  });
+}
+ligaDetalhe('d-resp', 'dResp'); ligaDetalhe('d-ger', 'dGer');
+ligaDetalhe('d-polo', 'dPolo'); ligaDetalhe('d-tipo', 'dTipo');
+ligaDetalhe('d-busca', 'dBusca');
+$('#d-limpa').addEventListener('click', () => {
+  st.dResp = st.dGer = st.dPolo = st.dTipo = st.dBusca = '';
+  st.dAssin = ''; $('#d-busca').value = '';
+  render();
+});
+$('#det').addEventListener('click', ev => {
+  const td = ev.target.closest && ev.target.closest('td.cel-nota');
+  if (td) {
+    const eq = td.dataset.eq;
+    editaNota(td, eq, () => {
+      td.innerHTML = celulaNota(eq);
+      const tr = td.closest('tr');
+      if (tr) tr.className = NOTAS[eq] ? 'tem-nota' : '';
+      pintaAnotacoes();
+    });
+    return;
+  }
+  const th = ev.target.closest && ev.target.closest('th[data-ord]');
+  if (!th) return;
+  const c = th.dataset.ord;
+  if (st.dOrd.col === c) st.dOrd.dir *= -1;
+  else st.dOrd = {col: c, dir: (c === 'dias' || c === 'faixa' || c === 'mais') ? -1 : 1};
+  render();
+});
+
+$$('.aba[data-det]').forEach(b => b.addEventListener('click', () => {
+  $$('.aba[data-det]').forEach(o => o.setAttribute('aria-selected', 'false'));
   b.setAttribute('aria-selected', 'true');
   st.det = b.dataset.det;
+  render();
+}));
+$$('.aba[data-rmodo]').forEach(b => b.addEventListener('click', () => {
+  $$('.aba[data-rmodo]').forEach(o => o.setAttribute('aria-selected', 'false'));
+  b.setAttribute('aria-selected', 'true');
+  st.respModo = b.dataset.rmodo;
   render();
 }));
 
@@ -4303,12 +4840,16 @@ function leTabela(texto) {
   const linhas = texto.replace(/\r/g, '').split('\n').filter(l => l.trim() !== '');
   if (!linhas.length) return {erro: 'Não há nada para ler.'};
   const sep = detectaSep(linhas);
+  return montaBase(linhas.map(l => separaLinha(l, sep)));
+}
+function montaBase(matriz) {
   const ruins = [], vistos = new Set();
   const regs = [];
   let dup = 0, cabecalho = false;
 
-  linhas.forEach((ln, i) => {
-    const c = separaLinha(ln, sep).map(x => x.trim().replace(/\s+/g, ' '));
+  matriz.forEach((bruta, i) => {
+    const c = (bruta || []).map(x => String(x == null ? '' : x).trim().replace(/\s+/g, ' '));
+    if (c.slice(0, 6).every(v => v === '')) return;                    /* linha em branco */
     if (c.length < 6) { if (i === 0) { cabecalho = true; return; } ruins.push([i + 1, 'menos de 6 colunas']); return; }
     const data = leData(c[0]), dias = leNumero(c[4]);
     if (data === null || !isFinite(dias)) {
@@ -4351,8 +4892,124 @@ function leTabela(texto) {
       semanas, tipos, polos, responsaveis: resps,
       linhas: regs.map(r => [iS[r.data], r.equip, iT[r.tipo], iP[r.polo], r.dias, iR[r.resp]])
     },
-    ruins, dup, cabecalho, lidas: regs.length, total: linhas.length
+    ruins, dup, cabecalho, lidas: regs.length, total: matriz.length
   };
+}
+
+/* ---------- .xlsx: o arquivo é um zip de XML, aberto aqui sem biblioteca ---------- */
+function abreZip(buf) {
+  const u8 = new Uint8Array(buf), dv = new DataView(buf);
+  let eocd = -1;
+  for (let i = u8.length - 22; i >= Math.max(0, u8.length - 66000); i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('não parece um arquivo .xlsx válido');
+  const n = dv.getUint16(eocd + 10, true);
+  let off = dv.getUint32(eocd + 16, true);
+  const itens = new Map();
+  for (let k = 0; k < n && off + 46 <= u8.length; k++) {
+    if (dv.getUint32(off, true) !== 0x02014b50) break;
+    const metodo = dv.getUint16(off + 10, true);
+    const comp = dv.getUint32(off + 20, true);
+    const nl = dv.getUint16(off + 28, true), el = dv.getUint16(off + 30, true), cl = dv.getUint16(off + 32, true);
+    const local = dv.getUint32(off + 42, true);
+    itens.set(new TextDecoder().decode(u8.subarray(off + 46, off + 46 + nl)), {metodo, comp, local});
+    off += 46 + nl + el + cl;
+  }
+  return {u8, dv, itens};
+}
+async function extraiZip(zip, nome) {
+  const it = zip.itens.get(nome);
+  if (!it) return null;
+  if (zip.dv.getUint32(it.local, true) !== 0x04034b50) return null;
+  const nl = zip.dv.getUint16(it.local + 26, true), el = zip.dv.getUint16(it.local + 28, true);
+  const ini = it.local + 30 + nl + el;
+  const dados = zip.u8.subarray(ini, ini + it.comp);
+  if (it.metodo === 0) return new TextDecoder('utf-8').decode(dados);
+  if (it.metodo !== 8) throw new Error('compressão não suportada dentro do .xlsx');
+  if (typeof DecompressionStream === 'undefined') throw new Error('SEM_DESCOMPRESSAO');
+  const fluxo = new Blob([dados]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return new TextDecoder('utf-8').decode(await new Response(fluxo).arrayBuffer());
+}
+function xmlDoc(t) { return new DOMParser().parseFromString(t, 'application/xml'); }
+function porNome(no, nome) {
+  const dir = no.getElementsByTagName(nome);
+  if (dir.length) return Array.from(dir);
+  return Array.from(no.getElementsByTagName('*')).filter(e => e.localName === nome);
+}
+function textoDe(no, nome) {
+  return porNome(no, nome).map(e => e.textContent).join('');
+}
+function colunaDe(ref, padrao) {
+  const m = /^([A-Za-z]+)/.exec(ref || '');
+  if (!m) return padrao;
+  let n = 0;
+  for (const ch of m[1].toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n - 1;
+}
+function matrizDaAba(xmlTexto, textos) {
+  const doc = xmlDoc(xmlTexto);
+  const linhas = [];
+  porNome(doc, 'row').forEach(tr => {
+    const cels = [];
+    let prox = 0;
+    Array.from(tr.children).forEach(c => {
+      if (c.localName !== 'c') return;
+      const col = colunaDe(c.getAttribute('r'), prox);
+      prox = col + 1;
+      const t = c.getAttribute('t');
+      let v = '';
+      if (t === 'inlineStr') v = textoDe(c, 't');
+      else {
+        const nos = Array.from(c.children).filter(x => x.localName === 'v');
+        const bruto = nos.length ? nos[0].textContent : '';
+        if (t === 's') v = textos[+bruto] || '';
+        else if (t === 'b') v = bruto === '1' ? 'VERDADEIRO' : 'FALSO';
+        else v = bruto;
+      }
+      while (cels.length < col) cels.push('');
+      cels[col] = v;
+    });
+    linhas.push(cels);
+  });
+  return linhas;
+}
+async function leXLSX(buf) {
+  const zip = abreZip(buf);
+  const sst = await extraiZip(zip, 'xl/sharedStrings.xml');
+  const textos = sst ? porNome(xmlDoc(sst), 'si').map(si => textoDe(si, 't')) : [];
+
+  /* ordem das abas conforme a pasta de trabalho */
+  let abas = [];
+  const wb = await extraiZip(zip, 'xl/workbook.xml');
+  const rels = await extraiZip(zip, 'xl/_rels/workbook.xml.rels');
+  if (wb && rels) {
+    const alvo = {};
+    porNome(xmlDoc(rels), 'Relationship').forEach(r => alvo[r.getAttribute('Id')] = r.getAttribute('Target'));
+    porNome(xmlDoc(wb), 'sheet').forEach(s => {
+      const id = s.getAttribute('r:id') || s.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
+      let t = alvo[id];
+      if (!t) return;
+      t = t.replace(/^\//, '');
+      abas.push({nome: s.getAttribute('name') || t, arquivo: t.indexOf('xl/') === 0 ? t : 'xl/' + t});
+    });
+  }
+  if (!abas.length) {
+    abas = Array.from(zip.itens.keys()).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n))
+      .sort((a, b) => (+/(\d+)/.exec(a)[1]) - (+/(\d+)/.exec(b)[1]))
+      .map(n => ({nome: n, arquivo: n}));
+  }
+  if (!abas.length) throw new Error('nenhuma planilha encontrada dentro do arquivo');
+
+  let ultimo = null;
+  for (const aba of abas) {
+    const xmlAba = await extraiZip(zip, aba.arquivo);
+    if (!xmlAba) continue;
+    const r = montaBase(matrizDaAba(xmlAba, textos));
+    if (!r.erro) { r.aba = aba.nome; return r; }
+    ultimo = r;
+  }
+  return ultimo || {erro: 'nenhuma linha válida encontrada na planilha'};
 }
 
 /* ============================================================
@@ -4374,8 +5031,7 @@ function baseGuardada() {
 function aviso(html, erro) {
   $('#msg-dados').innerHTML = `<div class="msg ${erro ? 'erro' : 'ok'}">${html}</div>`;
 }
-function carrega(texto, origem) {
-  const r = leTabela(texto);
+function aplicaLeitura(r, origem) {
   if (r.erro) {
     aviso(`<b>Não foi possível carregar.</b><br>${esc(r.erro)}` +
       (r.ruins && r.ruins.length ? `<ul>${r.ruins.slice(0, 5).map(x => `<li>linha ${x[0]}: ${esc(x[1])}</li>`).join('')}</ul>` : ''), true);
@@ -4389,6 +5045,7 @@ function carrega(texto, origem) {
   let m = `<b>${fmt(r.lidas)} linhas carregadas</b> · ${fmt(SEMANAS.length)} semanas · ` +
           `${fmt(POLOS.length)} polos · ${fmt(RESPONSAVEIS.length)} responsáveis.`;
   const obs = [];
+  if (r.aba) obs.push('aba lida: ' + r.aba);
   if (r.cabecalho) obs.push('primeira linha tratada como cabeçalho');
   if (r.dup) obs.push(`${fmt(r.dup)} repetição(ões) do mesmo equipamento na mesma data foram ignoradas`);
   if (r.ruins.length) obs.push(`${fmt(r.ruins.length)} linha(s) ignoradas: ` +
@@ -4438,15 +5095,26 @@ $('#bt-fechar').addEventListener('click', () => {
 $('#bt-carregar').addEventListener('click', () => {
   const t = $('#colar').value;
   if (!t.trim()) { aviso('Cole os dados da planilha na caixa acima, ou use “Abrir arquivo .csv”.', true); return; }
-  carrega(t, 'da planilha');
+  aplicaLeitura(leTabela(t), 'da planilha');
 });
 $('#arq').addEventListener('change', ev => {
   const f = ev.target.files && ev.target.files[0];
   if (!f) return;
+  const origem = 'do arquivo ' + f.name;
+  const planilha = /\.(xlsx|xlsm)$/i.test(f.name);
   const fr = new FileReader();
-  fr.onload = () => carrega(String(fr.result), 'do arquivo ' + f.name);
   fr.onerror = () => aviso('Não foi possível ler o arquivo.', true);
-  fr.readAsText(f, 'utf-8');
+  fr.onload = () => {
+    if (!planilha) { aplicaLeitura(leTabela(String(fr.result)), origem); return; }
+    aviso('Lendo a planilha…', false);
+    leXLSX(fr.result).then(r => aplicaLeitura(r, origem)).catch(e => {
+      aviso(String(e && e.message) === 'SEM_DESCOMPRESSAO'
+        ? '<b>Este navegador não abre .xlsx.</b> Salve a planilha como CSV (ou copie e cole as colunas na caixa acima). ' +
+          'Chrome, Edge e Firefox atualizados abrem o .xlsx normalmente.'
+        : `<b>Não foi possível ler a planilha.</b><br>${esc(String(e && e.message || e))}`, true);
+    });
+  };
+  if (planilha) fr.readAsArrayBuffer(f); else fr.readAsText(f, 'utf-8');
   ev.target.value = '';
 });
 $('#bt-demo').addEventListener('click', () => {
@@ -4469,6 +5137,7 @@ function baseDemo() {
   return {semanas: DEMO_SEMANAS, tipos: DEMO_TIPOS, polos: DEMO_POLOS,
           responsaveis: DEMO_RESPONSAVEIS, linhas: DEMO_LINHAS};
 }
+recuperaAnotacoes();
 const guardada = baseGuardada();
 aplicaBase(guardada || baseDemo(), guardada ? 'da planilha (guardada neste navegador)' : 'demonstração');
 montaControles();
