@@ -286,6 +286,38 @@
   }
   .ev input:focus-visible{outline:2px solid var(--verde-medio);outline-offset:1px}
 
+  /* anotações por polo */
+  .grupo-polo{margin-top:12px}
+  .gp-cab{
+    display:flex;align-items:baseline;gap:9px;padding:5px 10px;border-radius:8px;
+    background:#eaf4ee;border-left:4px solid var(--verde-forte);
+  }
+  .gp-nome{font-size:14px;font-weight:700;color:var(--verde-forte)}
+  .gp-ger{font-size:12px;color:var(--tinta-2)}
+  .gp-n{margin-left:auto;font-size:12px;color:var(--tinta-3)}
+  .grupo-polo .nota-item:first-of-type{border-top:none}
+
+  /* galeria da visão geral */
+  .evid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));margin-top:14px}
+  .ev img{cursor:zoom-in}
+  #lupa[hidden],#modal-imp[hidden]{display:none!important}
+  #lupa{
+    position:fixed;inset:0;z-index:80;background:rgba(9,26,17,.86);
+    display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:24px;
+  }
+  #lupa img{max-width:100%;max-height:86vh;border-radius:8px;background:#fff}
+  #lupa .leg{color:#dff0e6;font-size:13.5px;text-align:center}
+
+  /* aviso antes de imprimir */
+  #modal-imp{position:fixed;inset:0;z-index:90;background:rgba(9,26,17,.5);display:flex;align-items:center;justify-content:center;padding:20px}
+  .modal-cx{background:var(--surface);border-radius:14px;padding:20px 22px;max-width:560px;box-shadow:0 18px 50px rgba(11,11,11,.3)}
+  .modal-cx h3{margin:0 0 8px;font-size:17px}
+  .modal-cx p{margin:0 0 8px;font-size:13.5px;color:var(--tinta-2);line-height:1.55}
+  .modal-cx ul{margin:0 0 10px;padding-left:19px;font-size:13.5px;color:var(--tinta-2);line-height:1.6}
+  .modal-cx li{margin:4px 0}
+  .modal-acoes{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:14px}
+  .modal-acoes .lembrar{margin-right:auto}
+
   /* tooltip */
   #tip{
     position:fixed;z-index:60;pointer-events:none;opacity:0;transition:opacity .09s;
@@ -308,7 +340,29 @@
     .wrap{max-width:none;padding:0}
     .topbar{position:static;border-bottom:1.5px solid var(--verde-forte);background:#fff}
     .topbar-in{padding:0 0 8px}
-    .filtros,#painel,.tools,.abas,.filtros-lista,.zona,#tip,.btn,.x,#f-limpa{display:none!important}
+    .filtros,#painel,.tools,.abas,.filtros-lista,.zona,#tip,.btn,.x,#f-limpa,
+    #lupa,#modal-imp,.cel-nota,th[data-ord="nota"]{display:none!important}
+    /* a largura da página cai abaixo do ponto de quebra responsivo: recompõe as colunas */
+    .wrap{display:flex;flex-direction:column}
+    .grade{gap:9px}
+    .g-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .g-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .g-58{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
+    .g-73{grid-template-columns:minmax(0,7fr) minmax(0,5fr)}
+    .card{padding:9px 11px 7px}
+    .card-hd{margin-bottom:2px}
+    .card-hd h3{font-size:12px}
+    .card-hd .sub{font-size:10px}
+    .plot{max-height:57mm}
+    #rcol .plot{max-height:74mm}
+    .legenda{font-size:9.5px;gap:4px 12px;margin-top:4px}
+    .nota{font-size:9.5px;margin-top:5px}
+    /* listas longas precisam fluir entre páginas, senão o restante é cortado */
+    #sec-detalhe .card,#sec-notas .card,#sec-visao .card{break-inside:auto;page-break-inside:auto}
+    /* a visão geral abre o relatório */
+    #sec-visao{order:-1;margin-top:10px}
+    #sec-visao:not(.vazia){break-after:page}
+    #bloco-geral.vazio{display:none}
     .so-impressao{display:block}
     .secao{margin:14px 0 0;break-inside:auto}
     .secao > h2{font-size:10px;margin-bottom:7px}
@@ -329,7 +383,9 @@
     .evid{grid-template-columns:repeat(2,minmax(0,1fr))}
     .ev{break-inside:avoid}
     #sec-notas{break-before:page}
-    footer{margin-top:16px}
+    .grupo-polo{break-inside:avoid;page-break-inside:avoid}
+    .nota-item{break-inside:avoid}
+    footer{margin-top:16px;break-before:avoid;page-break-before:avoid}
   }
   footer{margin-top:34px;padding-top:14px;border-top:1px solid rgba(15,107,63,.14);font-size:12px;color:var(--tinta-3)}
 </style>
@@ -511,7 +567,7 @@
     </div>
   </section>
 
-  <section class="secao">
+  <section class="secao" id="sec-detalhe">
     <h2>Detalhe</h2>
     <div class="card">
       <div class="card-hd">
@@ -536,25 +592,32 @@
     </div>
   </section>
 
+  <section class="secao" id="sec-visao">
+    <h2>Visão geral</h2>
+    <div class="card">
+      <div class="card-hd">
+        <h3>Imagens e telas de apoio</h3><span class="sub" id="sub-evid"></span>
+        <span class="sub so-tela" style="margin-left:auto">abre o relatório em PDF</span>
+      </div>
+      <div id="zona" class="zona" tabindex="0">
+        Arraste uma imagem aqui, cole com Ctrl+V ou
+        <label class="btn" for="img">selecione um arquivo</label>
+        <input type="file" id="img" accept="image/*" multiple hidden>
+      </div>
+      <div id="lista-evid" class="evid"></div>
+    </div>
+  </section>
+
   <section class="secao" id="sec-notas">
-    <h2>Anotações e evidências</h2>
-    <div class="grade g-58">
-      <div class="card">
-        <div class="card-hd"><h3>Anotações</h3><span class="sub" id="sub-notas"></span></div>
+    <h2>Anotações</h2>
+    <div class="card">
+      <div class="card-hd"><h3>Anotações por polo</h3><span class="sub" id="sub-notas"></span></div>
+      <div id="bloco-geral">
         <label class="rot-campo" for="nota-geral">Observações gerais da reunião</label>
         <textarea id="nota-geral" class="ta-geral" placeholder="pontos discutidos, encaminhamentos, prazos"></textarea>
-        <div id="lista-notas"></div>
-        <div class="nota so-tela">Para anotar um equipamento, clique na coluna <b>Anotação</b> da lista de detalhe.</div>
       </div>
-      <div class="card">
-        <div class="card-hd"><h3>Evidências</h3><span class="sub" id="sub-evid"></span></div>
-        <div id="zona" class="zona" tabindex="0">
-          Arraste uma imagem aqui, cole com Ctrl+V ou
-          <label class="btn" for="img">selecione um arquivo</label>
-          <input type="file" id="img" accept="image/*" multiple hidden>
-        </div>
-        <div id="lista-evid" class="evid"></div>
-      </div>
+      <div id="lista-notas"></div>
+      <div class="nota so-tela">Para anotar um equipamento, clique na coluna <b>Anotação</b> da lista de detalhe.</div>
     </div>
   </section>
 
@@ -562,6 +625,31 @@
 </div>
 
 <div id="tip" role="status" aria-live="polite"></div>
+
+<div id="lupa" hidden>
+  <img id="lupa-img" src="" alt="">
+  <div class="leg" id="lupa-leg"></div>
+  <button class="btn" id="lupa-x" type="button">Fechar</button>
+</div>
+
+<div id="modal-imp" hidden>
+  <div class="modal-cx" role="dialog" aria-modal="true" aria-labelledby="mi-tit">
+    <h3 id="mi-tit">Antes de salvar em PDF</h3>
+    <p>Na janela de impressão do navegador, abra <b>Mais configurações</b> e:</p>
+    <ul>
+      <li>desmarque <b>Cabeçalhos e rodapés</b> — é essa opção que imprime a data e o caminho do
+          arquivo no alto e no rodapé de cada página;</li>
+      <li>marque <b>Gráficos de segundo plano</b>, senão as cores dos gráficos saem apagadas;</li>
+      <li>mantenha <b>Paisagem</b> e papel <b>A4</b>.</li>
+    </ul>
+    <p>O navegador guarda essas escolhas para as próximas vezes.</p>
+    <div class="modal-acoes">
+      <label class="lembrar"><input type="checkbox" id="mi-nao"> não mostrar de novo</label>
+      <button class="btn" id="mi-cancela" type="button">Cancelar</button>
+      <button class="btn forte" id="mi-ok" type="button">Abrir impressão</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ============================================================
@@ -4514,23 +4602,43 @@ function editaNota(alvo, eq, aoFechar) {
   });
 }
 function pintaAnotacoes() {
-  const eqs = Object.keys(NOTAS).sort((a, b) => {
-    const ea = achaEquip(a), eb = achaEquip(b);
-    return ((eb && eb.l[D]) || 0) - ((ea && ea.l[D]) || 0);
+  const eqs = Object.keys(NOTAS);
+  /* agrupa por polo: é assim que a pendência de cada polo é cobrada na reunião */
+  const grupos = new Map();
+  eqs.forEach(eq => {
+    const r = achaEquip(eq);
+    const polo = r ? POLOS[r.l[P]] : '—';
+    if (!grupos.has(polo)) grupos.set(polo, []);
+    grupos.get(polo).push({eq, r});
+  });
+  const polos = Array.from(grupos.keys()).sort((a, b) => {
+    const ia = POLOS.indexOf(a), ib = POLOS.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || String(a).localeCompare(String(b), 'pt-BR');
   });
   $('#sub-notas').textContent = eqs.length
-    ? `${fmt(eqs.length)} equipamento(s) anotado(s)` : 'nenhum equipamento anotado';
-  $('#lista-notas').innerHTML = eqs.map(eq => {
-    const r = achaEquip(eq);
-    const ctx = r
-      ? `${TIPOS[r.l[T]]} · ${POLOS[r.l[P]]} · ${POLO_GER[POLOS[r.l[P]]]} · ${fmt(r.l[D])} dias · ${RESPONSAVEIS[r.l[R]]}` +
-        (r.semana === st.b ? '' : ` · visto em ${dcurta(SEMANAS[r.semana])}`)
-      : 'equipamento fora da base carregada';
-    return `<div class="nota-item">
-      <div class="ni-cab"><b>${esc(eq)}</b><span>${esc(ctx)}</span>
-        <button class="x" data-rm-nota="${esc(eq)}" type="button">remover</button></div>
-      <div class="ni-txt" data-eq="${esc(eq)}">${esc(NOTAS[eq])}</div>
-    </div>`;
+    ? `${fmt(eqs.length)} equipamento(s) em ${fmt(polos.length)} polo(s)`
+    : 'nenhum equipamento anotado';
+
+  $('#lista-notas').innerHTML = polos.map(polo => {
+    const itens = grupos.get(polo).sort((x, y) => ((y.r && y.r.l[D]) || 0) - ((x.r && x.r.l[D]) || 0));
+    const ger = POLO_GER[polo] || '—';
+    const corpo = itens.map(({eq, r}) => {
+      const ctx = r
+        ? `${TIPOS[r.l[T]]} · ${fmt(r.l[D])} dias · ${FAIXAS[faixaDe(r.l[D])]} · ${RESPONSAVEIS[r.l[R]]}` +
+          (r.semana === st.b ? '' : ` · visto em ${dcurta(SEMANAS[r.semana])}`)
+        : 'equipamento fora da base carregada';
+      return `<div class="nota-item">
+        <div class="ni-cab"><b>${esc(eq)}</b><span>${esc(ctx)}</span>
+          <button class="x" data-rm-nota="${esc(eq)}" type="button">remover</button></div>
+        <div class="ni-txt" data-eq="${esc(eq)}">${esc(NOTAS[eq])}</div>
+      </div>`;
+    }).join('');
+    return `<div class="grupo-polo">
+      <div class="gp-cab">
+        <span class="gp-nome">${polo === '—' ? 'Sem polo na base' : 'Polo ' + esc(polo)}</span>
+        <span class="gp-ger">${esc(ger)}</span>
+        <span class="gp-n">${fmt(itens.length)} anotação(ões)</span>
+      </div>${corpo}</div>`;
   }).join('');
 
   const bytes = EVID.reduce((n, e) => n + (e.url ? e.url.length : 0), 0) * 0.75;
@@ -4538,16 +4646,19 @@ function pintaAnotacoes() {
   $('#sub-evid').textContent = EVID.length
     ? `${fmt(EVID.length)} imagem(ns) · ${tam}` + (ARMAZEM_OK ? '' : ' · não coube no navegador, vale só nesta sessão')
     : 'nenhuma imagem';
-  $('#sec-notas').classList.toggle('vazia', !eqs.length && !EVID.length && !NOTA_GERAL.trim());
+
   $('#lista-evid').innerHTML = EVID.map(e => `<figure class="ev">
-      <img src="${e.url}" alt="${esc(e.legenda || 'evidência')}">
+      <img src="${e.url}" alt="${esc(e.legenda || 'imagem anexada')}" data-ver="${e.id}">
       <figcaption>
-        <input type="text" value="${esc(e.legenda || '')}" data-leg="${e.id}" placeholder="legenda">
+        <input type="text" value="${esc(e.legenda || '')}" data-leg="${e.id}" placeholder="legenda da imagem">
         <button class="x" data-rm-ev="${e.id}" type="button">remover</button>
       </figcaption>
     </figure>`).join('');
   const g = $('#nota-geral');
   if (document.activeElement !== g && g.value !== NOTA_GERAL) g.value = NOTA_GERAL;
+  $('#bloco-geral').classList.toggle('vazio', !NOTA_GERAL.trim());
+  $('#sec-visao').classList.toggle('vazia', !EVID.length);
+  $('#sec-notas').classList.toggle('vazia', !eqs.length && !NOTA_GERAL.trim());
 }
 function adicionaImagem(arq) {
   if (!arq || !/^image\//.test(arq.type)) return;
@@ -4615,10 +4726,46 @@ document.addEventListener('paste', e => {
   });
   if (achou) { e.preventDefault(); $('#sec-notas').scrollIntoView({block: 'nearest'}); }
 });
-$('#bt-pdf').addEventListener('click', () => {
+/* ampliar imagem */
+$('#lista-evid').addEventListener('click', ev => {
+  const img = ev.target.closest && ev.target.closest('img[data-ver]');
+  if (!img) return;
+  const e = EVID.find(x => x.id === img.dataset.ver);
+  if (!e) return;
+  $('#lupa-img').src = e.url;
+  $('#lupa-leg').textContent = e.legenda || '';
+  $('#lupa').hidden = false;
+});
+function fechaLupa() { $('#lupa').hidden = true; $('#lupa-img').src = ''; }
+$('#lupa').addEventListener('click', ev => {
+  if (ev.target.id === 'lupa' || ev.target.id === 'lupa-x') fechaLupa();
+});
+document.addEventListener('keydown', ev => {
+  if (ev.key !== 'Escape') return;
+  if (!$('#lupa').hidden) fechaLupa();
+  if (!$('#modal-imp').hidden) $('#modal-imp').hidden = true;
+});
+
+/* relatório: o navegador é quem imprime, então as duas opções da janela precisam estar certas */
+const CHAVE_AVISO = 'nge-aviso-impressao';
+function imprime() {
   $('#painel').hidden = true;
   $('#bt-dados').setAttribute('aria-expanded', 'false');
+  fechaLupa();
   window.print();
+}
+$('#bt-pdf').addEventListener('click', () => {
+  let pular = false;
+  try { pular = localStorage.getItem(CHAVE_AVISO) === '1'; } catch (e) {}
+  if (pular) { imprime(); return; }
+  $('#modal-imp').hidden = false;
+  $('#mi-ok').focus();
+});
+$('#mi-cancela').addEventListener('click', () => { $('#modal-imp').hidden = true; });
+$('#mi-ok').addEventListener('click', () => {
+  if ($('#mi-nao').checked) { try { localStorage.setItem(CHAVE_AVISO, '1'); } catch (e) {} }
+  $('#modal-imp').hidden = true;
+  setTimeout(imprime, 60);
 });
 
 /* ============================================================

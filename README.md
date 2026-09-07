@@ -23,7 +23,8 @@ por padrão a imediatamente anterior):
   responsável (o texto exato da coluna F), gerência, polo, tipo e número do equipamento. Qualquer
   coluna ordena ao ser clicada. As abas **Novos**, **Regularizados** e **Permanecem** mostram os
   mesmos recortes da comparação semanal.
-- **Anotações e evidências** — observações da reunião, anotação por equipamento e imagens.
+- **Visão geral** — imagens e telas de apoio anexadas à reunião; abre o relatório em PDF.
+- **Anotações** — observações da reunião e anotação por equipamento, agrupadas por polo.
 
 Filtros de semana, comparação, gerência, polo, tipo e responsabilidade valem para a página inteira.
 Cada gráfico tem o botão **Tabela**, que troca o desenho pelos números.
@@ -33,13 +34,19 @@ Cada gráfico tem o botão **Tabela**, que troca o desenho pelos números.
 - **Anotação por equipamento** — na lista de detalhe, clique na coluna **Anotação** da linha, escreva
   e clique fora (ou `Ctrl+Enter`). A linha fica marcada e a anotação aparece no bloco
   *Anotações e evidências*, junto com tipo, polo, gerência, dias e responsável do equipamento.
-- **Prints** — arraste a imagem para a área de evidências, cole com `Ctrl+V` ou selecione o arquivo.
-  Cada imagem aceita uma legenda. As imagens são reduzidas para caber no navegador.
+  As anotações aparecem **agrupadas por polo**, com a gerência e a contagem de cada um, para cobrar
+  a pendência polo a polo. Dentro do polo, a ordem é do maior prazo para o menor.
+- **Imagens (Visão geral)** — arraste a imagem para a área, cole com `Ctrl+V` ou selecione o arquivo.
+  Cada imagem aceita uma legenda e abre ampliada ao ser clicada. São reduzidas para caber no navegador.
 - **Relatório PDF** — o botão **Relatório PDF** abre a impressão do navegador; escolha *Salvar como
-  PDF*. Sai em A4 paisagem com cabeçalho (semana, comparação, escopo e data de emissão), todos os
-  indicadores e gráficos, a lista de detalhe como estiver filtrada na tela e, na última página, as
-  anotações e as evidências. Para um relatório de um responsável específico, filtre a lista antes
-  de imprimir.
+  PDF*. A ordem do relatório é: **Visão geral** (as imagens, abrindo o documento), indicadores,
+  gráficos com dois por página, a lista completa de indisponíveis e, por último, as anotações por polo.
+
+  Na janela de impressão, em **Mais configurações**, é preciso **desmarcar "Cabeçalhos e rodapés"** —
+  é essa opção do navegador, e não o dashboard, que imprime o caminho do arquivo e a data em cada
+  página — e **marcar "Gráficos de segundo plano"**, senão as cores saem apagadas. O próprio
+  dashboard lembra disso antes de abrir a impressão; o navegador guarda as escolhas para as
+  próximas vezes.
 
 Anotações, legendas e imagens ficam guardadas no navegador do computador em uso.
 
