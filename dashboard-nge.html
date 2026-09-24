@@ -6010,11 +6010,13 @@ function gExTipo(mA, mB) {
   });
   if (!cats.length) return {svg: '<div class="vazio">Sem guias no filtro atual.</div>', tabela: null};
   const gers = gersEx();
-  const segs = modo === 'tr' ? ['total']
+  const segs = modo === 'tr' ? ['ind', 'nao']
     : modo === 'ger' ? gers
     : EX.polos.filter(p => (!st.ger || gerenciaDe(p) === st.ger) && (!st.polo || p === st.polo));
-  const segDe = l => modo === 'tr' ? 'total' : (modo === 'ger' ? gerenciaDe(poloDe(l)) : poloDe(l));
-  const segCor = s => modo === 'ger' ? corGer(s) : corGer(gerenciaDe(s));
+  const segDe = l => modo === 'tr' ? (ehIndisp(l) ? 'ind' : 'nao')
+    : (modo === 'ger' ? gerenciaDe(poloDe(l)) : poloDe(l));
+  const segCor = s => modo === 'tr' ? (s === 'ind' ? COR.s3 : COR.s2)
+    : modo === 'ger' ? corGer(s) : corGer(gerenciaDe(s));
 
   const mapa = {}, totB = {}, totA = {};
   cats.forEach(t => { mapa[t] = {}; segs.forEach(s => mapa[t][s] = 0); totB[t] = 0; totA[t] = 0; });
@@ -6030,7 +6032,8 @@ function gExTipo(mA, mB) {
   let s = grade(px0, px1, marcasY(max).map(y));
   s += marcasY(max).map(v => txt(px0 - 9, y(v) + 4, fmt(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1})).join('');
   const banda = (px1 - px0) / cats.length, bw = Math.min(24, banda * 0.44);
-  const maxCh = Math.max(9, Math.floor(banda / 7.4)), tot = mB.size || 1;
+  const tam = cats.length > 7 ? 11.5 : 12.5;
+  const maxCh = Math.max(9, Math.floor(banda / (tam * 0.68))), tot = mB.size || 1;
 
   cats.forEach((t, i) => {
     const cx = px0 + banda * i + banda / 2;
@@ -6040,18 +6043,19 @@ function gExTipo(mA, mB) {
       if (!v) return;
       const yT = y(acum + v), yB = y(acum);
       const alt = Math.max(1, yB - yT - (acum ? 2 : 0));
-      const cor = modo === 'tr' ? (ligadoIndisp(t) ? COR.s3 : COR.s2) : segCor(sg);
-      const dica = `<b>${fmt(v)}</b><br><span class="l">${t}${modo === 'tr' ? '' : ' · ' + sg}</span>`;
+      const cor = segCor(sg);
+      const rotSeg = modo !== 'tr' ? sg : (sg === 'ind' ? 'equipamento indisponível' : 'demais');
+      const dica = `<b>${fmt(v)}</b><br><span class="l">${t} · ${rotSeg}</span>`;
       const ult = acum + v >= totB[t] - 0.5;
       s += ult ? colunaSVG(cx - bw / 2, yT, bw, alt, cor, dica)
                : `<rect x="${cx - bw / 2}" y="${yT}" width="${bw}" height="${alt}" fill="${cor}" class="hit" data-t="${esc(dica)}"/>`;
       if (modo === 'polo' && alt >= 15) s += txt(cx, yT + alt / 2 + 4, sg, {cor: tintaSobre(cor), tam: 10.5, anc: 'middle', peso: 700});
-      else if (modo === 'ger' && alt >= 17) s += txt(cx, yT + alt / 2 + 5, fmt(v), {cor: tintaSobre(cor), tam: 12, anc: 'middle', peso: 650});
+      else if (modo !== 'polo' && alt >= 17) s += txt(cx, yT + alt / 2 + 5, fmt(v), {cor: tintaSobre(cor), tam: 12, anc: 'middle', peso: 650});
       acum += v;
     });
     s += txt(cx, y(totB[t]) - 11, fmt(totB[t]), {cor: COR.t1, tam: 19, peso: 650, anc: 'middle'});
     const ls = quebra(t, maxCh);
-    ls.forEach((ln, k) => s += txt(cx, py1 + 21 + k * 15, ln, {cor: COR.t1, tam: 12.5, anc: 'middle', peso: 600}));
+    ls.forEach((ln, k) => s += txt(cx, py1 + 21 + k * 15, ln, {cor: COR.t1, tam, anc: 'middle', peso: 600}));
     const by = py1 + 21 + ls.length * 15;
     s += txt(cx, by + 2, pct1(pct(totB[t], tot)) + '% do total', {cor: COR.t3, tam: 11, anc: 'middle'});
     if (sx.a >= 0) {
@@ -6062,14 +6066,14 @@ function gExTipo(mA, mB) {
   });
   s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
   const chaves = modo === 'tr'
-    ? [{cor: COR.s3, rot: 'ligado a indisponibilidade'}, {cor: COR.s2, rot: 'demais serviços'}]
+    ? [{cor: COR.s3, rot: 'guia de equipamento indisponível'}, {cor: COR.s2, rot: 'demais guias'}]
     : modo === 'ger' ? segs.map(g => ({cor: corGer(g), rot: g}))
     : gers.filter(g => segs.some(p => gerenciaDe(p) === g))
           .map(g => ({cor: corGer(g), rot: g + ' — faixas: ' + polosDeGer(g).join(', ')}));
   return {svg: svgRoot(W, H, s), pe: legenda(chaves),
-          tabela: {cab: ['Tipo de serviço', 'Ligado a indisponibilidade'].concat(modo === 'tr' ? [] : segs).concat(['Total', '%', 'Anterior']),
-                   linhas: cats.map(t => [esc(t), ligadoIndisp(t) ? 'sim' : 'não']
-                     .concat(modo === 'tr' ? [] : segs.map(sg => fmt(mapa[t][sg])))
+          tabela: {cab: ['Tipo de serviço'].concat(modo === 'tr' ? ['Equip. indisponível', 'Demais'] : segs).concat(['Total', '%', 'Anterior']),
+                   linhas: cats.map(t => [esc(t)]
+                     .concat(segs.map(sg => fmt(mapa[t][sg])))
                      .concat([fmt(totB[t]), pct1(pct(totB[t], tot)) + '%', fmt(totA[t])]))}};
 }
 
@@ -6214,71 +6218,76 @@ function pintaEquipes() {
       <button class="x" data-rm-eq="${e.id}" type="button">remover</button></div>`;
   }).join('') : '<div class="vazio">Cadastre as equipes para programar as guias e dimensionar a capacidade.</div>';
 }
-const COR_PIZZA = ['#2a78d6', '#1baf7a', '#a03a86', '#eda100', '#4a3aa7', '#e34948'];
+/* oito matizes validados; do nono em diante entra o cinza neutro */
+const COR_PIZZA = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'];
 const COR_OUTROS = '#6c7a72';
+const corTipo = i => i < COR_PIZZA.length ? COR_PIZZA[i] : COR_OUTROS;
+let CRUZ = null;                                   /* recalculado a cada render */
+const ehIndisp = l => !!(CRUZ && CRUZ.todosInd && CRUZ.todosInd.has(String(l[XDISP] || '')));
 
 /* --- pizza: participação de cada tipo de serviço --- */
 function gExPizza(mB) {
   const c = contaPor(mB, l => EX.tipos[l[XTIPO]]);
   const total = mB.size;
   if (!total) return {svg: '<div class="vazio">Sem guias no filtro atual.</div>', tabela: null};
-  let itens = Array.from(c.entries()).map(([t, v]) => ({t, v})).sort((a, b) => b.v - a.v);
-  const todos = itens.slice();
-  let fatias = itens;
-  if (itens.length > 6) {
-    const resto = itens.slice(5).reduce((a, x) => a + x.v, 0);
-    fatias = itens.slice(0, 5).concat([{t: 'Outros tipos', v: resto, outros: 1}]);
-  }
-  const cor = (i, f) => f.outros ? COR_OUTROS : COR_PIZZA[i % COR_PIZZA.length];
-  const W = 900, H = 330, cx = 190, cy = 160, ro = 118, ri = 74;
+  const fatias = Array.from(c.entries()).map(([t, v]) => ({t, v})).sort((a, b) => b.v - a.v);
+  const cols = fatias.length > 5 ? 2 : 1;
+  const W = 900, H = Math.max(330, 60 + Math.ceil(fatias.length / cols) * 26);
+  const cx = 190, cy = H / 2, ro = 118, ri = 74;
   let s = '', ang = -Math.PI / 2;
   fatias.forEach((f, i) => {
     const a = (f.v / total) * Math.PI * 2, a1 = ang + a, gr = a > Math.PI ? 1 : 0;
     const p = (r, x) => [cx + r * Math.cos(x), cy + r * Math.sin(x)];
     const [x1, y1] = p(ro, ang), [x2, y2] = p(ro, a1), [x3, y3] = p(ri, a1), [x4, y4] = p(ri, ang);
     s += `<path d="M${x1},${y1} A${ro},${ro} 0 ${gr} 1 ${x2},${y2} L${x3},${y3} A${ri},${ri} 0 ${gr} 0 ${x4},${y4} Z"
-            fill="${cor(i, f)}" stroke="${COR.surface}" stroke-width="2" class="hit"
+            fill="${corTipo(i)}" stroke="${COR.surface}" stroke-width="2" class="hit"
             data-t="${esc(`<b>${fmt(f.v)}</b> · ${pct1(pct(f.v, total))}%<br><span class="l">${f.t}</span>`)}"/>`;
     if (a > 0.34) {
       const [lx, ly] = p((ro + ri) / 2, ang + a / 2);
-      s += txt(lx, ly + 5, pct1(pct(f.v, total)) + '%', {cor: tintaSobre(cor(i, f)), tam: 13.5, anc: 'middle', peso: 700});
+      s += txt(lx, ly + 5, pct1(pct(f.v, total)) + '%', {cor: tintaSobre(corTipo(i)), tam: 13.5, anc: 'middle', peso: 700});
     }
     ang = a1;
   });
   s += txt(cx, cy + 2, fmt(total), {cor: COR.t1, tam: 40, anc: 'middle', peso: 650});
   s += txt(cx, cy + 24, 'guias', {cor: COR.t3, tam: 12.5, anc: 'middle'});
-  /* legenda em duas colunas, com valor e percentual de todos os tipos */
-  const lx0 = 360, lh = 26;
-  todos.forEach((f, i) => {
-    const col = i < 5 ? 0 : 1, lin = i % 5;
-    const x = lx0 + col * 270, y = 52 + lin * lh;
-    const idx = fatias.findIndex(z => z.t === f.t);
-    const c2 = idx >= 0 ? cor(idx, fatias[idx]) : COR_OUTROS;
-    s += `<rect x="${x}" y="${y - 9}" width="11" height="11" rx="3" fill="${c2}"/>`;
-    s += txt(x + 18, y, corta(f.t, 20), {cor: COR.t1, tam: 12.5, peso: 600});
-    s += txt(x + 252, y, `${fmt(f.v)} · ${pct1(pct(f.v, total))}%`, {cor: COR.t2, tam: 12.5, anc: 'end', tab: 1});
+  /* legenda na mesma ordem das fatias, com valor e percentual de cada tipo */
+  const porCol = Math.ceil(fatias.length / cols), lx0 = 360, lh = 26;
+  const y0 = Math.max(34, cy - (porCol * lh) / 2 + 10);
+  fatias.forEach((f, i) => {
+    const col = Math.floor(i / porCol), lin = i % porCol;
+    const x = lx0 + col * 272, y = y0 + lin * lh;
+    s += `<rect x="${x}" y="${y - 9}" width="11" height="11" rx="3" fill="${corTipo(i)}"/>`;
+    s += txt(x + 18, y, corta(f.t, 24), {cor: COR.t1, tam: 12.5, peso: 600});
+    s += txt(x + 256, y, `${fmt(f.v)} · ${pct1(pct(f.v, total))}%`, {cor: COR.t2, tam: 12.5, anc: 'end', tab: 1});
   });
   return {svg: svgRoot(W, H, s),
-          pe: todos.length > 6 ? `<div class="nota">As fatias mostram os cinco maiores tipos; os demais entram em “Outros tipos”. A legenda traz todos com valor e percentual.</div>` : '',
+          pe: fatias.length > COR_PIZZA.length
+            ? `<div class="nota">A partir do nono tipo as fatias repetem o cinza; a identidade vem do rótulo e da legenda.</div>` : '',
           tabela: {cab: ['Tipo de serviço', 'Guias', '% do total'],
-                   linhas: todos.map(f => [esc(f.t), fmt(f.v), pct1(pct(f.v, total)) + '%'])}};
+                   linhas: fatias.map(f => [esc(f.t), fmt(f.v), pct1(pct(f.v, total)) + '%'])}};
 }
 function pintaLigacao(mB) {
   const total = mB.size;
   let lig = 0;
-  mB.forEach(l => { if (ligadoIndisp(EX.tipos[l[XTIPO]])) lig++; });
+  const eqs = new Set();
+  mB.forEach(l => { if (ehIndisp(l)) { lig++; eqs.add(String(l[XDISP] || '')); } });
   const pc = pct(lig, total || 1);
   $('#ex-sub-pizza').textContent = `${fmt(total)} guias`;
-  $('#ex-liga').innerHTML = `
-    <div style="display:flex;align-items:baseline;gap:12px;margin:10px 0 4px">
+  const semBase = !CRUZ || CRUZ.wi < 0 || /demonstra/i.test(ORIGEM);
+  $('#ex-liga').innerHTML = semBase
+    ? '<div class="vazio">Depende da planilha real de indisponibilidade carregada na outra aba.</div>'
+    : `<div style="display:flex;align-items:baseline;gap:12px;margin:10px 0 4px">
       <span style="font-size:52px;font-weight:650;color:${COR.s3};letter-spacing:-.02em">${pct1(pc)}%</span>
-      <span style="font-size:13px;color:var(--tinta-2)">do total são de tipo ligado a indisponibilidade</span>
+      <span style="font-size:13px;color:var(--tinta-2)">das guias são de equipamento que continua indisponível</span>
     </div>
     <div class="barra" style="flex:1;height:14px;margin:8px 0 12px"><i style="width:${pc}%;background:${COR.s3}"></i></div>
     <div class="tab-wrap"><table class="dt"><tbody>
-      <tr><td>Ligadas a indisponibilidade</td><td>${fmt(lig)}</td><td>${pct1(pc)}%</td></tr>
-      <tr><td>Demais serviços</td><td>${fmt(total - lig)}</td><td>${pct1(100 - pc)}%</td></tr>
-    </tbody></table></div>`;
+      <tr><td>Guias de equipamento indisponível</td><td>${fmt(lig)}</td><td>${pct1(pc)}%</td></tr>
+      <tr><td>Demais guias</td><td>${fmt(total - lig)}</td><td>${pct1(100 - pc)}%</td></tr>
+      <tr><td>Equipamentos indisponíveis distintos</td><td>${fmt(eqs.size)}</td><td>—</td></tr>
+    </tbody></table></div>
+    <div class="nota">Vale qualquer tipo de guia: o que conta é o equipamento ainda estar na lista de
+    indisponíveis de ${dlonga(CRUZ.semanaInd)}.</div>`;
 }
 
 /* --- serviços previstos por equipe --- */
@@ -6296,7 +6305,6 @@ function pintaPrevisto(mB) {
     mB.forEach((l, sol) => { const p = PROG.prog[sol]; if (p && p.eq === eqId && p.sem === sem) o.push(l); });
     return o.sort((a, b) => idadeEx(b, sx.b) - idadeEx(a, sx.b));
   };
-  const cruz = dadosCruz(mB);
   let semProg = 0;
   mB.forEach((l, sol) => { if (!PROG.prog[sol]) semProg++; });
 
@@ -6334,7 +6342,7 @@ function pintaPrevisto(mB) {
       </tr></thead><tbody>` +
       gs.map(l => {
         const d = String(l[XDISP] || '');
-        const ind = cruz.todosInd && cruz.todosInd.has(d);
+        const ind = ehIndisp(l);
         return `<tr><td>${esc(String(l[XSOL]))}</td><td>${esc(EX.tipos[l[XTIPO]])}</td>
           <td>${esc(poloDe(l))}</td><td>${esc(EX.municipios[l[XMUN]] || '')}</td>
           <td>${fmt(idadeEx(l, sx.b))}</td><td>${esc(d)}</td>
@@ -6398,18 +6406,17 @@ function gExProj(mB) {
   s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
 
   /* expectativa de regularização de indisponíveis */
-  const cruz = dadosCruz(mB);
   let ligadas = 0;
   mB.forEach((l, sol) => {
     const p = PROG.prog[sol];
-    if (p && sems.indexOf(p.sem) >= 0 && cruz.setAuto.has(String(l[XDISP]))) ligadas++;
+    if (p && sems.indexOf(p.sem) >= 0 && ehIndisp(l)) ligadas++;
   });
   const conv = (+PROG.cfg.conv || 0) / 100;
   const pe = legenda([{cor: COR.s2, rot: 'pelo programado', linha: true},
                       {cor: COR.s1, rot: 'pela capacidade teórica', linha: true},
                       {cor: COR.t3, rot: 'referência: se nada for executado', linha: true}]) +
     `<div class="nota">Entrada considerada: <b>${fmt(ent)}</b> guia(s) por semana. ` +
-    `Das guias programadas para as próximas 8 semanas, <b>${fmt(ligadas)}</b> são de equipamentos hoje indisponíveis em ${RESP_COM_GUIA}; ` +
+    `Das guias programadas para as próximas 8 semanas, <b>${fmt(ligadas)}</b> são de equipamentos que continuam indisponíveis; ` +
     `com conversão de ${fmt(PROG.cfg.conv)}%, a expectativa é de <b>${fmt(Math.round(ligadas * conv))}</b> regularização(ões). ` +
     `Atender a guia não garante o equipamento voltar a ficar disponível — por isso a conversão é um parâmetro, não uma certeza.</div>`;
   return {svg: svgRoot(W, H, s), pe,
@@ -6459,7 +6466,7 @@ function dadosCruz(mB) {
           todosInd, indTotal: todosInd.size};
 }
 function pintaCruz(mB) {
-  const c = dadosCruz(mB);
+  const c = CRUZ || dadosCruz(mB);
   if (!EX.semanas.length || c.wi < 0) {
     $('#ex-cruz').innerHTML = '<div class="vazio">O cruzamento precisa das duas bases carregadas.</div>';
     $('#ex-sub-cruz').textContent = '';
@@ -6625,8 +6632,7 @@ function pintaExDetalhe(mA, mB) {
   });
 
   const busca = sx.dBusca.trim().toLowerCase();
-  const ligados = dadosCruz(mB).todosInd;
-  const ehLigada = x => ligados.has(String(x.l[XDISP] || ''));
+  const ehLigada = x => ehIndisp(x.l);
   const passa = (x, exceto) =>
     (!sx.dVinc || (sx.dVinc === 'ind' ? ehLigada(x) : !ehLigada(x))) &&
     (exceto === 'tipo' || !sx.dTipo || VAL_EX.tipo(x) === sx.dTipo) &&
@@ -6752,6 +6758,7 @@ function renderEx() {
   $('#p-ent').value = PROG.cfg.ent == null ? entradaEmUso() : PROG.cfg.ent;
   $('#p-conv').value = PROG.cfg.conv;
 
+  CRUZ = dadosCruz(mB);
   pintaExKPIs(mA, mB, entraram, sairam, fluxo);
   pinta('ex-casc', semComp
     ? {svg: '<div class="vazio">A cascata compara duas fotos. Carregue a semana seguinte para vê-la.</div>', tabela: null}

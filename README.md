@@ -128,9 +128,11 @@ evidência de que elas estão mesmo na frente.
 A projeção também estima a redução de indisponíveis, mas por uma **taxa de conversão** editável:
 atender a guia não garante o equipamento voltar a ficar disponível, e o painel diz isso.
 
-Na seção de tipo de serviço, uma **rosca** mostra a participação de cada tipo no total (cinco
-maiores e "Outros tipos", com a legenda trazendo todos com valor e percentual) e, ao lado, quanto
-do total é de tipo ligado a indisponibilidade.
+Na seção de tipo de serviço, uma **rosca** mostra a participação de cada tipo no total, **um tipo
+por fatia**, com o percentual escrito na fatia e a legenda trazendo nome, quantidade e percentual
+de todos. Ao lado, quanto das guias é de **equipamento que continua indisponível** — vale qualquer
+tipo de guia, o que conta é o equipamento ainda estar na lista de indisponíveis. Esse mesmo vínculo
+divide as colunas por tipo de serviço no modo TR.
 
 ## Regras de negócio embutidas
 
