@@ -45,6 +45,7 @@
   }
 
   *{box-sizing:border-box}
+  [hidden]{display:none!important}   /* vence qualquer display definido por classe */
   html,body{margin:0}
   body{
     background:var(--plano);
@@ -78,6 +79,78 @@
   .pill b{color:var(--tinta)}
   .pill.forte{background:var(--verde-forte);border-color:var(--verde-forte);color:#fff}
   .pill.forte b{color:#fff}
+
+  /* ---------- abas de ambiente ---------- */
+  .ambientes{display:flex;gap:6px;margin-left:8px}
+  .amb{
+    font:inherit;font-size:14px;font-weight:650;color:var(--tinta-2);
+    background:transparent;border:1px solid transparent;border-radius:9px;
+    padding:8px 16px;cursor:pointer;
+  }
+  .amb:hover{background:#e0efe5;color:var(--tinta)}
+  .amb[aria-selected="true"]{background:var(--verde-forte);color:#fff;border-color:var(--verde-forte)}
+  .amb:focus-visible{outline:2px solid var(--verde-medio);outline-offset:2px}
+  .ambiente[hidden]{display:none!important}
+  .vazio-mod{
+    margin:28px 0;padding:26px 22px;border:1.5px dashed rgba(15,107,63,.3);border-radius:13px;
+    background:var(--surface);font-size:14px;color:var(--tinta-2);line-height:1.7;
+  }
+  .vazio-mod b{color:var(--tinta)}
+
+  /* parâmetros editáveis */
+  .param-linha{
+    display:flex;gap:16px;flex-wrap:wrap;align-items:center;
+    margin:6px 0 12px;padding:9px 12px;background:#f1f8f3;
+    border:1px solid rgba(15,107,63,.12);border-radius:10px;font-size:13px;color:var(--tinta-2);
+  }
+  .param-linha label{display:inline-flex;align-items:center;gap:7px;font-weight:600;color:var(--tinta-2)}
+  .param-linha input{
+    width:72px;font:inherit;font-size:14px;font-weight:650;color:var(--tinta);text-align:right;
+    background:var(--surface);border:1px solid var(--borda);border-radius:7px;padding:5px 8px;
+  }
+  .param-linha input:focus-visible{outline:2px solid var(--verde-medio);outline-offset:1px}
+  .param-linha .nota{margin:0;font-size:12px}
+
+  /* equipes */
+  .eq-nova{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 10px}
+  .eq-nova input,.eq-nova select{
+    font:inherit;font-size:13.5px;color:var(--tinta);background:var(--surface);
+    border:1px solid var(--borda);border-radius:8px;padding:7px 9px;min-height:36px;
+  }
+  .eq-nova input{flex:1;min-width:130px}
+  .eq-nova .btn{min-height:36px;padding:7px 13px}
+  .eq-item{display:flex;align-items:center;gap:9px;padding:7px 2px;border-bottom:1px solid var(--grade);font-size:13.5px}
+  .eq-item .nome{font-weight:650}
+  .eq-item .ger{color:var(--tinta-3);font-size:12.5px}
+  .eq-item .carga{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--tinta-2)}
+
+  /* seleção em lote no detalhe */
+  .lote{
+    display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:0 0 10px;
+    padding:10px 12px;background:#e8f4ec;border:1px solid rgba(15,107,63,.25);border-radius:10px;font-size:13px;
+  }
+  .lote select{
+    font:inherit;font-size:13px;background:var(--surface);border:1px solid var(--borda);
+    border-radius:7px;padding:6px 9px;min-height:34px;
+  }
+  .lote .btn{min-height:34px;padding:6px 12px;font-size:13px}
+  td.sel,th.sel{width:30px;text-align:center!important}
+  td.sel input,th.sel input{cursor:pointer;width:15px;height:15px}
+  tr.marcada td{background:#eef7f1}
+  .prog-chip{
+    display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:650;
+    padding:2px 7px;border-radius:6px;background:rgba(42,120,214,.12);color:#1c5cab;
+  }
+  .dup-chip{
+    display:inline-flex;font-size:11px;font-weight:700;padding:1px 6px;border-radius:5px;
+    background:rgba(160,58,134,.13);color:#7c2c67;margin-left:6px;
+  }
+  .dup-chip.mesmo{background:rgba(208,59,59,.13);color:#9c2b2b}
+  .lista-semanas{margin-top:12px;font-size:12.5px;color:var(--tinta-2)}
+  .sem-item{display:inline-flex;align-items:center;gap:6px;background:#f1f8f3;border:1px solid var(--borda);
+    border-radius:999px;padding:3px 10px;margin:3px 5px 0 0;font-variant-numeric:tabular-nums}
+  .sem-item button{border:none;background:none;color:var(--tinta-3);cursor:pointer;font-size:14px;line-height:1;padding:0 2px}
+  .sem-item button:hover{color:var(--ruim)}
 
   /* ---------- filtros ---------- */
   .filtros{
@@ -340,7 +413,8 @@
     .wrap{max-width:none;padding:0}
     .topbar{position:static;border-bottom:1.5px solid var(--verde-forte);background:#fff}
     .topbar-in{padding:0 0 8px}
-    .filtros,#painel,.tools,.abas,.filtros-lista,.zona,#tip,.btn,.x,#f-limpa,
+    .filtros,#painel,#epainel,.tools,.abas,.filtros-lista,.zona,#tip,.btn,.x,#f-limpa,
+    .ambientes,.eq-nova,.lote,td.sel,th.sel,.vazio-mod,
     #lupa,#modal-imp,.cel-nota,th[data-ord="nota"]{display:none!important}
     /* a largura da página cai abaixo do ponto de quebra responsivo: recompõe as colunas */
     .wrap{display:flex;flex-direction:column}
@@ -358,7 +432,10 @@
     .legenda{font-size:9.5px;gap:4px 12px;margin-top:4px}
     .nota{font-size:9.5px;margin-top:5px}
     /* listas longas precisam fluir entre páginas, senão o restante é cortado */
-    #sec-detalhe .card,#sec-notas .card,#sec-visao .card{break-inside:auto;page-break-inside:auto}
+    #sec-detalhe .card,#sec-edetalhe .card,#sec-notas .card,#sec-visao .card,
+    #ex-cruz{break-inside:auto;page-break-inside:auto}
+    .param-linha{background:#fff;border:none;padding:0;margin:0 0 6px}
+    .param-linha input{border:none;background:#fff;width:auto;padding:0 2px}
     /* a visão geral abre o relatório */
     #sec-visao{order:-1;margin-top:10px}
     #sec-visao:not(.vazia){break-after:page}
@@ -406,16 +483,23 @@
         <b>Análise Equipamentos TRIÂNGULO</b>
       </div>
     </div>
+    <nav class="ambientes" role="tablist" aria-label="ambiente">
+      <button class="amb" role="tab" data-amb="indisp" aria-selected="true">Indisponibilidade</button>
+      <button class="amb" role="tab" data-amb="exec" aria-selected="false">Execução</button>
+    </nav>
     <div class="periodo">
       <span class="pill" id="pill-ant">—</span>
       <span class="pill forte" id="pill-atu">—</span>
       <span class="pill" id="pill-escopo">—</span>
+      <button class="btn forte" id="bt-pdf" type="button" title="abre a impressão do navegador; escolha Salvar como PDF">Relatório PDF</button>
       <span class="so-impressao" id="imp-cab" style="font-size:11px;color:#52514e;width:100%"></span>
     </div>
   </div>
 </header>
 
 <div class="wrap">
+
+<div class="ambiente" id="amb-indisp">
 
   <div class="filtros">
     <div class="filtros-in">
@@ -445,7 +529,6 @@
       </div>
       <button class="btn" id="f-limpa" type="button">Limpar filtros</button>
       <button class="btn" id="bt-dados" type="button" aria-expanded="false">Dados da planilha</button>
-      <button class="btn forte" id="bt-pdf" type="button" title="abre a impressão do navegador; escolha Salvar como PDF">Relatório PDF</button>
     </div>
   </div>
 
@@ -591,6 +674,209 @@
       <div id="det"></div>
     </div>
   </section>
+
+</div><!-- /amb-indisp -->
+
+<div class="ambiente" id="amb-exec" hidden>
+
+  <div class="filtros">
+    <div class="filtros-in">
+      <div class="campo"><label for="e-semana">Semana</label><select id="e-semana"></select></div>
+      <div class="campo"><label for="e-comp">Comparar com</label><select id="e-comp"></select></div>
+      <div class="campo"><label for="e-ger">Gerência</label><select id="e-ger"></select></div>
+      <div class="campo"><label for="e-polo">Polo</label><select id="e-polo"></select></div>
+      <div class="campo" style="min-width:190px"><label for="e-tipo">Tipo de serviço</label><select id="e-tipo"></select></div>
+      <div class="campo"><label for="e-estagio">Estágio</label><select id="e-estagio"></select></div>
+      <button class="btn" id="e-limpa" type="button">Limpar filtros</button>
+      <button class="btn" id="bt-edados" type="button" aria-expanded="false">Carregar guias</button>
+    </div>
+  </div>
+
+  <div class="painel card" id="epainel" hidden>
+    <p class="ph">
+      Selecione os arquivos <b>AbertoTR</b> e <b>AndamentoTR</b> como saem do sistema (podem ser os dois
+      de uma vez). São lidos os campos Solicitacao, Status, Dispositivo, Conjunto, Municipio, Cadastro,
+      Tipo, Solicitante e as observações. Como o arquivo não traz a data da coleta, ela é carimbada aqui.
+    </p>
+    <div class="painel-acoes">
+      <div class="campo"><label for="e-data">Data desta foto</label><input type="date" id="e-data"></div>
+      <label class="btn" for="earq">Selecionar arquivos</label>
+      <input type="file" id="earq" accept=".xls,.xlsx,.htm,.html,.csv,.txt" multiple hidden>
+      <button class="btn" id="bt-eexemplo" type="button">Carregar exemplo</button>
+      <button class="btn" id="bt-eapaga" type="button">Apagar base de execução</button>
+      <button class="btn" id="bt-efechar" type="button" style="margin-left:auto">Fechar</button>
+    </div>
+    <div id="emsg"></div>
+    <div id="e-semanas" class="lista-semanas"></div>
+  </div>
+
+  <div class="vazio-mod" id="e-vazio" hidden>
+    <b>Nenhuma guia carregada.</b>
+    Clique em <b>Carregar guias</b> e selecione os arquivos AbertoTR e AndamentoTR.
+    Para conhecer as telas antes de ter histórico, use <b>Carregar exemplo</b>.
+  </div>
+
+  <div id="e-corpo">
+    <section class="secao">
+      <h2>Resumo</h2>
+      <div class="kpis" id="ex-kpis"></div>
+    </section>
+
+    <section class="secao">
+      <h2>Movimento</h2>
+      <div class="grade g-58">
+        <div class="card">
+          <div class="card-hd"><h3>Cascata da semana</h3><span class="sub" id="ex-sub-casc"></span>
+            <div class="tools"><button class="tbtn" data-tab="ex-casc" aria-pressed="false">Tabela</button></div></div>
+          <div id="ex-casc"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><h3>Evolução semanal</h3><span class="sub">total de guias</span>
+            <div class="tools"><button class="tbtn" data-tab="ex-evo" aria-pressed="false">Tabela</button></div></div>
+          <div id="ex-evo"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2>Idade e estágio</h2>
+      <div class="grade g-73">
+        <div class="card">
+          <div class="card-hd"><h3>Guias por faixa de idade</h3><span class="sub" id="ex-sub-idade"></span>
+            <div class="tools"><button class="tbtn" data-tab="ex-idade" aria-pressed="false">Tabela</button></div></div>
+          <div id="ex-idade"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><h3>Estágio</h3><span class="sub">avaliação × rota de execução</span>
+            <div class="tools"><button class="tbtn" data-tab="ex-estagio" aria-pressed="false">Tabela</button></div></div>
+          <div id="ex-estagio"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2>Tipo de serviço</h2>
+      <div class="card">
+        <div class="card-hd"><h3>Guias por tipo de serviço</h3><span class="sub" id="ex-sub-tipo"></span>
+          <div class="abas" role="tablist" aria-label="abrir por">
+            <button class="aba" role="tab" data-emodo="tr" aria-selected="true">TR</button>
+            <button class="aba" role="tab" data-emodo="ger" aria-selected="false">Gerência</button>
+            <button class="aba" role="tab" data-emodo="polo" aria-selected="false">Polo</button>
+          </div>
+          <div class="tools"><button class="tbtn" data-tab="ex-tipo" aria-pressed="false">Tabela</button></div>
+        </div>
+        <div id="ex-tipo"></div>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2>Polo e gerência</h2>
+      <div class="grade g-58">
+        <div class="card">
+          <div class="card-hd"><h3 id="ex-tit-polo">Guias por gerência</h3><span class="sub" id="ex-sub-polo"></span>
+            <div class="tools"><button class="tbtn" data-tab="ex-polo" aria-pressed="false">Tabela</button></div></div>
+          <div id="ex-polo"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><h3>Tipo de serviço × idade</h3><span class="sub">semana atual</span>
+            <div class="tools"><button class="tbtn" data-tab="ex-mapa" aria-pressed="false">Tabela</button></div></div>
+          <div id="ex-mapa"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2>Capacidade</h2>
+      <div class="grade g-73">
+        <div class="card">
+          <div class="card-hd"><h3>Equipes necessárias e prazo</h3><span class="sub" id="ex-sub-cap"></span>
+            <div class="tools"><button class="tbtn" data-tab="ex-cap" aria-pressed="false">Tabela</button></div></div>
+          <div class="param-linha">
+            <label>Serviços por equipe/dia <input id="p-dia" type="number" min="1" max="30" step="1"></label>
+            <label>Dias úteis por mês <input id="p-mes" type="number" min="1" max="31" step="1"></label>
+            <span class="nota">guardado na semana <b id="p-sem">—</b></span>
+          </div>
+          <div id="ex-cap"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><h3>Equipes</h3><span class="sub" id="ex-sub-eq"></span></div>
+          <div class="eq-nova">
+            <input type="text" id="eq-nome" placeholder="nome da equipe" autocomplete="off">
+            <select id="eq-ger"></select>
+            <button class="btn forte" id="eq-add" type="button">Adicionar</button>
+          </div>
+          <div id="eq-lista"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2>Programação</h2>
+      <div class="card">
+        <div class="card-hd"><h3>Carga por equipe</h3><span class="sub" id="ex-sub-carga"></span>
+          <div class="tools"><button class="tbtn" data-tab="ex-carga" aria-pressed="false">Tabela</button></div></div>
+        <div id="ex-carga"></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-hd"><h3>Projeção da fila</h3><span class="sub" id="ex-sub-proj"></span>
+          <div class="tools"><button class="tbtn" data-tab="ex-proj" aria-pressed="false">Tabela</button></div></div>
+        <div class="param-linha">
+          <label>Entrada por semana <input id="p-ent" type="number" min="0" max="500" step="1"></label>
+          <label>Conversão em regularização <input id="p-conv" type="number" min="0" max="100" step="5"> %</label>
+          <span class="nota" id="p-ent-nota"></span>
+        </div>
+        <div id="ex-proj"></div>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2>Cruzamento com indisponibilidade</h2>
+      <div class="card">
+        <div class="card-hd"><h3>Regra: indisponível em Regional - Automação deve ter guia</h3>
+          <span class="sub" id="ex-sub-cruz"></span>
+          <div class="param-linha" style="margin:0 0 0 auto;padding:0;border:none;background:none">
+            <label>Tolerância <input id="p-tol" type="number" min="0" max="60" step="1"> dias</label>
+          </div>
+        </div>
+        <div id="ex-cruz"></div>
+      </div>
+    </section>
+
+    <section class="secao" id="sec-edetalhe">
+      <h2>Detalhe</h2>
+      <div class="card">
+        <div class="card-hd">
+          <h3 id="ex-det-tit">Todas as guias</h3><span class="sub" id="ex-det-sub"></span>
+          <div class="abas" role="tablist">
+            <button class="aba" role="tab" data-edet="todos" aria-selected="true">Todas</button>
+            <button class="aba" role="tab" data-edet="novos" aria-selected="false">Entraram</button>
+            <button class="aba" role="tab" data-edet="sai" aria-selected="false">Saíram</button>
+            <button class="aba" role="tab" data-edet="dup" aria-selected="false">Equip. com 2+ guias</button>
+          </div>
+        </div>
+        <div class="filtros-lista">
+          <div class="campo"><label for="ed-tipo">Tipo de serviço</label><select id="ed-tipo"></select></div>
+          <div class="campo"><label for="ed-estagio">Estágio</label><select id="ed-estagio"></select></div>
+          <div class="campo"><label for="ed-ger">Gerência</label><select id="ed-ger"></select></div>
+          <div class="campo"><label for="ed-polo">Polo</label><select id="ed-polo"></select></div>
+          <div class="campo"><label for="ed-equipe">Equipe</label><select id="ed-equipe"></select></div>
+          <div class="campo"><label for="ed-busca">Guia ou equipamento</label><input id="ed-busca" type="search" placeholder="número" autocomplete="off"></div>
+          <button class="btn" id="ed-limpa" type="button">Limpar lista</button>
+          <span class="conta" id="ed-conta"></span>
+        </div>
+        <div class="lote" id="ed-lote" hidden>
+          <b id="ed-lote-n">0 selecionadas</b>
+          <select id="ed-lote-eq"></select>
+          <select id="ed-lote-sem"></select>
+          <button class="btn forte" id="ed-lote-ok" type="button">Programar</button>
+          <button class="btn" id="ed-lote-rm" type="button">Tirar programação</button>
+          <button class="btn" id="ed-lote-no" type="button" style="margin-left:auto">Limpar seleção</button>
+        </div>
+        <div id="ex-det"></div>
+      </div>
+    </section>
+  </div>
+</div><!-- /amb-exec -->
 
   <section class="secao" id="sec-visao">
     <h2>Visão geral</h2>
@@ -4457,7 +4743,7 @@ const VAL_DET = {
   faixa: x => x.l[D],
   resp:  x => RESPONSAVEIS[x.l[R]],
   mais:  x => x.mais || 0,
-  nota:  x => NOTAS[String(x.l[E])] || ''
+  nota:  x => notas()[String(x.l[E])] || ''
 };
 
 function opcoesDetalhe(oResp, oGer, oPolo, oTipo) {
@@ -4541,7 +4827,7 @@ function pintaDetalhe(mA, mB, novos, reg) {
     const tds = cols.map(c => c.k === 'nota'
       ? `<td class="cel-nota" data-eq="${esc(eq)}">${celulaNota(eq)}</td>`
       : `<td>${esc(cel[c.k])}</td>`).join('');
-    return `<tr${NOTAS[eq] ? ' class="tem-nota"' : ''}>${tds}</tr>`;
+    return `<tr${notas()[eq] ? ' class="tem-nota"' : ''}>${tds}</tr>`;
   }).join('');
   $('#det').innerHTML =
     `<div class="tab-wrap alta"><table class="dt"><thead><tr>${cab}</tr></thead><tbody>${corpo}</tbody></table></div>`;
@@ -4551,7 +4837,8 @@ function pintaDetalhe(mA, mB, novos, reg) {
    ANOTAÇÕES E EVIDÊNCIAS
    ============================================================ */
 const CHAVE_NOTAS = 'nge-anotacoes-v1';
-let NOTAS = {}, EVID = [], NOTA_GERAL = '', ARMAZEM_OK = true;
+let NOTAS = {indisp: {}, exec: {}}, EVID = [], NOTA_GERAL = '', ARMAZEM_OK = true;
+const notas = () => (NOTAS[AMB] || (NOTAS[AMB] = {}));
 
 function guardaAnotacoes() {
   try {
@@ -4564,11 +4851,13 @@ function recuperaAnotacoes() {
     const s = localStorage.getItem(CHAVE_NOTAS);
     if (!s) return;
     const o = JSON.parse(s) || {};
-    NOTAS = o.notas || {}; EVID = o.evid || []; NOTA_GERAL = o.geral || '';
+    const n = o.notas || {};
+    NOTAS = (n.indisp || n.exec) ? {indisp: n.indisp || {}, exec: n.exec || {}} : {indisp: n, exec: {}};
+    EVID = o.evid || []; NOTA_GERAL = o.geral || '';
   } catch (e) {}
 }
 function celulaNota(eq) {
-  const t = NOTAS[eq];
+  const t = notas()[eq];
   return t ? esc(t) : '<span class="add">anotar</span>';
 }
 /* procura o equipamento na semana atual e, se não estiver, na mais recente em que aparece */
@@ -4584,7 +4873,7 @@ function achaEquip(eq) {
 function editaNota(alvo, eq, aoFechar) {
   if (alvo.querySelector('textarea')) return;
   const ta = document.createElement('textarea');
-  ta.className = 'ta-nota'; ta.rows = 2; ta.value = NOTAS[eq] || '';
+  ta.className = 'ta-nota'; ta.rows = 2; ta.value = notas()[eq] || '';
   alvo.textContent = ''; alvo.appendChild(ta);
   ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
   let cancelado = false;
@@ -4595,46 +4884,56 @@ function editaNota(alvo, eq, aoFechar) {
   ta.addEventListener('blur', () => {
     if (!cancelado) {
       const v = ta.value.trim();
-      if (v) NOTAS[eq] = v; else delete NOTAS[eq];
+      if (v) notas()[eq] = v; else delete notas()[eq];
       guardaAnotacoes();
     }
     aoFechar();
   });
 }
+function achaItem(id) {
+  if (AMB === 'exec') {
+    for (let i = Math.min(sx.b, PORSEM_EX.length - 1); i >= 0; i--) {
+      const l = PORSEM_EX[i] && PORSEM_EX[i].get(id);
+      if (l) return {polo: poloDe(l), sem: i, semanas: EX.semanas,
+        ctx: `${EX.tipos[l[XTIPO]]} · ${ESTAGIOS[l[XEST]]} · ${fmt(idadeEx(l, i))} dias · equip. ${l[XDISP] || '—'}`};
+    }
+    return null;
+  }
+  const r = achaEquip(id);
+  if (!r) return null;
+  return {polo: POLOS[r.l[P]], sem: r.semana, semanas: SEMANAS,
+    ctx: `${TIPOS[r.l[T]]} · ${fmt(r.l[D])} dias · ${FAIXAS[faixaDe(r.l[D])]} · ${RESPONSAVEIS[r.l[R]]}`};
+}
 function pintaAnotacoes() {
-  const eqs = Object.keys(NOTAS);
-  /* agrupa por polo: é assim que a pendência de cada polo é cobrada na reunião */
+  const mapa = notas(), eqs = Object.keys(mapa);
   const grupos = new Map();
   eqs.forEach(eq => {
-    const r = achaEquip(eq);
-    const polo = r ? POLOS[r.l[P]] : '—';
+    const r = achaItem(eq);
+    const polo = r ? r.polo : '—';
     if (!grupos.has(polo)) grupos.set(polo, []);
     grupos.get(polo).push({eq, r});
   });
+  const ordem = Object.values(CONJ_POLO);
   const polos = Array.from(grupos.keys()).sort((a, b) => {
-    const ia = POLOS.indexOf(a), ib = POLOS.indexOf(b);
+    const ia = ordem.indexOf(a), ib = ordem.indexOf(b);
     return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || String(a).localeCompare(String(b), 'pt-BR');
   });
   $('#sub-notas').textContent = eqs.length
-    ? `${fmt(eqs.length)} equipamento(s) em ${fmt(polos.length)} polo(s)`
-    : 'nenhum equipamento anotado';
-
+    ? `${fmt(eqs.length)} ${AMB === 'exec' ? 'guia(s)' : 'equipamento(s)'} em ${fmt(polos.length)} polo(s)`
+    : (AMB === 'exec' ? 'nenhuma guia anotada' : 'nenhum equipamento anotado');
   $('#lista-notas').innerHTML = polos.map(polo => {
-    const itens = grupos.get(polo).sort((x, y) => ((y.r && y.r.l[D]) || 0) - ((x.r && x.r.l[D]) || 0));
-    const ger = POLO_GER[polo] || '—';
+    const itens = grupos.get(polo);
+    const ger = gerenciaDe(polo);
     const corpo = itens.map(({eq, r}) => {
-      const ctx = r
-        ? `${TIPOS[r.l[T]]} · ${fmt(r.l[D])} dias · ${FAIXAS[faixaDe(r.l[D])]} · ${RESPONSAVEIS[r.l[R]]}` +
-          (r.semana === st.b ? '' : ` · visto em ${dcurta(SEMANAS[r.semana])}`)
-        : 'equipamento fora da base carregada';
+      const ctx = r ? r.ctx + (r.sem === (AMB === 'exec' ? sx.b : st.b) ? '' : ` · visto em ${dcurta(r.semanas[r.sem])}`)
+                    : 'fora da base carregada';
       return `<div class="nota-item">
         <div class="ni-cab"><b>${esc(eq)}</b><span>${esc(ctx)}</span>
           <button class="x" data-rm-nota="${esc(eq)}" type="button">remover</button></div>
-        <div class="ni-txt" data-eq="${esc(eq)}">${esc(NOTAS[eq])}</div>
+        <div class="ni-txt" data-eq="${esc(eq)}">${esc(mapa[eq])}</div>
       </div>`;
     }).join('');
-    return `<div class="grupo-polo">
-      <div class="gp-cab">
+    return `<div class="grupo-polo"><div class="gp-cab">
         <span class="gp-nome">${polo === '—' ? 'Sem polo na base' : 'Polo ' + esc(polo)}</span>
         <span class="gp-ger">${esc(ger)}</span>
         <span class="gp-n">${fmt(itens.length)} anotação(ões)</span>
@@ -4646,7 +4945,6 @@ function pintaAnotacoes() {
   $('#sub-evid').textContent = EVID.length
     ? `${fmt(EVID.length)} imagem(ns) · ${tam}` + (ARMAZEM_OK ? '' : ' · não coube no navegador, vale só nesta sessão')
     : 'nenhuma imagem';
-
   $('#lista-evid').innerHTML = EVID.map(e => `<figure class="ev">
       <img src="${e.url}" alt="${esc(e.legenda || 'imagem anexada')}" data-ver="${e.id}">
       <figcaption>
@@ -4659,6 +4957,7 @@ function pintaAnotacoes() {
   $('#bloco-geral').classList.toggle('vazio', !NOTA_GERAL.trim());
   $('#sec-visao').classList.toggle('vazia', !EVID.length);
   $('#sec-notas').classList.toggle('vazia', !eqs.length && !NOTA_GERAL.trim());
+  $('#sec-notas').querySelector('h2').textContent = AMB === 'exec' ? 'Anotações · execução' : 'Anotações · indisponibilidade';
 }
 function adicionaImagem(arq) {
   if (!arq || !/^image\//.test(arq.type)) return;
@@ -4686,7 +4985,7 @@ function adicionaImagem(arq) {
 $('#nota-geral').addEventListener('input', e => { NOTA_GERAL = e.target.value; guardaAnotacoes(); });
 $('#lista-notas').addEventListener('click', ev => {
   const rm = ev.target.closest && ev.target.closest('[data-rm-nota]');
-  if (rm) { delete NOTAS[rm.dataset.rmNota]; guardaAnotacoes(); render(); return; }
+  if (rm) { delete notas()[rm.dataset.rmNota]; guardaAnotacoes(); render(); return; }
   const txt = ev.target.closest && ev.target.closest('.ni-txt');
   if (txt) editaNota(txt, txt.dataset.eq, () => render());
 });
@@ -4771,7 +5070,9 @@ $('#mi-ok').addEventListener('click', () => {
 /* ============================================================
    RENDER
    ============================================================ */
-function render() {
+let AMB = 'indisp';
+function render() { if (AMB === 'exec') renderEx(); else renderIndisp(); }
+function renderIndisp() {
   const mB = fatia(st.b), mA = fatia(st.a);
   const novos = [], reg = [];
   mB.forEach((l, e) => { if (!mA.has(e)) novos.push(l); });
@@ -4888,7 +5189,7 @@ $('#det').addEventListener('click', ev => {
     editaNota(td, eq, () => {
       td.innerHTML = celulaNota(eq);
       const tr = td.closest('tr');
-      if (tr) tr.className = NOTAS[eq] ? 'tem-nota' : '';
+      if (tr) tr.className = (notas()[eq] ? 'tem-nota ' : '') + (sx.sel.has(eq) ? 'marcada' : '');
       pintaAnotacoes();
     });
     return;
@@ -5278,6 +5579,1316 @@ $('#bt-bloco').addEventListener('click', () => {
 });
 
 /* ============================================================
+   MÓDULO EXECUÇÃO — modelo
+   ============================================================ */
+const FAIXAS_EX = ['Até 15 dias', '16 a 30 dias', '31 a 60 dias', '61 a 120 dias', 'Acima de 120 dias'];
+const faixaEx = d => d <= 15 ? 0 : d <= 30 ? 1 : d <= 60 ? 2 : d <= 120 ? 3 : 4;
+const COR_EX = ['#86b6ef', '#5598e7', '#2a78d6', '#184f95', '#0d366b'];
+const ESTAGIOS = ['Aberta', 'Andamento'];
+const ROT_ESTAGIO = {'Aberta': 'Aberta · em avaliação de programação',
+                     'Andamento': 'Andamento · em rota de execução'};
+const COR_ESTAGIO = {'Aberta': COR.s3, 'Andamento': COR.s1};
+/* nome do conjunto na exportação -> polo do painel */
+const CONJ_POLO = {'uberaba':'UR','araxa':'AX','frutal':'FR','patos de minas':'PM',
+                   'patrocinio':'PO','bom despacho':'BD','uberlandia':'UL',
+                   'araguari':'AG','ituiutaba':'TB'};
+const RESP_COM_GUIA = 'Regional - Automação';
+
+const XS = 0, XSOL = 1, XTIPO = 2, XPOLO = 3, XEST = 4, XCAD = 5,
+      XDISP = 6, XMUN = 7, XREQ = 8, XOBS = 9, XOBSR = 10;
+
+let EX = {semanas: [], tipos: [], polos: [], municipios: [], solicitantes: [], linhas: []};
+let PORSEM_EX = [], ORIGEM_EX = '';
+let PROG = {equipes: [], prog: {}, sem: {}, cfg: {ent: null, conv: 70, tol: 5}};
+
+const CHAVE_EX = 'nge-exec-v1', CHAVE_PROG = 'nge-prog-v1';
+
+function diasEntre(isoA, isoB) {                    /* isoB - isoA, em dias */
+  const a = new Date(isoA + 'T00:00:00'), b = new Date(isoB + 'T00:00:00');
+  return Math.round((b - a) / 86400000);
+}
+function somaDias(iso, n) {
+  const d = new Date(iso + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function hojeISO() { return new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+const idadeEx = (l, wi) => Math.max(0, diasEntre(l[XCAD], EX.semanas[wi]));
+
+function indexaEx() {
+  PORSEM_EX = EX.semanas.map(() => new Map());
+  EX.linhas.forEach(l => PORSEM_EX[l[XS]].set(l[XSOL], l));
+}
+function guardaEx() {
+  try { localStorage.setItem(CHAVE_EX, JSON.stringify({base: EX, origem: ORIGEM_EX})); return true; }
+  catch (e) { return false; }
+}
+function guardaProg() {
+  try { localStorage.setItem(CHAVE_PROG, JSON.stringify(PROG)); return true; } catch (e) { return false; }
+}
+function recuperaEx() {
+  try {
+    const s = localStorage.getItem(CHAVE_EX);
+    if (s) { const o = JSON.parse(s); if (o && o.base && Array.isArray(o.base.semanas)) { EX = o.base; ORIGEM_EX = o.origem || ''; } }
+  } catch (e) {}
+  try {
+    const s = localStorage.getItem(CHAVE_PROG);
+    if (s) { const o = JSON.parse(s); if (o) PROG = Object.assign(PROG, o); }
+  } catch (e) {}
+  if (!PROG.cfg) PROG.cfg = {ent: null, conv: 70, tol: 5};
+  indexaEx();
+}
+
+/* ---------- leitura dos arquivos de guias ---------- */
+function matrizDeHTML(texto) {
+  const doc = new DOMParser().parseFromString(texto, 'text/html');
+  const out = [];
+  doc.querySelectorAll('tr').forEach(tr => {
+    const cels = Array.from(tr.querySelectorAll('td,th'))
+      .map(td => td.textContent.replace(/ /g, ' ').replace(/\s+/g, ' ').trim());
+    if (cels.length) out.push(cels);
+  });
+  return out;
+}
+const ALVO_COL = {
+  sol:  ['solicitacao', 'solicitação', 'guia'],
+  est:  ['status', 'estagio'],
+  disp: ['dispositivo', 'equipamento'],
+  conj: ['conjunto'],
+  mun:  ['municipio'],
+  cad:  ['cadastro', 'data cadastro'],
+  tipo: ['tipo', 'tipo de servico'],
+  req:  ['solicitante'],
+  obs:  ['observacoes', 'observacao'],
+  obsr: ['obs. resposta', 'obs resposta', 'resposta']
+};
+function mapeiaCabecalho(linha) {
+  const norm = linha.map(chaveTexto);
+  const idx = {};
+  Object.keys(ALVO_COL).forEach(k => {
+    idx[k] = norm.findIndex(c => ALVO_COL[k].some(a => c === chaveTexto(a)));
+  });
+  return idx;
+}
+function montaExec(matrizes, dataISO) {
+  const regs = [], vistos = new Set();
+  let ruins = 0, dup = 0, lidas = 0;
+  matrizes.forEach(m => {
+    let idx = null;
+    m.forEach(linha => {
+      if (!idx) {
+        if (linha.some(c => chaveTexto(c) === 'solicitacao')) idx = mapeiaCabecalho(linha);
+        return;
+      }
+      const v = k => (idx[k] >= 0 && linha[idx[k]] != null) ? String(linha[idx[k]]).trim() : '';
+      const sol = v('sol');
+      if (!sol || !/\d/.test(sol)) { if (linha.join('').trim()) ruins++; return; }
+      const cad = leData(v('cad'));
+      if (!cad) { ruins++; return; }
+      lidas++;
+      if (vistos.has(sol)) { dup++; return; }
+      vistos.add(sol);
+      const conj = v('conj');
+      let est = v('est') || 'Aberta';
+      est = ESTAGIOS.find(e => chaveTexto(e) === chaveTexto(est)) || est;
+      regs.push({sem: dataISO, sol, tipo: v('tipo') || '(sem tipo)',
+                 polo: CONJ_POLO[chaveTexto(conj)] || (conj || '—'), est, cad,
+                 disp: v('disp'), mun: v('mun'), req: v('req'), obs: v('obs'), obsr: v('obsr')});
+    });
+  });
+  if (!regs.length) {
+    return {erro: 'Nenhuma guia reconhecida. Confira se o arquivo tem a coluna Solicitacao e a coluna Cadastro com a data.'};
+  }
+  /* fotos anteriores viram objetos de novo, menos a do próprio dia (que é refeita) */
+  const antigos = EX.linhas
+    .filter(l => EX.semanas[l[XS]] !== dataISO)
+    .map(l => ({
+      sem: EX.semanas[l[XS]], sol: l[XSOL], tipo: EX.tipos[l[XTIPO]], polo: EX.polos[l[XPOLO]],
+      est: ESTAGIOS[l[XEST]] || 'Aberta', cad: l[XCAD], disp: l[XDISP],
+      mun: EX.municipios[l[XMUN]] || '', req: EX.solicitantes[l[XREQ]] || '',
+      obs: l[XOBS] || '', obsr: l[XOBSR] || ''
+    }));
+  const refeita = EX.semanas.indexOf(dataISO) >= 0;
+  const todos = antigos.concat(regs);
+
+  const ordemPolo = [].concat.apply([], Object.keys(MAPA_GERENCIA).map(g => MAPA_GERENCIA[g]));
+  const unicos = (fn, ord) => { const s = Array.from(new Set(todos.map(fn))); return ord ? s.sort(ord) : s; };
+  const alfa = (a, b) => String(a).localeCompare(String(b), 'pt-BR');
+  const semanas = unicos(x => x.sem, (a, b) => a < b ? -1 : a > b ? 1 : 0);
+  const tipos = unicos(x => x.tipo, alfa);
+  const polos = unicos(x => x.polo, (a, b) => {
+    const ia = ordemPolo.indexOf(a), ib = ordemPolo.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || alfa(a, b);
+  });
+  const municipios = unicos(x => x.mun, alfa), solicitantes = unicos(x => x.req, alfa);
+  const pos = lista => { const o = {}; lista.forEach((v, i) => o[v] = i); return o; };
+  const iS = pos(semanas), iT = pos(tipos), iP = pos(polos), iM = pos(municipios), iR = pos(solicitantes);
+
+  const linhas = todos.map(x => [
+    iS[x.sem], x.sol, iT[x.tipo], iP[x.polo], Math.max(0, ESTAGIOS.indexOf(x.est)),
+    x.cad, x.disp, iM[x.mun], iR[x.req], x.obs, x.obsr
+  ]);
+  return {base: {semanas, tipos, polos, municipios, solicitantes, linhas},
+          novas: regs.length, ruins, dup, lidas, refeita, data: dataISO};
+}
+
+/* ---------- capacidade e programação ---------- */
+function paramsSemana(iso) {
+  if (!PROG.sem[iso]) {
+    const ant = EX.semanas.filter(s => s < iso).sort().pop();
+    const base = (ant && PROG.sem[ant]) ? PROG.sem[ant] : null;
+    PROG.sem[iso] = base
+      ? {dia: base.dia, mes: base.mes, ded: Object.assign({}, base.ded)}
+      : {dia: 4, mes: 20, ded: {}};
+    GERS.forEach(g => { if (PROG.sem[iso].ded[g] == null) PROG.sem[iso].ded[g] = 100; });
+  }
+  GERS.forEach(g => { if (PROG.sem[iso].ded[g] == null) PROG.sem[iso].ded[g] = 100; });
+  return PROG.sem[iso];
+}
+const equipesDe = g => PROG.equipes.filter(e => e.ativa !== false && (!g || e.ger === g));
+function capacidade(g, iso) {
+  const p = paramsSemana(iso);
+  const n = equipesDe(g).length, ded = (p.ded[g] == null ? 100 : p.ded[g]) / 100;
+  return {equipes: n, ded: ded * 100, dia: p.dia, mes: p.mes,
+          semana: n * ded * p.dia * 5, mesTotal: n * ded * p.dia * p.mes};
+}
+/* segunda-feira da semana de uma data */
+function segunda(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  const dow = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - dow);
+  return d.toISOString().slice(0, 10);
+}
+function semanasFuturas(iso, n) {
+  const ini = segunda(iso), out = [];
+  for (let i = 0; i < n; i++) out.push(somaDias(ini, 7 * (i + 1)));
+  return out;
+}
+
+/* ============================================================
+   EXECUÇÃO — estado, filtros e gráficos
+   ============================================================ */
+const sx = {
+  b: 0, a: -1, tipo: '', estagio: '', modo: 'tr', det: 'todos',
+  dTipo: '', dEst: '', dGer: '', dPolo: '', dEquipe: '', dBusca: '',
+  dOrd: {col: 'idade', dir: -1}, dAssin: '', sel: new Set()
+};
+function corGer(g) {
+  if (COR.ger && COR.ger[g]) return COR.ger[g];
+  const i = Object.keys(MAPA_GERENCIA).indexOf(g);
+  return i >= 0 ? CORES_GER[i % 3] : CORES_GER[3];
+}
+function gersEx() {
+  const s = new Set(EX.polos.map(gerenciaDe));
+  return Object.keys(MAPA_GERENCIA).filter(g => s.has(g))
+    .concat(Array.from(s).filter(g => !MAPA_GERENCIA[g]).sort());
+}
+const polosDeGer = g => EX.polos.filter(p => gerenciaDe(p) === g);
+const poloDe = l => EX.polos[l[XPOLO]];
+
+function passaEx(l) {
+  const p = poloDe(l);
+  if (st.ger && gerenciaDe(p) !== st.ger) return false;
+  if (st.polo && p !== st.polo) return false;
+  if (sx.tipo && EX.tipos[l[XTIPO]] !== sx.tipo) return false;
+  if (sx.estagio && ESTAGIOS[l[XEST]] !== sx.estagio) return false;
+  return true;
+}
+function fatiaEx(wi) {
+  const m = new Map();
+  if (wi < 0 || wi >= EX.semanas.length) return m;
+  PORSEM_EX[wi].forEach((l, s) => { if (passaEx(l)) m.set(s, l); });
+  return m;
+}
+/* entrada média por semana, medida no histórico */
+function entradaMedia() {
+  if (EX.semanas.length < 2) return null;
+  let soma = 0, n = 0;
+  for (let i = 1; i < EX.semanas.length; i++) {
+    const ant = PORSEM_EX[i - 1], atu = PORSEM_EX[i];
+    let novas = 0;
+    atu.forEach((l, s) => { if (!ant.has(s)) novas++; });
+    const dias = Math.max(1, diasEntre(EX.semanas[i - 1], EX.semanas[i]));
+    soma += novas * 7 / dias; n++;
+  }
+  return n ? Math.round(soma / n) : null;
+}
+
+/* --- cascata --- */
+function gExCascata(tA, tB, entraram, sairam) {
+  const W = 640, H = 330, ml = 52, mr = 18, mt = 44, mb = 58;
+  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
+  const max = escalaMax(Math.max(tA, tB, 1) * 1.08);
+  const y = v => py1 - (v / max) * (py1 - py0);
+  const marcas = marcasY(max);
+  let s = grade(px0, px1, marcas.map(y));
+  s += marcas.map(v => txt(px0 - 9, y(v) + 4, fmt(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1})).join('');
+  const rotA = sx.a >= 0 ? dcurta(EX.semanas[sx.a]) : '—';
+  const cats = [
+    {rot: rotA, de: 0, ate: tA, cor: COR.s2, val: tA, t: 'total'},
+    {rot: 'Saíram', de: tA - sairam, ate: tA, cor: COR.bom, val: -sairam, t: 'mov', pe: 'da execução'},
+    {rot: 'Entraram', de: tA - sairam, ate: tB, cor: COR.ruim, val: entraram, t: 'mov', pe: 'guias novas'},
+    {rot: dcurta(EX.semanas[sx.b]), de: 0, ate: tB, cor: COR.s2, val: tB, t: 'total'}
+  ];
+  const banda = (px1 - px0) / cats.length, bw = Math.min(24, banda * 0.42);
+  cats.forEach((c, i) => {
+    const cx = px0 + banda * i + banda / 2;
+    const topo = y(Math.max(c.de, c.ate)), base = y(Math.min(c.de, c.ate));
+    const dica = c.t === 'total'
+      ? `<b>${fmt(c.val)}</b><br><span class="l">guias em ${c.rot}</span>`
+      : `<b>${sinal(c.val)}</b><br><span class="l">${c.rot} ${c.pe}</span>`;
+    s += colunaSVG(cx - bw / 2, topo, bw, Math.max(2, base - topo), c.cor, dica);
+    s += txt(cx, topo - 11, c.t === 'total' ? fmt(c.val) : sinal(c.val),
+             {cor: COR.t1, tam: 19, peso: 650, anc: 'middle'});
+    s += txt(cx, py1 + 22, c.rot, {cor: COR.t2, tam: 12.5, anc: 'middle', peso: c.t === 'total' ? 650 : 400});
+    if (c.pe) s += txt(cx, py1 + 39, c.pe, {cor: COR.t3, tam: 11, anc: 'middle'});
+  });
+  const cx = i => px0 + banda * i + banda / 2;
+  [[0, 1, tA], [1, 2, tA - sairam], [2, 3, tB]].forEach(([i, j, v]) => {
+    s += `<line x1="${cx(i) + bw / 2}" y1="${y(v)}" x2="${cx(j) - bw / 2}" y2="${y(v)}" stroke="${COR.eixo}" stroke-width="1"/>`;
+  });
+  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+  return {
+    svg: svgRoot(W, H, s),
+    pe: `<div class="nota">Saldo ${sinal(tB - tA)}. “Saíram” quer dizer que a guia não está mais na carteira da Execução Regional — pode ter sido concluída, cancelada ou redirecionada.</div>`,
+    tabela: {cab: ['Etapa', 'Guias'], linhas: [[rotA, fmt(tA)], ['Saíram da execução', sinal(-sairam)],
+             ['Entraram', sinal(entraram)], [dcurta(EX.semanas[sx.b]), fmt(tB)], ['Saldo', sinal(tB - tA)]]}
+  };
+}
+
+/* --- evolução --- */
+function gExEvolucao() {
+  const W = 900, H = 330, ml = 50, mr = 26, mt = 40, mb = 46;
+  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
+  const tot = EX.semanas.map((_, i) => fatiaEx(i).size);
+  if (tot.length < 2) {
+    return {svg: `<div class="vazio">Só existe uma foto carregada. A evolução aparece a partir da segunda semana.</div>`,
+            tabela: {cab: ['Semana', 'Guias'], linhas: EX.semanas.map((w, i) => [dlonga(w), fmt(tot[i])])}};
+  }
+  const max = escalaMax(Math.max(...tot) * 1.06, 5);
+  const x = i => px0 + (px1 - px0) * (tot.length === 1 ? 0.5 : i / (tot.length - 1));
+  const y = v => py1 - (v / max) * (py1 - py0);
+  const marcas = marcasY(max, 5);
+  let s = grade(px0, px1, marcas.map(y));
+  s += marcas.map(v => txt(px0 - 9, y(v) + 4, fmt(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1})).join('');
+  const pts = tot.map((v, i) => `${x(i)},${y(v)}`).join(' ');
+  s += `<path d="M${x(0)},${py1} L${pts.split(' ').join(' L')} L${x(tot.length - 1)},${py1} Z" fill="${COR.s2}" fill-opacity="0.10"/>`;
+  s += `<polyline points="${pts}" fill="none" stroke="${COR.s2}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  tot.forEach((v, i) => {
+    if (i !== sx.a && i !== sx.b) s += `<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="${COR.s2}"/>`;
+    s += `<rect x="${x(i) - 16}" y="${py0}" width="32" height="${py1 - py0}" fill="transparent" class="hit" data-t="${esc(`<b>${fmt(v)}</b><br><span class="l">${dlonga(EX.semanas[i])}</span>`)}"/>`;
+  });
+  [sx.a, sx.b].forEach(i => {
+    if (i < 0) return;
+    s += `<circle cx="${x(i)}" cy="${y(tot[i])}" r="6" fill="${COR.s2}" stroke="${COR.surface}" stroke-width="2"/>`;
+    s += txt(x(i), y(tot[i]) - 16, fmt(tot[i]), {cor: COR.t1, tam: 17, peso: 650, anc: 'middle'});
+  });
+  EX.semanas.forEach((w, i) => {
+    const forte = (i === sx.a || i === sx.b);
+    s += txt(x(i), py1 + 20, dcurta(w), {cor: forte ? COR.t1 : COR.t3, tam: 11.5, anc: 'middle', peso: forte ? 700 : 400, tab: 1});
+  });
+  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+  return {svg: svgRoot(W, H, s),
+          tabela: {cab: ['Semana', 'Guias', 'Variação'],
+                   linhas: EX.semanas.map((w, i) => [dlonga(w), fmt(tot[i]), i ? sinal(tot[i] - tot[i - 1]) : '—'])}};
+}
+
+/* --- idade em 5 faixas --- */
+function gExIdade(mA, mB) {
+  const W = 900, H = 350, ml = 52, mr = 20, mt = 46, mb = 74;
+  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
+  const cA = [0,0,0,0,0], cB = [0,0,0,0,0];
+  mA.forEach(l => cA[faixaEx(idadeEx(l, sx.a))]++);
+  mB.forEach(l => cB[faixaEx(idadeEx(l, sx.b))]++);
+  const max = escalaMax(Math.max(...cB, ...cA, 1) * 1.10);
+  const y = v => py1 - (v / max) * (py1 - py0);
+  const marcas = marcasY(max);
+  let s = grade(px0, px1, marcas.map(y));
+  s += marcas.map(v => txt(px0 - 9, y(v) + 4, fmt(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1})).join('');
+  const banda = (px1 - px0) / 5, bw = Math.min(24, banda * 0.30), tB = mB.size || 1;
+  FAIXAS_EX.forEach((fx, i) => {
+    const cx = px0 + banda * i + banda / 2;
+    s += colunaSVG(cx - bw / 2, y(cB[i]), bw, Math.max(2, py1 - y(cB[i])), COR_EX[i],
+      `<b>${fmt(cB[i])}</b> · ${pct1(pct(cB[i], tB))}%<br><span class="l">${fx} · semana anterior ${fmt(cA[i])}</span>`);
+    if (sx.a >= 0) s += `<line x1="${cx - bw / 2 - 9}" y1="${y(cA[i])}" x2="${cx + bw / 2 + 9}" y2="${y(cA[i])}" stroke="${COR.t3}" stroke-width="2" stroke-linecap="round"/>`;
+    s += txt(cx, Math.min(y(cB[i]), sx.a >= 0 ? y(cA[i]) : 1e9) - 12, fmt(cB[i]), {cor: COR.t1, tam: 21, peso: 650, anc: 'middle'});
+    s += txt(cx, py1 + 22, fx, {cor: COR.t2, tam: 12.5, anc: 'middle', peso: 600});
+    s += txt(cx, py1 + 40, pct1(pct(cB[i], tB)) + '% do total', {cor: COR.t3, tam: 11.5, anc: 'middle'});
+    if (sx.a >= 0) {
+      const dv = cB[i] - cA[i];
+      s += txt(cx, py1 + 58, `${seta(dv)} ${sinal(dv)} vs anterior`,
+               {cor: dv === 0 ? COR.t3 : (dv < 0 ? '#006300' : COR.ruim), tam: 12, anc: 'middle', peso: 650});
+    }
+  });
+  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+  return {svg: svgRoot(W, H, s),
+          pe: sx.a >= 0 ? legenda([{cor: COR.t3, rot: 'traço — semana anterior', linha: true}]) : '',
+          tabela: {cab: ['Faixa', 'Atual', '% do total', 'Anterior', 'Variação'],
+                   linhas: FAIXAS_EX.map((fx, i) => [fx, fmt(cB[i]), pct1(pct(cB[i], tB)) + '%', fmt(cA[i]), sinal(cB[i] - cA[i])])}};
+}
+
+/* --- estágio, com o fluxo entre os dois --- */
+function gExEstagio(mA, mB, fluxo) {
+  const W = 640, H = 300, ml = 40, mr = 20, mt = 40, mb = 70;
+  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
+  const cB = ESTAGIOS.map(e => { let n = 0; mB.forEach(l => { if (ESTAGIOS[l[XEST]] === e) n++; }); return n; });
+  const cA = ESTAGIOS.map(e => { let n = 0; mA.forEach(l => { if (ESTAGIOS[l[XEST]] === e) n++; }); return n; });
+  const max = escalaMax(Math.max(...cB, ...cA, 1) * 1.15);
+  const y = v => py1 - (v / max) * (py1 - py0);
+  let s = grade(px0, px1, marcasY(max).map(y));
+  const banda = (px1 - px0) / 2, bw = Math.min(24, banda * 0.26), tot = mB.size || 1;
+  ESTAGIOS.forEach((e, i) => {
+    const cx = px0 + banda * i + banda / 2;
+    s += colunaSVG(cx - bw / 2, y(cB[i]), bw, Math.max(2, py1 - y(cB[i])), COR_ESTAGIO[e],
+      `<b>${fmt(cB[i])}</b> · ${pct1(pct(cB[i], tot))}%<br><span class="l">${ROT_ESTAGIO[e]}</span>`);
+    if (sx.a >= 0) s += `<line x1="${cx - bw / 2 - 9}" y1="${y(cA[i])}" x2="${cx + bw / 2 + 9}" y2="${y(cA[i])}" stroke="${COR.t3}" stroke-width="2" stroke-linecap="round"/>`;
+    s += txt(cx, Math.min(y(cB[i]), sx.a >= 0 ? y(cA[i]) : 1e9) - 12, fmt(cB[i]), {cor: COR.t1, tam: 26, peso: 650, anc: 'middle'});
+    s += txt(cx, py1 + 22, e, {cor: COR.t1, tam: 14, anc: 'middle', peso: 700});
+    s += txt(cx, py1 + 39, pct1(pct(cB[i], tot)) + '% da carteira', {cor: COR.t3, tam: 11.5, anc: 'middle'});
+    const dv = cB[i] - cA[i];
+    if (sx.a >= 0) s += txt(cx, py1 + 56, `${seta(dv)} ${sinal(dv)}`,
+      {cor: dv === 0 ? COR.t3 : (i === 1 ? (dv > 0 ? '#006300' : COR.ruim) : (dv < 0 ? '#006300' : COR.ruim)), tam: 12.5, anc: 'middle', peso: 650});
+  });
+  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+  const pe = sx.a >= 0
+    ? `<div class="nota"><b>${fmt(fluxo.avancou)}</b> guia(s) foram de avaliação para rota de execução na semana` +
+      (fluxo.voltou ? ` · <b>${fmt(fluxo.voltou)}</b> voltaram para avaliação` : '') + `.</div>`
+    : `<div class="nota">O fluxo entre os estágios aparece a partir da segunda foto.</div>`;
+  return {svg: svgRoot(W, H, s), pe,
+          tabela: {cab: ['Estágio', 'Atual', '% da carteira', 'Anterior', 'Variação'],
+                   linhas: ESTAGIOS.map((e, i) => [ROT_ESTAGIO[e], fmt(cB[i]), pct1(pct(cB[i], tot)) + '%', fmt(cA[i]), sinal(cB[i] - cA[i])])
+                     .concat([['Foram para rota de execução', fmt(fluxo.avancou), '', '', ''],
+                              ['Voltaram para avaliação', fmt(fluxo.voltou), '', '', '']])}};
+}
+
+/* --- tipo de serviço --- */
+const ligadoIndisp = t => /^indispon/i.test(chaveTexto(t));
+function gExTipo(mA, mB) {
+  const modo = sx.modo;
+  const cats = EX.tipos.filter(t => {
+    let usa = false;
+    mB.forEach(l => { if (EX.tipos[l[XTIPO]] === t) usa = true; });
+    mA.forEach(l => { if (EX.tipos[l[XTIPO]] === t) usa = true; });
+    return usa;
+  });
+  if (!cats.length) return {svg: '<div class="vazio">Sem guias no filtro atual.</div>', tabela: null};
+  const gers = gersEx();
+  const segs = modo === 'tr' ? ['total']
+    : modo === 'ger' ? gers
+    : EX.polos.filter(p => (!st.ger || gerenciaDe(p) === st.ger) && (!st.polo || p === st.polo));
+  const segDe = l => modo === 'tr' ? 'total' : (modo === 'ger' ? gerenciaDe(poloDe(l)) : poloDe(l));
+  const segCor = s => modo === 'ger' ? corGer(s) : corGer(gerenciaDe(s));
+
+  const mapa = {}, totB = {}, totA = {};
+  cats.forEach(t => { mapa[t] = {}; segs.forEach(s => mapa[t][s] = 0); totB[t] = 0; totA[t] = 0; });
+  mB.forEach(l => { const t = EX.tipos[l[XTIPO]]; if (!mapa[t]) return; const s = segDe(l);
+                    if (s in mapa[t]) mapa[t][s]++; totB[t]++; });
+  mA.forEach(l => { const t = EX.tipos[l[XTIPO]]; if (t in totA) totA[t]++; });
+  cats.sort((a, b) => totB[b] - totB[a] || a.localeCompare(b, 'pt-BR'));
+
+  const W = 1400, H = 430, ml = 58, mr = 24, mt = 44, mb = 108;
+  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
+  const max = escalaMax(Math.max(1, ...cats.map(t => totB[t])) * 1.12);
+  const y = v => py1 - (v / max) * (py1 - py0);
+  let s = grade(px0, px1, marcasY(max).map(y));
+  s += marcasY(max).map(v => txt(px0 - 9, y(v) + 4, fmt(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1})).join('');
+  const banda = (px1 - px0) / cats.length, bw = Math.min(24, banda * 0.44);
+  const maxCh = Math.max(9, Math.floor(banda / 7.4)), tot = mB.size || 1;
+
+  cats.forEach((t, i) => {
+    const cx = px0 + banda * i + banda / 2;
+    let acum = 0;
+    segs.forEach(sg => {
+      const v = mapa[t][sg];
+      if (!v) return;
+      const yT = y(acum + v), yB = y(acum);
+      const alt = Math.max(1, yB - yT - (acum ? 2 : 0));
+      const cor = modo === 'tr' ? (ligadoIndisp(t) ? COR.s3 : COR.s2) : segCor(sg);
+      const dica = `<b>${fmt(v)}</b><br><span class="l">${t}${modo === 'tr' ? '' : ' · ' + sg}</span>`;
+      const ult = acum + v >= totB[t] - 0.5;
+      s += ult ? colunaSVG(cx - bw / 2, yT, bw, alt, cor, dica)
+               : `<rect x="${cx - bw / 2}" y="${yT}" width="${bw}" height="${alt}" fill="${cor}" class="hit" data-t="${esc(dica)}"/>`;
+      if (modo === 'polo' && alt >= 15) s += txt(cx, yT + alt / 2 + 4, sg, {cor: tintaSobre(cor), tam: 10.5, anc: 'middle', peso: 700});
+      else if (modo === 'ger' && alt >= 17) s += txt(cx, yT + alt / 2 + 5, fmt(v), {cor: tintaSobre(cor), tam: 12, anc: 'middle', peso: 650});
+      acum += v;
+    });
+    s += txt(cx, y(totB[t]) - 11, fmt(totB[t]), {cor: COR.t1, tam: 19, peso: 650, anc: 'middle'});
+    const ls = quebra(t, maxCh);
+    ls.forEach((ln, k) => s += txt(cx, py1 + 21 + k * 15, ln, {cor: COR.t1, tam: 12.5, anc: 'middle', peso: 600}));
+    const by = py1 + 21 + ls.length * 15;
+    s += txt(cx, by + 2, pct1(pct(totB[t], tot)) + '% do total', {cor: COR.t3, tam: 11, anc: 'middle'});
+    if (sx.a >= 0) {
+      const dv = totB[t] - totA[t];
+      s += txt(cx, by + 19, `${seta(dv)} ${sinal(dv)}`,
+               {cor: dv === 0 ? COR.t3 : (dv < 0 ? '#006300' : COR.ruim), tam: 12, anc: 'middle', peso: 650});
+    }
+  });
+  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+  const chaves = modo === 'tr'
+    ? [{cor: COR.s3, rot: 'ligado a indisponibilidade'}, {cor: COR.s2, rot: 'demais serviços'}]
+    : modo === 'ger' ? segs.map(g => ({cor: corGer(g), rot: g}))
+    : gers.filter(g => segs.some(p => gerenciaDe(p) === g))
+          .map(g => ({cor: corGer(g), rot: g + ' — faixas: ' + polosDeGer(g).join(', ')}));
+  return {svg: svgRoot(W, H, s), pe: legenda(chaves),
+          tabela: {cab: ['Tipo de serviço', 'Ligado a indisponibilidade'].concat(modo === 'tr' ? [] : segs).concat(['Total', '%', 'Anterior']),
+                   linhas: cats.map(t => [esc(t), ligadoIndisp(t) ? 'sim' : 'não']
+                     .concat(modo === 'tr' ? [] : segs.map(sg => fmt(mapa[t][sg])))
+                     .concat([fmt(totB[t]), pct1(pct(totB[t], tot)) + '%', fmt(totA[t])]))}};
+}
+
+/* --- polo / gerência --- */
+function gExPolo(mA, mB) {
+  const porGer = !st.ger;
+  const dim = l => porGer ? gerenciaDe(poloDe(l)) : poloDe(l);
+  const cA = contaPor(mA, dim), cB = contaPor(mB, dim);
+  const cats = porGer ? gersEx() : polosDeGer(st.ger).filter(p => !st.polo || p === st.polo);
+  if (!cats.length) return {svg: '<div class="vazio">Sem guias no filtro atual.</div>', tabela: null};
+  const W = 700, H = 330, ml = 50, mr = 20, mt = 44, mb = 66;
+  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
+  const max = escalaMax(Math.max(1, ...cats.map(p => Math.max(pega(cB, p), pega(cA, p)))) * 1.12);
+  const y = v => py1 - (v / max) * (py1 - py0);
+  let s = grade(px0, px1, marcasY(max).map(y));
+  s += marcasY(max).map(v => txt(px0 - 9, y(v) + 4, fmt(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1})).join('');
+  const banda = (px1 - px0) / cats.length, bw = Math.min(24, banda * 0.44);
+  cats.forEach((p, i) => {
+    const cx = px0 + banda * i + banda / 2, vb = pega(cB, p), va = pega(cA, p), dv = vb - va;
+    const g = porGer ? p : gerenciaDe(p);
+    const onde = porGer ? `Gerência ${p} · ${polosDeGer(p).join(', ')}` : `Polo ${p} · ${g}`;
+    s += colunaSVG(cx - bw / 2, y(vb), bw, Math.max(2, py1 - y(vb)), corGer(g),
+                   `<b>${fmt(vb)}</b><br><span class="l">${onde}</span>`);
+    if (sx.a >= 0) s += `<line x1="${cx - bw / 2 - 7}" y1="${y(va)}" x2="${cx + bw / 2 + 7}" y2="${y(va)}" stroke="${COR.t3}" stroke-width="2" stroke-linecap="round"/>`;
+    s += txt(cx, Math.min(y(vb), sx.a >= 0 ? y(va) : 1e9) - 11, fmt(vb), {cor: COR.t1, tam: 18, peso: 650, anc: 'middle'});
+    s += txt(cx, py1 + 22, p, {cor: COR.t1, tam: porGer ? 15 : 14, anc: 'middle', peso: 700});
+    if (sx.a >= 0) s += txt(cx, py1 + 41, `${seta(dv)} ${sinal(dv)}`,
+      {cor: dv === 0 ? COR.t3 : (dv < 0 ? '#006300' : COR.ruim), tam: 12.5, anc: 'middle', peso: 650});
+  });
+  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+  return {svg: svgRoot(W, H, s),
+          pe: legenda((porGer ? cats.map(g => ({cor: corGer(g), rot: g})) : [{cor: corGer(st.ger), rot: st.ger}])
+                      .concat(sx.a >= 0 ? [{cor: COR.t3, rot: 'traço — semana anterior', linha: true}] : [])),
+          tabela: {cab: [porGer ? 'Gerência' : 'Polo', 'Atual', 'Anterior', 'Variação'],
+                   linhas: cats.map(p => [p, fmt(pega(cB, p)), fmt(pega(cA, p)), sinal(pega(cB, p) - pega(cA, p))])}};
+}
+
+/* --- tipo de serviço x faixa de idade --- */
+function gExMapa(mB) {
+  const m = {}, tipos = [];
+  mB.forEach(l => {
+    const t = EX.tipos[l[XTIPO]];
+    if (!m[t]) { m[t] = [0,0,0,0,0]; tipos.push(t); }
+    m[t][faixaEx(idadeEx(l, sx.b))]++;
+  });
+  if (!tipos.length) return {svg: '<div class="vazio">Sem guias no filtro atual.</div>', tabela: null};
+  tipos.sort((a, b) => (m[b][3] + m[b][4]) - (m[a][3] + m[a][4]) ||
+                       m[b].reduce((x, y) => x + y, 0) - m[a].reduce((x, y) => x + y, 0));
+  const ml = 210, mr = 66, mt = 46, W = 900, alt = 40, gap = 2;
+  const H = mt + tipos.length * alt + 26;
+  const cw = (W - ml - mr) / 5;
+  const max = Math.max(1, ...tipos.map(t => Math.max(...m[t])));
+  const cor = v => v === 0 ? '#f2f6f3' : COR.q[Math.min(5, Math.max(0, Math.round((v / max) * 5)))];
+  let s = '';
+  FAIXAS_EX.forEach((fx, j) => s += txt(ml + cw * j + cw / 2, mt - 16, fx, {cor: COR.t2, tam: 11.5, anc: 'middle', peso: 600}));
+  s += txt(W - 6, mt - 16, 'Total', {cor: COR.t2, tam: 11.5, anc: 'end', peso: 600});
+  tipos.forEach((t, i) => {
+    const y = mt + i * alt, tot = m[t].reduce((a, b) => a + b, 0);
+    s += txt(ml - 14, y + alt / 2 + 5, corta(t, 28), {cor: COR.t1, tam: 12.5, anc: 'end', peso: 600});
+    m[t].forEach((v, j) => {
+      const c = cor(v), x = ml + cw * j;
+      s += `<rect x="${x}" y="${y}" width="${cw - gap}" height="${alt - gap}" rx="4" fill="${c}" class="hit" data-t="${esc(`<b>${fmt(v)}</b><br><span class="l">${t} · ${FAIXAS_EX[j]}</span>`)}"/>`;
+      s += txt(x + (cw - gap) / 2, y + alt / 2 + 5, fmt(v), {cor: v === 0 ? COR.t3 : tintaSobre(c), tam: 14, anc: 'middle', peso: 650});
+    });
+    s += txt(W - 6, y + alt / 2 + 5, fmt(tot), {cor: COR.t1, tam: 14, anc: 'end', peso: 650, tab: 1});
+  });
+  return {svg: svgRoot(W, H, s),
+          pe: `<div class="legenda"><span>menos</span>` + COR.q.map(c => `<i class="sw" style="background:${c};margin:0"></i>`).join('') + `<span>mais guias</span></div>`,
+          tabela: {cab: ['Tipo de serviço'].concat(FAIXAS_EX).concat(['Total']),
+                   linhas: tipos.map(t => [esc(t)].concat(m[t].map(fmt)).concat([fmt(m[t].reduce((a, b) => a + b, 0))]))}};
+}
+
+/* --- capacidade, equipes e carga --- */
+function entradaSemanal(filtro) {
+  if (EX.semanas.length < 2) return null;
+  let soma = 0, n = 0;
+  for (let i = 1; i < EX.semanas.length; i++) {
+    let novas = 0;
+    PORSEM_EX[i].forEach((l, s) => { if (!PORSEM_EX[i - 1].has(s) && (!filtro || filtro(l))) novas++; });
+    soma += novas * 7 / Math.max(1, diasEntre(EX.semanas[i - 1], EX.semanas[i]));
+    n++;
+  }
+  return n ? soma / n : null;
+}
+function entradaEmUso() {
+  const c = PROG.cfg.ent;
+  if (c != null && c !== '') return +c;
+  const m = entradaSemanal(null);
+  return m == null ? 0 : Math.round(m);
+}
+function pintaCapacidade(mB) {
+  const iso = EX.semanas[sx.b], p = paramsSemana(iso);
+  $('#p-dia').value = p.dia; $('#p-mes').value = p.mes; $('#p-sem').textContent = dlonga(iso);
+  const gers = (st.ger ? [st.ger] : gersEx());
+  const tot = mB.size || 0;
+  const entTot = entradaEmUso();
+  const linhas = gers.map(g => {
+    let n = 0; mB.forEach(l => { if (gerenciaDe(poloDe(l)) === g) n++; });
+    const c = capacidade(g, iso);
+    const entG = tot ? entTot * n / tot : 0;
+    const liq = c.semana - entG;
+    const prazoBruto = c.semana > 0 ? n / c.semana : Infinity;
+    const prazoLiq = liq > 0 ? n / liq : Infinity;
+    return {g, n, c, entG, prazoBruto, prazoLiq};
+  });
+  const semTxt = v => !isFinite(v) ? '—' : (v < 0.1 ? '<0,1' : v.toFixed(1).replace('.', ',')) + ' sem';
+  $('#ex-cap').innerHTML = `<div class="tab-wrap"><table class="dt"><thead><tr>
+      <th>Gerência</th><th>Guias</th><th>Equipes</th><th>Dedicação</th>
+      <th>Cap. semana</th><th>Equipes p/ zerar em 1 mês</th><th>Prazo bruto</th><th>Prazo líquido</th></tr></thead><tbody>` +
+    linhas.map(r => `<tr>
+      <td>${esc(r.g)}</td><td>${fmt(r.n)}</td><td>${fmt(r.c.equipes)}</td>
+      <td><input class="ded" type="number" min="0" max="100" step="5" value="${r.c.ded}" data-ger="${esc(r.g)}"> %</td>
+      <td>${r.c.semana ? fmt(Math.round(r.c.semana)) : '—'}</td>
+      <td>${r.c.dia * r.c.mes ? (r.n / (r.c.dia * r.c.mes * (r.c.ded / 100) || 1)).toFixed(2).replace('.', ',') : '—'}</td>
+      <td>${semTxt(r.prazoBruto)}</td>
+      <td>${isFinite(r.prazoLiq) ? semTxt(r.prazoLiq) : '<span class="chip c-ruim">não zera</span>'}</td></tr>`).join('') +
+    `</tbody></table></div>`;
+  const auto = entradaSemanal(null);
+  $('#ex-sub-cap').textContent = PROG.equipes.length
+    ? `${fmt(tot)} guias em tela`
+    : `${fmt(tot)} guias em tela · cadastre as equipes ao lado`;
+  $('#p-ent-nota').innerHTML = auto == null
+    ? 'sem histórico ainda: a entrada semanal é um palpite seu até a segunda foto'
+    : `medida no histórico: <b>${auto.toFixed(1).replace('.', ',')}</b> guias por semana`;
+  st.tab['ex-cap'] = {svg: $('#ex-cap').innerHTML,
+    tabela: {cab: ['Gerência', 'Guias', 'Equipes', 'Dedicação %', 'Cap. semana', 'Prazo bruto (sem)', 'Prazo líquido (sem)'],
+      linhas: linhas.map(r => [r.g, fmt(r.n), fmt(r.c.equipes), fmt(r.c.ded), fmt(Math.round(r.c.semana)),
+                               semTxt(r.prazoBruto), isFinite(r.prazoLiq) ? semTxt(r.prazoLiq) : 'não zera'])}};
+}
+function pintaEquipes() {
+  const gers = gersEx().length ? gersEx() : Object.keys(MAPA_GERENCIA);
+  if ($('#eq-ger').options.length !== gers.length)
+    opcoes($('#eq-ger'), gers.map(g => ({v: g, r: g})), $('#eq-ger').value);
+  const iso = EX.semanas[sx.b];
+  $('#ex-sub-eq').textContent = PROG.equipes.length ? `${fmt(PROG.equipes.length)} cadastrada(s)` : 'nenhuma equipe cadastrada';
+  $('#eq-lista').innerHTML = PROG.equipes.length ? PROG.equipes.map(e => {
+    const n = Object.values(PROG.prog).filter(p => p.eq === e.id).length;
+    return `<div class="eq-item">
+      <i class="sw" style="background:${corGer(e.ger)}"></i>
+      <span class="nome">${esc(e.nome)}</span><span class="ger">${esc(e.ger)}</span>
+      <span class="carga">${fmt(n)} guia(s) programada(s)</span>
+      <button class="x" data-rm-eq="${e.id}" type="button">remover</button></div>`;
+  }).join('') : '<div class="vazio">Cadastre as equipes para programar as guias e dimensionar a capacidade.</div>';
+}
+function gExCarga(mB) {
+  const sems = semanasFuturas(EX.semanas[sx.b], 8);
+  const eqs = PROG.equipes.filter(e => e.ativa !== false && (!st.ger || e.ger === st.ger));
+  if (!eqs.length) return {svg: '<div class="vazio">Cadastre ao menos uma equipe para ver a carga.</div>', tabela: null};
+  const iso = EX.semanas[sx.b];
+  const conta = {};
+  eqs.forEach(e => { conta[e.id] = {}; sems.forEach(s => conta[e.id][s] = 0); });
+  let semProg = 0;
+  mB.forEach((l, sol) => {
+    const p = PROG.prog[sol];
+    if (!p || !p.eq) { semProg++; return; }
+    if (conta[p.eq] && conta[p.eq][p.sem] != null) conta[p.eq][p.sem]++;
+  });
+  const ml = 190, mr = 20, mt = 46, W = 1000, alt = 42, gap = 2;
+  const H = mt + eqs.length * alt + 26;
+  const cw = (W - ml - mr) / sems.length;
+  let s = '';
+  sems.forEach((sm, j) => s += txt(ml + cw * j + cw / 2, mt - 16, dcurta(sm), {cor: COR.t2, tam: 12, anc: 'middle', peso: 600, tab: 1}));
+  eqs.forEach((e, i) => {
+    const y = mt + i * alt;
+    const cap = Math.round(capacidade(e.ger, iso).dia * 5 * ((paramsSemana(iso).ded[e.ger] || 100) / 100));
+    s += txt(ml - 14, y + alt / 2 + 1, corta(e.nome, 22), {cor: COR.t1, tam: 12.5, anc: 'end', peso: 600});
+    s += txt(ml - 14, y + alt / 2 + 14, `${e.ger} · cap ${fmt(cap)}/sem`, {cor: COR.t3, tam: 10.5, anc: 'end'});
+    sems.forEach((sm, j) => {
+      const v = conta[e.id][sm], u = cap ? v / cap : 0;
+      const c = v === 0 ? '#f2f6f3' : (u > 1 ? COR.ruim : COR.q[Math.min(5, Math.max(1, Math.round(u * 5)))]);
+      const x = ml + cw * j;
+      s += `<rect x="${x}" y="${y}" width="${cw - gap}" height="${alt - gap}" rx="4" fill="${c}" class="hit" data-t="${esc(`<b>${fmt(v)}</b> de ${fmt(cap)}<br><span class="l">${e.nome} · semana de ${dlonga(sm)}${u > 1 ? ' · acima da capacidade' : ''}</span>`)}"/>`;
+      if (v) s += txt(x + (cw - gap) / 2, y + alt / 2 + 5, `${fmt(v)}/${fmt(cap)}`,
+                      {cor: tintaSobre(c), tam: 12.5, anc: 'middle', peso: 650});
+    });
+  });
+  return {svg: svgRoot(W, H, s),
+          pe: `<div class="nota">${fmt(semProg)} guia(s) em tela ainda sem programação. Selecione linhas no detalhe para programar.</div>`,
+          tabela: {cab: ['Equipe', 'Gerência'].concat(sems.map(dcurta)),
+                   linhas: eqs.map(e => [esc(e.nome), e.ger].concat(sems.map(sm => fmt(conta[e.id][sm]))))}};
+}
+
+/* --- projeção da fila --- */
+function gExProj(mB) {
+  const sems = semanasFuturas(EX.semanas[sx.b], 8);
+  const iso = EX.semanas[sx.b];
+  const gers = st.ger ? [st.ger] : gersEx();
+  const capSem = gers.reduce((a, g) => a + capacidade(g, iso).semana, 0);
+  const ent = entradaEmUso();
+  const prog = sems.map(sm => { let n = 0; mB.forEach((l, sol) => { const p = PROG.prog[sol]; if (p && p.sem === sm) n++; }); return n; });
+  const f0 = mB.size;
+  const serie = (passo) => { const o = [f0]; for (let k = 0; k < sems.length; k++) o.push(Math.max(0, o[k] - passo(k) + ent)); return o; };
+  const sProg = serie(k => prog[k]);
+  const sCap = serie(() => capSem);
+  const sNada = serie(() => 0);
+
+  const W = 1200, H = 360, ml = 54, mr = 178, mt = 40, mb = 54;
+  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
+  const max = escalaMax(Math.max(...sProg, ...sCap, ...sNada, 1) * 1.08, 5);
+  const x = i => px0 + (px1 - px0) * i / sems.length;
+  const y = v => py1 - (v / max) * (py1 - py0);
+  let s = grade(px0, px1, marcasY(max, 5).map(y));
+  s += marcasY(max, 5).map(v => txt(px0 - 9, y(v) + 4, fmt(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1})).join('');
+  const linha = (dados, cor, rot) => {
+    const pts = dados.map((v, i) => `${x(i)},${y(v)}`).join(' ');
+    let o = `<polyline points="${pts}" fill="none" stroke="${cor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    o += `<circle cx="${x(dados.length - 1)}" cy="${y(dados[dados.length - 1])}" r="5" fill="${cor}" stroke="${COR.surface}" stroke-width="2"/>`;
+    o += txt(x(dados.length - 1) + 10, y(dados[dados.length - 1]) + 4, `${fmt(Math.round(dados[dados.length - 1]))} ${rot}`, {cor: COR.t2, tam: 12, peso: 650});
+    return o;
+  };
+  s += linha(sNada, COR.s3, 'sem executar');
+  s += linha(sCap, COR.s1, 'pela capacidade');
+  s += linha(sProg, COR.s2, 'pelo programado');
+  s += `<circle cx="${x(0)}" cy="${y(f0)}" r="5" fill="${COR.t1}"/>`;
+  s += txt(x(0), y(f0) - 14, fmt(f0), {cor: COR.t1, tam: 16, peso: 650, anc: 'middle'});
+  s += txt(x(0), py1 + 20, 'hoje', {cor: COR.t1, tam: 11.5, anc: 'middle', peso: 700});
+  sems.forEach((sm, i) => s += txt(x(i + 1), py1 + 20, dcurta(sm), {cor: COR.t3, tam: 11.5, anc: 'middle', tab: 1}));
+  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+
+  /* expectativa de regularização de indisponíveis */
+  const cruz = dadosCruz(mB);
+  let ligadas = 0;
+  mB.forEach((l, sol) => {
+    const p = PROG.prog[sol];
+    if (p && sems.indexOf(p.sem) >= 0 && cruz.setAuto.has(String(l[XDISP]))) ligadas++;
+  });
+  const conv = (+PROG.cfg.conv || 0) / 100;
+  const pe = legenda([{cor: COR.s2, rot: 'pelo programado', linha: true},
+                      {cor: COR.s1, rot: 'pela capacidade teórica', linha: true},
+                      {cor: COR.s3, rot: 'sem executar nada', linha: true}]) +
+    `<div class="nota">Entrada considerada: <b>${fmt(ent)}</b> guia(s) por semana. ` +
+    `Das guias programadas para as próximas 8 semanas, <b>${fmt(ligadas)}</b> são de equipamentos hoje indisponíveis em ${RESP_COM_GUIA}; ` +
+    `com conversão de ${fmt(PROG.cfg.conv)}%, a expectativa é de <b>${fmt(Math.round(ligadas * conv))}</b> regularização(ões). ` +
+    `Atender a guia não garante o equipamento voltar a ficar disponível — por isso a conversão é um parâmetro, não uma certeza.</div>`;
+  return {svg: svgRoot(W, H, s), pe,
+          tabela: {cab: ['Semana', 'Pelo programado', 'Pela capacidade', 'Sem executar', 'Programadas'],
+                   linhas: sems.map((sm, i) => [dlonga(sm), fmt(Math.round(sProg[i + 1])), fmt(Math.round(sCap[i + 1])),
+                                                fmt(Math.round(sNada[i + 1])), fmt(prog[i])])}};
+}
+
+/* --- cruzamento com indisponibilidade --- */
+function dadosCruz(mB) {
+  const alvo = EX.semanas.length ? EX.semanas[sx.b] : null;
+  let wi = -1;
+  if (alvo && SEMANAS.length) {
+    wi = SEMANAS.indexOf(alvo);
+    if (wi < 0) for (let i = SEMANAS.length - 1; i >= 0; i--) if (SEMANAS[i] <= alvo) { wi = i; break; }
+    if (wi < 0) wi = 0;
+  }
+  const porDisp = new Map();
+  if (EX.semanas.length) PORSEM_EX[sx.b].forEach(l => {
+    const d = String(l[XDISP] || '').trim();
+    if (!d) return;
+    if (!porDisp.has(d)) porDisp.set(d, []);
+    porDisp.get(d).push(l);
+  });
+  const auto = [], setAuto = new Set(), todosInd = new Set();
+  if (wi >= 0) PORSEM[wi].forEach(l => {
+    const polo = POLOS[l[P]];
+    todosInd.add(String(l[E]));
+    if (st.ger && POLO_GER[polo] !== st.ger) return;
+    if (st.polo && polo !== st.polo) return;
+    if (chaveTexto(RESPONSAVEIS[l[R]]) !== chaveTexto(RESP_COM_GUIA)) return;
+    const eq = String(l[E]);
+    setAuto.add(eq);
+    auto.push({eq, polo, ger: POLO_GER[polo], tipo: TIPOS[l[T]], dias: l[D], guias: porDisp.get(eq) || []});
+  });
+  /* só faz sentido comparar dentro dos polos que a base de indisponibilidade cobre */
+  const polosInd = new Set();
+  if (wi >= 0) PORSEM[wi].forEach(l => polosInd.add(POLOS[l[P]]));
+  const orfas = [];
+  porDisp.forEach((gs, d) => {
+    if (todosInd.has(d)) return;
+    gs.forEach(g => {
+      if (ligadoIndisp(EX.tipos[g[XTIPO]]) && polosInd.has(poloDe(g))) orfas.push(g);
+    });
+  });
+  return {wi, semanaInd: wi >= 0 ? SEMANAS[wi] : null, auto, setAuto, porDisp, orfas,
+          indTotal: todosInd.size};
+}
+function pintaCruz(mB) {
+  const c = dadosCruz(mB);
+  if (!EX.semanas.length || c.wi < 0) {
+    $('#ex-cruz').innerHTML = '<div class="vazio">O cruzamento precisa das duas bases carregadas.</div>';
+    $('#ex-sub-cruz').textContent = '';
+    return;
+  }
+  const tol = +PROG.cfg.tol || 0;
+  $('#p-tol').value = tol;
+  const com = c.auto.filter(x => x.guias.length);
+  const sem = c.auto.filter(x => !x.guias.length).sort((a, b) => b.dias - a.dias);
+  const semForaTol = sem.filter(x => x.dias > tol);
+  const cob = c.auto.length ? com.length / c.auto.length * 100 : 0;
+  const dist = Math.abs(diasEntre(c.semanaInd, EX.semanas[sx.b]));
+  $('#ex-sub-cruz').textContent =
+    `indisponibilidade de ${dlonga(c.semanaInd)} × guias de ${dlonga(EX.semanas[sx.b])}`;
+  let alerta = '';
+  if (/demonstra/i.test(ORIGEM)) alerta = 'O módulo de indisponibilidade está com a <b>base de demonstração</b>, cujos equipamentos são fictícios — por isso nada cruza. Carregue a planilha real para este quadro valer.';
+  else if (dist > 7) alerta = `As duas fotos estão a <b>${fmt(dist)} dias</b> de distância. O cruzamento só é confiável com fotos da mesma semana.`;
+  const aviso = alerta ? `<div class="msg erro" style="margin:0 0 14px">${alerta}</div>` : '';
+
+  const tiles = `<div class="kpis" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:14px">
+    <div class="tile"><span class="rot">Em ${esc(RESP_COM_GUIA)}</span><span class="val">${fmt(c.auto.length)}</span>
+      <span class="pe">equipamentos indisponíveis que deveriam ter guia</span></div>
+    <div class="tile"><span class="rot">Com guia</span><span class="val" style="color:#006300">${fmt(com.length)}</span>
+      <span class="pe">cobertura de ${pct1(cob)}%</span></div>
+    <div class="tile"><span class="rot">Sem guia</span><span class="val" style="color:${COR.ruim}">${fmt(semForaTol.length)}</span>
+      <span class="pe">acima de ${fmt(tol)} dias indisponíveis · ${fmt(sem.length - semForaTol.length)} ainda dentro da tolerância</span></div>
+    ${c.orfas.length > c.indTotal
+      ? `<div class="tile"><span class="rot">Guia sem indisponível</span><span class="val" style="color:${COR.t3}">—</span>
+           <span class="pe">a base de indisponibilidade tem ${fmt(c.indTotal)} equipamentos e há ${fmt(c.orfas.length)} guias fora dela: as duas listas parecem cobrir escopos diferentes</span></div>`
+      : `<div class="tile"><span class="rot">Guia sem indisponível</span><span class="val">${fmt(c.orfas.length)}</span>
+           <span class="pe">tipo de serviço de indisponibilidade, mas o equipamento não está na lista — vale conferir, nem sempre é erro</span></div>`}
+  </div>`;
+
+  const tabSem = sem.length ? `<h4 class="sub-tit">Indisponíveis sem guia</h4><div class="tab-wrap"><table class="dt"><thead><tr>
+      <th>Equip.</th><th>Tipo</th><th>Polo</th><th>Gerência</th><th>Dias indisponível</th><th>Situação</th></tr></thead><tbody>` +
+    sem.map(x => `<tr${x.dias <= tol ? ' class="tenue"' : ''}><td>${esc(x.eq)}</td><td>${esc(x.tipo)}</td><td>${esc(x.polo)}</td>
+      <td>${esc(x.ger)}</td><td>${fmt(x.dias)}</td>
+      <td>${x.dias <= tol ? '<span class="chip c-zero">dentro do prazo de abertura</span>' : '<span class="chip c-ruim">abrir guia</span>'}</td></tr>`).join('') +
+    `</tbody></table></div>` : '<div class="vazio">Todos os equipamentos em ' + esc(RESP_COM_GUIA) + ' têm guia aberta.</div>';
+
+  const tabCom = com.length ? `<h4 class="sub-tit">Indisponíveis com guia</h4><div class="tab-wrap"><table class="dt"><thead><tr>
+      <th>Equip.</th><th>Polo</th><th>Dias indisponível</th><th>Guia</th><th>Estágio</th><th>Tipo de serviço</th><th>Idade da guia</th></tr></thead><tbody>` +
+    com.sort((a, b) => b.dias - a.dias).map(x => x.guias.map((g, k) => `<tr>
+      <td>${k ? '' : esc(x.eq)}</td><td>${k ? '' : esc(x.polo)}</td><td>${k ? '' : fmt(x.dias)}</td>
+      <td>${esc(g[XSOL])}</td><td>${esc(ESTAGIOS[g[XEST]])}</td><td>${esc(EX.tipos[g[XTIPO]])}</td>
+      <td>${fmt(idadeEx(g, sx.b))}</td></tr>`).join('')).join('') + `</tbody></table></div>` : '';
+
+  $('#ex-cruz').innerHTML = aviso + tiles + tabSem + tabCom;
+}
+
+/* --- KPIs e detalhe da execução --- */
+function pintaExKPIs(mA, mB, entraram, sairam, fluxo) {
+  const sc = fluxo.semComp, ou = v => sc ? '—' : fmt(v);
+  const tA = mA.size, tB = mB.size, dv = tB - tA;
+  let vel = 0, soma = 0;
+  mB.forEach(l => { const i = idadeEx(l, sx.b); soma += i; if (i > 120) vel++; });
+  const md = tB ? Math.round(soma / tB) : 0;
+  const ref = sx.a >= 0 ? dcurta(EX.semanas[sx.a]) : '—';
+  $('#ex-kpis').innerHTML = [
+    `<div class="tile hero"><span class="rot">Guias de inspeção</span><span class="val">${fmt(tB)}</span>
+       ${sx.a >= 0 ? deltaGrande(dv) : ''}
+       <span class="pe">${dlonga(EX.semanas[sx.b])}${sx.a >= 0 ? ' · vs ' + ref : ''}</span></div>`,
+    `<div class="tile"><span class="rot">Entraram</span><span class="val" style="color:${sc ? COR.t3 : COR.ruim}">${ou(entraram)}</span>
+       <span class="pe">${sc ? 'precisa de duas fotos' : 'guias novas na semana'}</span></div>`,
+    `<div class="tile"><span class="rot">Saíram da execução</span><span class="val" style="color:${sc ? COR.t3 : '#006300'}">${ou(sairam)}</span>
+       <span class="pe">${sc ? 'precisa de duas fotos' : 'não estão mais na carteira'}</span></div>`,
+    `<div class="tile"><span class="rot">Foram para rota</span><span class="val">${ou(fluxo.avancou)}</span>
+       <span class="pe">${sc ? 'precisa de duas fotos' : 'de avaliação para execução' + (fluxo.voltou ? ' · ' + fmt(fluxo.voltou) + ' voltaram' : '')}</span></div>`,
+    `<div class="tile"><span class="rot">Acima de 120 dias</span><span class="val">${fmt(vel)}</span>
+       <span class="pe">${pct1(pct(vel, tB || 1))}% · idade média ${fmt(md)} dias</span></div>`
+  ].join('');
+}
+
+const COLS_EX = [
+  {k: 'guia',   r: 'Guia'},
+  {k: 'tipo',   r: 'Tipo de serviço'},
+  {k: 'est',    r: 'Estágio'},
+  {k: 'polo',   r: 'Polo'},
+  {k: 'ger',    r: 'Gerência'},
+  {k: 'idade',  r: 'Idade', num: 1},
+  {k: 'faixa',  r: 'Faixa', num: 1},
+  {k: 'equip',  r: 'Equip.'},
+  {k: 'mun',    r: 'Município'},
+  {k: 'prog',   r: 'Programação'},
+  {k: 'nota',   r: 'Anotação'}
+];
+const VAL_EX = {
+  guia:  x => String(x.l[XSOL]),
+  tipo:  x => EX.tipos[x.l[XTIPO]],
+  est:   x => ESTAGIOS[x.l[XEST]],
+  polo:  x => poloDe(x.l),
+  ger:   x => gerenciaDe(poloDe(x.l)),
+  idade: x => x.idade,
+  faixa: x => x.idade,
+  equip: x => String(x.l[XDISP] || ''),
+  mun:   x => EX.municipios[x.l[XMUN]] || '',
+  prog:  x => { const p = PROG.prog[x.l[XSOL]]; return p ? (p.sem || '') + (p.eq || '') : ''; },
+  nota:  x => notas()[String(x.l[XSOL])] || ''
+};
+function nomeEquipe(id) { const e = PROG.equipes.find(x => x.id === id); return e ? e.nome : '—'; }
+
+function pintaExDetalhe(mA, mB) {
+  const tit = {todos: 'Todas as guias', novos: 'Guias que entraram', sai: 'Guias que saíram da execução',
+               dup: 'Equipamentos com mais de uma guia'};
+  $('#ex-det-tit').textContent = tit[sx.det];
+  const wi = sx.b;
+  let itens;
+  if (sx.det === 'novos') { itens = []; mB.forEach((l, s) => { if (!mA.has(s)) itens.push({l, idade: idadeEx(l, wi)}); }); }
+  else if (sx.det === 'sai') { itens = []; mA.forEach((l, s) => { if (!mB.has(s)) itens.push({l, idade: idadeEx(l, sx.a), fora: 1}); }); }
+  else if (sx.det === 'dup') {
+    const cnt = new Map();
+    mB.forEach(l => { const d = String(l[XDISP] || ''); if (d) cnt.set(d, (cnt.get(d) || 0) + 1); });
+    itens = [];
+    mB.forEach(l => { if (cnt.get(String(l[XDISP] || '')) > 1) itens.push({l, idade: idadeEx(l, wi)}); });
+    itens.sort((a, b) => String(a.l[XDISP]).localeCompare(String(b.l[XDISP])));
+  } else { itens = []; mB.forEach(l => itens.push({l, idade: idadeEx(l, wi)})); }
+
+  /* quantas guias por equipamento, para a marcação visual */
+  const porEq = new Map(), tipoPorEq = new Map();
+  mB.forEach(l => {
+    const d = String(l[XDISP] || ''); if (!d) return;
+    porEq.set(d, (porEq.get(d) || 0) + 1);
+    if (!tipoPorEq.has(d)) tipoPorEq.set(d, new Set());
+    tipoPorEq.get(d).add(EX.tipos[l[XTIPO]]);
+  });
+
+  const busca = sx.dBusca.trim().toLowerCase();
+  const passa = (x, exceto) =>
+    (exceto === 'tipo' || !sx.dTipo || VAL_EX.tipo(x) === sx.dTipo) &&
+    (exceto === 'est'  || !sx.dEst  || VAL_EX.est(x)  === sx.dEst) &&
+    (exceto === 'ger'  || !sx.dGer  || VAL_EX.ger(x)  === sx.dGer) &&
+    (exceto === 'polo' || !sx.dPolo || VAL_EX.polo(x) === sx.dPolo) &&
+    (exceto === 'equipe' || !sx.dEquipe ||
+      (sx.dEquipe === '—' ? !PROG.prog[x.l[XSOL]] : (PROG.prog[x.l[XSOL]] || {}).eq === sx.dEquipe)) &&
+    (!busca || VAL_EX.guia(x).toLowerCase().indexOf(busca) >= 0 || VAL_EX.equip(x).toLowerCase().indexOf(busca) >= 0);
+  const unicos = campo => Array.from(new Set(itens.filter(x => passa(x, campo)).map(VAL_EX[campo])))
+    .sort((a, b) => String(a).localeCompare(String(b), 'pt-BR'));
+  const oTipo = unicos('tipo'), oEst = unicos('est'), oGer = unicos('ger'), oPolo = unicos('polo');
+  if (sx.dTipo && oTipo.indexOf(sx.dTipo) < 0) sx.dTipo = '';
+  if (sx.dEst && oEst.indexOf(sx.dEst) < 0) sx.dEst = '';
+  if (sx.dGer && oGer.indexOf(sx.dGer) < 0) sx.dGer = '';
+  if (sx.dPolo && oPolo.indexOf(sx.dPolo) < 0) sx.dPolo = '';
+  const eqOps = [{v: '', r: 'Todas as equipes'}, {v: '—', r: 'sem programação'}]
+    .concat(PROG.equipes.map(e => ({v: e.id, r: e.nome})));
+  const assin = [oTipo.join('~'), oEst.join('~'), oGer.join('~'), oPolo.join('~'), eqOps.length].join('|');
+  if (assin !== sx.dAssin) {
+    sx.dAssin = assin;
+    opcoes($('#ed-tipo'), [{v: '', r: 'Todos os tipos'}].concat(oTipo.map(v => ({v, r: v}))), sx.dTipo);
+    opcoes($('#ed-estagio'), [{v: '', r: 'Todos os estágios'}].concat(oEst.map(v => ({v, r: v}))), sx.dEst);
+    opcoes($('#ed-ger'), [{v: '', r: 'Todas as gerências'}].concat(oGer.map(v => ({v, r: v}))), sx.dGer);
+    opcoes($('#ed-polo'), [{v: '', r: 'Todos os polos'}].concat(oPolo.map(v => ({v, r: v}))), sx.dPolo);
+    opcoes($('#ed-equipe'), eqOps, sx.dEquipe);
+  }
+  const lista = itens.filter(x => passa(x, null));
+
+  const oc = COLS_EX.some(c => c.k === sx.dOrd.col) ? sx.dOrd.col : 'idade';
+  const dir = sx.dOrd.dir, val = VAL_EX[oc];
+  lista.sort((a, b) => {
+    const va = val(a), vb = val(b);
+    const c = (typeof va === 'number' && typeof vb === 'number') ? va - vb : String(va).localeCompare(String(vb), 'pt-BR');
+    return c * dir || b.idade - a.idade;
+  });
+  $('#ex-det-sub').textContent = `semana de ${dlonga(EX.semanas[sx.b])}`;
+  $('#ed-conta').innerHTML = `<b>${fmt(lista.length)}</b> de ${fmt(itens.length)} guias`;
+
+  if (!lista.length) {
+    $('#ex-det').innerHTML = '<div class="vazio">Nenhuma guia com os filtros aplicados.</div>';
+    return;
+  }
+  const cab = `<th class="sel"><input type="checkbox" id="ed-todas" aria-label="selecionar todas"></th>` +
+    COLS_EX.map(c => {
+      const a = c.k === oc;
+      return `<th scope="col" class="ord" data-ord="${c.k}">${esc(c.r)}${a ? ` <span class="dir">${dir < 0 ? '▼' : '▲'}</span>` : ''}</th>`;
+    }).join('');
+  const corpo = lista.map(x => {
+    const l = x.l, sol = String(l[XSOL]), d = String(l[XDISP] || '');
+    const nGuias = porEq.get(d) || 1;
+    const mesmoTipo = nGuias > 1 && tipoPorEq.get(d).size === 1;
+    const p = PROG.prog[sol];
+    const cel = {
+      guia: esc(sol) + (nGuias > 1 ? `<span class="dup-chip${mesmoTipo ? ' mesmo' : ''}" title="${nGuias} guias para o equipamento ${esc(d)}${mesmoTipo ? ', do mesmo tipo' : ''}">${nGuias} guias</span>` : ''),
+      tipo: esc(EX.tipos[l[XTIPO]]), est: esc(ESTAGIOS[l[XEST]]), polo: esc(poloDe(l)),
+      ger: esc(gerenciaDe(poloDe(l))), idade: fmt(x.idade), faixa: esc(FAIXAS_EX[faixaEx(x.idade)]),
+      equip: esc(d), mun: esc(EX.municipios[l[XMUN]] || ''),
+      prog: p ? `<span class="prog-chip">${esc(nomeEquipe(p.eq))} · ${dcurta(p.sem)}</span>` : '<span class="add">—</span>',
+      nota: ''
+    };
+    const tds = COLS_EX.map(c => c.k === 'nota'
+      ? `<td class="cel-nota" data-eq="${esc(sol)}">${celulaNota(sol)}</td>`
+      : `<td>${cel[c.k]}</td>`).join('');
+    const marc = sx.sel.has(sol);
+    return `<tr class="${marc ? 'marcada ' : ''}${notas()[sol] ? 'tem-nota' : ''}">
+      <td class="sel"><input type="checkbox" class="cx" data-sol="${esc(sol)}"${marc ? ' checked' : ''}></td>${tds}</tr>`;
+  }).join('');
+  $('#ex-det').innerHTML = `<div class="tab-wrap alta"><table class="dt"><thead><tr>${cab}</tr></thead><tbody>${corpo}</tbody></table></div>`;
+  atualizaLote();
+}
+function atualizaLote() {
+  const n = sx.sel.size;
+  $('#ed-lote').hidden = !n;
+  $('#ed-lote-n').textContent = `${fmt(n)} guia(s) selecionada(s)`;
+}
+
+/* ============================================================
+   RENDER DA EXECUÇÃO
+   ============================================================ */
+function renderEx() {
+  const vazio = !EX.semanas.length;
+  $('#e-vazio').hidden = !vazio;
+  $('#e-corpo').hidden = vazio;
+  if (vazio) {
+    $('#pill-ant').innerHTML = 'Execução <b>sem dados</b>';
+    $('#pill-atu').innerHTML = 'Carregue <b>AbertoTR e AndamentoTR</b>';
+    $('#pill-escopo').innerHTML = '';
+    $('#rodape').textContent = 'Módulo de execução sem base carregada.';
+    pintaAnotacoes();
+    return;
+  }
+  if (sx.b >= EX.semanas.length) sx.b = EX.semanas.length - 1;
+  if (sx.a >= EX.semanas.length) sx.a = sx.b - 1;
+  const mB = fatiaEx(sx.b), mA = fatiaEx(sx.a);
+  const semComp = sx.a < 0 || sx.a >= EX.semanas.length;
+  let entraram = 0, sairam = 0, avancou = 0, voltou = 0;
+  if (!semComp) mB.forEach((l, s) => {
+    if (!mA.has(s)) { entraram++; return; }
+    const antes = mA.get(s)[XEST], agora = l[XEST];
+    if (antes === 0 && agora === 1) avancou++;
+    if (antes === 1 && agora === 0) voltou++;
+  });
+  if (!semComp) mA.forEach((l, s) => { if (!mB.has(s)) sairam++; });
+  const fluxo = {avancou, voltou, semComp};
+
+  const escopo = [st.ger || 'TR · todas as polos', st.polo ? 'Polo ' + st.polo : null,
+                  sx.tipo || null, sx.estagio || null].filter(Boolean).join(' · ');
+  $('#pill-ant').innerHTML = sx.a < 0 ? 'Comparação <b>primeira foto</b>' : `Comparação <b>${dlonga(EX.semanas[sx.a])}</b>`;
+  $('#pill-atu').innerHTML = `Semana <b>${dlonga(EX.semanas[sx.b])}</b>`;
+  $('#pill-escopo').innerHTML = `Escopo <b>${esc(escopo)}</b>`;
+  $('#ex-sub-casc').textContent = sx.a >= 0 ? `${dcurta(EX.semanas[sx.a])} → ${dcurta(EX.semanas[sx.b])}` : 'primeira foto';
+  $('#ex-sub-idade').textContent = `semana de ${dlonga(EX.semanas[sx.b])}`;
+  $('#ex-sub-tipo').textContent = sx.modo === 'tr' ? 'total por tipo · cor = ligação com indisponibilidade'
+    : sx.modo === 'ger' ? 'aberto por gerência' : 'aberto por polo · cor = gerência';
+  $('#ex-tit-polo').textContent = st.ger ? 'Guias por polo' : 'Guias por gerência';
+  $('#ex-sub-polo').textContent = st.ger ? `${st.ger} · ${polosDeGer(st.ger).join(', ')}` : 'TR · gerências';
+  $('#ex-sub-carga').textContent = 'próximas 8 semanas';
+  $('#ex-sub-proj').textContent = 'próximas 8 semanas';
+  $('#p-ent').value = PROG.cfg.ent == null ? entradaEmUso() : PROG.cfg.ent;
+  $('#p-conv').value = PROG.cfg.conv;
+
+  pintaExKPIs(mA, mB, entraram, sairam, fluxo);
+  pinta('ex-casc', semComp
+    ? {svg: '<div class="vazio">A cascata compara duas fotos. Carregue a semana seguinte para vê-la.</div>', tabela: null}
+    : gExCascata(mA.size, mB.size, entraram, sairam));
+  pinta('ex-evo', gExEvolucao());
+  pinta('ex-idade', gExIdade(mA, mB));
+  pinta('ex-estagio', gExEstagio(mA, mB, fluxo));
+  pinta('ex-tipo', gExTipo(mA, mB));
+  pinta('ex-polo', gExPolo(mA, mB));
+  pinta('ex-mapa', gExMapa(mB));
+  pintaCapacidade(mB);
+  pintaEquipes();
+  pinta('ex-carga', gExCarga(mB));
+  pinta('ex-proj', gExProj(mB));
+  pintaCruz(mB);
+  pintaExDetalhe(mA, mB);
+  pintaAnotacoes();
+
+  const agora = new Date();
+  $('#imp-cab').textContent = `Execução · semana ${dlonga(EX.semanas[sx.b])} · ` +
+    `comparação ${sx.a < 0 ? '—' : dlonga(EX.semanas[sx.a])} · escopo ${escopo} · ` +
+    `emitido em ${agora.toLocaleDateString('pt-BR')} ${agora.toLocaleTimeString('pt-BR').slice(0, 5)}`;
+  $('#rodape').innerHTML =
+    `Execução ${esc(ORIGEM_EX || 'sem origem')}: ${fmt(EX.linhas.length)} registros · ${fmt(EX.semanas.length)} foto(s) ` +
+    `(${dlonga(EX.semanas[0])} a ${dlonga(EX.semanas[EX.semanas.length - 1])}). ` +
+    `Aberta = em avaliação de programação · Andamento = em rota de execução no G-DIS OP. ` +
+    `“Saíram” significa fora da carteira da Execução Regional, não necessariamente concluídas.`;
+}
+
+/* ============================================================
+   EXECUÇÃO — controles
+   ============================================================ */
+function montaControlesEx() {
+  const sems = EX.semanas.map((w, i) => ({v: String(i), r: dlonga(w)}));
+  opcoes($('#e-semana'), sems.length ? sems : [{v: '0', r: '—'}], String(sx.b));
+  opcoes($('#e-comp'), [{v: '-1', r: 'sem comparação'}].concat(sems), String(sx.a));
+  const gers = gersEx().length ? gersEx() : Object.keys(MAPA_GERENCIA);
+  opcoes($('#e-ger'), [{v: '', r: 'TR · Superintendência'}].concat(gers.map(g => ({v: g, r: g}))), st.ger);
+  const polos = st.ger ? polosDeGer(st.ger) : EX.polos;
+  if (st.polo && polos.indexOf(st.polo) < 0) st.polo = '';
+  opcoes($('#e-polo'), [{v: '', r: 'Todos os polos'}].concat(polos.map(p => ({v: p, r: 'Polo ' + p}))), st.polo);
+  opcoes($('#e-tipo'), [{v: '', r: 'Todos os tipos'}].concat(EX.tipos.map(t => ({v: t, r: t}))), sx.tipo);
+  opcoes($('#e-estagio'), [{v: '', r: 'Todos os estágios'}].concat(ESTAGIOS.map(e => ({v: e, r: e}))), sx.estagio);
+  const fut = EX.semanas.length ? semanasFuturas(EX.semanas[sx.b], 8) : [];
+  opcoes($('#ed-lote-eq'), [{v: '', r: 'escolha a equipe'}].concat(PROG.equipes.map(e => ({v: e.id, r: e.nome + ' · ' + e.ger}))), '');
+  opcoes($('#ed-lote-sem'), [{v: '', r: 'escolha a semana'}].concat(fut.map(s => ({v: s, r: 'semana de ' + dlonga(s)}))), '');
+  if (!$('#e-data').value) $('#e-data').value = hojeISO();
+  $('#e-semanas').innerHTML = EX.semanas.length
+    ? 'Fotos carregadas: ' + EX.semanas.map(s => {
+        const n = PORSEM_EX[EX.semanas.indexOf(s)].size;
+        return `<span class="sem-item">${dlonga(s)} · ${fmt(n)} guias<button data-rm-sem="${s}" title="remover esta foto" type="button">×</button></span>`;
+      }).join('') : '';
+}
+function trocaAmbiente(a) {
+  AMB = a;
+  $$('.amb').forEach(b => b.setAttribute('aria-selected', String(b.dataset.amb === a)));
+  $('#amb-indisp').hidden = a !== 'indisp';
+  $('#amb-exec').hidden = a !== 'exec';
+  montaControles(); montaControlesEx();
+  render();
+  window.scrollTo({top: 0});
+}
+$$('.amb').forEach(b => b.addEventListener('click', () => trocaAmbiente(b.dataset.amb)));
+
+$('#e-semana').addEventListener('change', e => {
+  sx.b = +e.target.value; sx.a = sx.b - 1; sx.sel.clear();
+  montaControlesEx(); render();
+});
+$('#e-comp').addEventListener('change', e => { sx.a = +e.target.value; render(); });
+$('#e-ger').addEventListener('change', e => { st.ger = e.target.value; montaPolos(); montaControlesEx(); render(); });
+$('#e-polo').addEventListener('change', e => { st.polo = e.target.value; montaPolos(); render(); });
+$('#e-tipo').addEventListener('change', e => { sx.tipo = e.target.value; render(); });
+$('#e-estagio').addEventListener('change', e => { sx.estagio = e.target.value; render(); });
+$('#e-limpa').addEventListener('click', () => {
+  st.ger = st.polo = ''; sx.tipo = sx.estagio = '';
+  sx.b = Math.max(0, EX.semanas.length - 1); sx.a = sx.b - 1;
+  montaPolos(); montaControlesEx(); render();
+});
+$$('.aba[data-emodo]').forEach(b => b.addEventListener('click', () => {
+  $$('.aba[data-emodo]').forEach(o => o.setAttribute('aria-selected', 'false'));
+  b.setAttribute('aria-selected', 'true');
+  sx.modo = b.dataset.emodo; render();
+}));
+$$('.aba[data-edet]').forEach(b => b.addEventListener('click', () => {
+  $$('.aba[data-edet]').forEach(o => o.setAttribute('aria-selected', 'false'));
+  b.setAttribute('aria-selected', 'true');
+  sx.det = b.dataset.edet; sx.sel.clear(); render();
+}));
+
+/* filtros da lista */
+[['ed-tipo', 'dTipo'], ['ed-estagio', 'dEst'], ['ed-ger', 'dGer'], ['ed-polo', 'dPolo'],
+ ['ed-equipe', 'dEquipe'], ['ed-busca', 'dBusca']].forEach(([id, campo]) => {
+  $('#' + id).addEventListener(id === 'ed-busca' ? 'input' : 'change', e => { sx[campo] = e.target.value; render(); });
+});
+$('#ed-limpa').addEventListener('click', () => {
+  sx.dTipo = sx.dEst = sx.dGer = sx.dPolo = sx.dEquipe = sx.dBusca = '';
+  sx.dAssin = ''; $('#ed-busca').value = ''; render();
+});
+$('#ex-det').addEventListener('click', ev => {
+  const cx = ev.target.closest && ev.target.closest('input.cx');
+  if (cx) {
+    const sol = cx.dataset.sol, tr = cx.closest('tr');
+    if (cx.checked) sx.sel.add(sol); else sx.sel.delete(sol);
+    if (tr) tr.classList.toggle('marcada', cx.checked);
+    atualizaLote();
+    return;
+  }
+  if (ev.target.id === 'ed-todas') {
+    const marcar = ev.target.checked;
+    $$('#ex-det input.cx').forEach(c => {
+      c.checked = marcar;
+      const tr = c.closest('tr');
+      if (marcar) sx.sel.add(c.dataset.sol); else sx.sel.delete(c.dataset.sol);
+      if (tr) tr.classList.toggle('marcada', marcar);
+    });
+    atualizaLote();
+    return;
+  }
+  const td = ev.target.closest && ev.target.closest('td.cel-nota');
+  if (td) {
+    const eq = td.dataset.eq;
+    editaNota(td, eq, () => {
+      td.innerHTML = celulaNota(eq);
+      const tr = td.closest('tr');
+      if (tr) tr.className = (notas()[eq] ? 'tem-nota ' : '') + (sx.sel.has(eq) ? 'marcada' : '');
+      pintaAnotacoes();
+    });
+    return;
+  }
+  const th = ev.target.closest && ev.target.closest('th[data-ord]');
+  if (!th) return;
+  const c = th.dataset.ord;
+  if (sx.dOrd.col === c) sx.dOrd.dir *= -1;
+  else sx.dOrd = {col: c, dir: (c === 'idade' || c === 'faixa') ? -1 : 1};
+  render();
+});
+$('#ed-lote-ok').addEventListener('click', () => {
+  const eq = $('#ed-lote-eq').value, sm = $('#ed-lote-sem').value;
+  if (!eq || !sm) { alert('Escolha a equipe e a semana.'); return; }
+  sx.sel.forEach(sol => PROG.prog[sol] = {eq, sem: sm});
+  guardaProg(); sx.sel.clear(); render();
+});
+$('#ed-lote-rm').addEventListener('click', () => {
+  sx.sel.forEach(sol => delete PROG.prog[sol]);
+  guardaProg(); sx.sel.clear(); render();
+});
+$('#ed-lote-no').addEventListener('click', () => { sx.sel.clear(); render(); });
+
+/* parâmetros */
+function paramNum(id, aplica) {
+  $('#' + id).addEventListener('change', e => {
+    const v = +e.target.value;
+    if (!isFinite(v)) return;
+    aplica(v); guardaProg(); render();
+  });
+}
+paramNum('p-dia', v => { paramsSemana(EX.semanas[sx.b]).dia = Math.max(1, v); });
+paramNum('p-mes', v => { paramsSemana(EX.semanas[sx.b]).mes = Math.max(1, v); });
+paramNum('p-ent', v => { PROG.cfg.ent = Math.max(0, v); });
+paramNum('p-conv', v => { PROG.cfg.conv = Math.min(100, Math.max(0, v)); });
+paramNum('p-tol', v => { PROG.cfg.tol = Math.max(0, v); });
+$('#ex-cap').addEventListener('change', ev => {
+  const i = ev.target.closest && ev.target.closest('input.ded');
+  if (!i) return;
+  paramsSemana(EX.semanas[sx.b]).ded[i.dataset.ger] = Math.min(100, Math.max(0, +i.value || 0));
+  guardaProg(); render();
+});
+
+/* equipes */
+$('#eq-add').addEventListener('click', () => {
+  const nome = $('#eq-nome').value.trim(), ger = $('#eq-ger').value;
+  if (!nome) { $('#eq-nome').focus(); return; }
+  PROG.equipes.push({id: 'q' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), nome, ger, ativa: true});
+  $('#eq-nome').value = '';
+  guardaProg(); montaControlesEx(); render();
+});
+$('#eq-nome').addEventListener('keydown', e => { if (e.key === 'Enter') $('#eq-add').click(); });
+$('#eq-lista').addEventListener('click', ev => {
+  const rm = ev.target.closest && ev.target.closest('[data-rm-eq]');
+  if (!rm) return;
+  const id = rm.dataset.rmEq;
+  PROG.equipes = PROG.equipes.filter(e => e.id !== id);
+  Object.keys(PROG.prog).forEach(s => { if (PROG.prog[s].eq === id) delete PROG.prog[s]; });
+  guardaProg(); montaControlesEx(); render();
+});
+
+/* painel de carga dos arquivos de guias */
+function avisoEx(html, erro) { $('#emsg').innerHTML = `<div class="msg ${erro ? 'erro' : 'ok'}">${html}</div>`; }
+$('#bt-edados').addEventListener('click', () => {
+  const p = $('#epainel'), abrir = p.hidden;
+  p.hidden = !abrir;
+  $('#bt-edados').setAttribute('aria-expanded', String(abrir));
+  if (abrir) p.scrollIntoView({block: 'nearest'});
+});
+$('#bt-efechar').addEventListener('click', () => {
+  $('#epainel').hidden = true; $('#bt-edados').setAttribute('aria-expanded', 'false');
+});
+function leArquivoExec(arq) {
+  return new Promise((ok, falha) => {
+    const nome = arq.name, fr = new FileReader();
+    fr.onerror = () => falha(new Error('não foi possível ler ' + nome));
+    if (/\.(xlsx|xlsm)$/i.test(nome)) {
+      fr.onload = () => {
+        try {
+          abreZip(fr.result);
+        } catch (e) { falha(e); return; }
+        leXLSX(fr.result).then(r => ok(r.base ? null : null)).catch(falha);
+      };
+      fr.readAsArrayBuffer(arq);
+      return;
+    }
+    fr.onload = () => {
+      const t = String(fr.result);
+      ok(/<\s*table|<\s*tr\b/i.test(t) ? matrizDeHTML(t)
+         : t.replace(/\r/g, '').split('\n').filter(l => l.trim())
+            .map(l => separaLinha(l, detectaSep(t.split('\n')))));
+    };
+    fr.readAsText(arq, 'utf-8');
+  });
+}
+$('#earq').addEventListener('change', async ev => {
+  const arqs = Array.from(ev.target.files || []);
+  ev.target.value = '';
+  if (!arqs.length) return;
+  const data = $('#e-data').value || hojeISO();
+  avisoEx('Lendo os arquivos…', false);
+  try {
+    const mats = [];
+    for (const a of arqs) {
+      if (/\.(xlsx|xlsm)$/i.test(a.name)) {
+        const buf = await a.arrayBuffer();
+        const zip = abreZip(buf);
+        const sst = await extraiZip(zip, 'xl/sharedStrings.xml');
+        const textos = sst ? porNome(xmlDoc(sst), 'si').map(si => textoDe(si, 't')) : [];
+        const abas = Array.from(zip.itens.keys()).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n)).sort();
+        for (const ab of abas) {
+          const x = await extraiZip(zip, ab);
+          if (x) mats.push(matrizDaAba(x, textos));
+        }
+      } else {
+        mats.push(await leArquivoExec(a));
+      }
+    }
+    const r = montaExec(mats.filter(Boolean), data);
+    if (r.erro) { avisoEx(`<b>Não foi possível carregar.</b><br>${esc(r.erro)}`, true); return; }
+    EX = r.base; ORIGEM_EX = 'dos arquivos ' + arqs.map(a => a.name).join(', ');
+    indexaEx();
+    sx.b = EX.semanas.indexOf(data); if (sx.b < 0) sx.b = EX.semanas.length - 1;
+    sx.a = sx.b - 1; sx.sel.clear(); sx.dAssin = '';
+    paramsSemana(EX.semanas[sx.b]);
+    const ok1 = guardaEx(); guardaProg();
+    montaControlesEx(); render();
+    const obs = [];
+    if (r.refeita) obs.push('a foto desta data já existia e foi substituída');
+    if (r.dup) obs.push(`${fmt(r.dup)} solicitação(ões) repetidas entre os arquivos foram ignoradas`);
+    if (r.ruins) obs.push(`${fmt(r.ruins)} linha(s) ignoradas por falta de solicitação ou data de cadastro`);
+    const fora = EX.polos.filter(p => gerenciaDe(p) === SEM_GERENCIA);
+    if (fora.length) obs.push('conjuntos fora do mapa de gerências: ' + fora.join(', '));
+    if (!ok1) obs.push('não coube no navegador: esta base vale só nesta sessão');
+    avisoEx(`<b>${fmt(r.novas)} guias carregadas</b> na foto de ${dlonga(data)} · ` +
+            `${fmt(EX.semanas.length)} foto(s) na base · ${fmt(EX.tipos.length)} tipos de serviço.` +
+            (obs.length ? `<ul>${obs.map(o => `<li>${esc(o)}</li>`).join('')}</ul>` : ''), false);
+  } catch (e) {
+    avisoEx(`<b>Erro na leitura.</b><br>${esc(String(e && e.message || e))}`, true);
+  }
+});
+$('#e-semanas').addEventListener('click', ev => {
+  const b = ev.target.closest && ev.target.closest('[data-rm-sem]');
+  if (!b) return;
+  const s = b.dataset.rmSem;
+  if (!confirm('Remover a foto de ' + dlonga(s) + '?')) return;
+  const linhas = EX.linhas.filter(l => EX.semanas[l[XS]] !== s);
+  const semanas = EX.semanas.filter(x => x !== s);
+  linhas.forEach(l => l[XS] = semanas.indexOf(EX.semanas[l[XS]]));
+  EX.semanas = semanas; EX.linhas = linhas;
+  indexaEx();
+  sx.b = Math.max(0, EX.semanas.length - 1); sx.a = sx.b - 1;
+  guardaEx(); montaControlesEx(); render();
+});
+$('#bt-eapaga').addEventListener('click', () => {
+  if (!confirm('Apagar toda a base de execução carregada neste navegador?')) return;
+  EX = {semanas: [], tipos: [], polos: [], municipios: [], solicitantes: [], linhas: []};
+  ORIGEM_EX = ''; indexaEx();
+  try { localStorage.removeItem(CHAVE_EX); } catch (e) {}
+  sx.b = 0; sx.a = -1;
+  montaControlesEx(); render();
+  avisoEx('Base de execução apagada.', false);
+});
+$('#bt-eexemplo').addEventListener('click', () => {
+  EX = baseExemploExec(); ORIGEM_EX = 'de exemplo';
+  indexaEx();
+  sx.b = EX.semanas.length - 1; sx.a = sx.b - 1; sx.sel.clear(); sx.dAssin = '';
+  guardaEx(); montaControlesEx(); render();
+  avisoEx('Base de <b>exemplo</b> carregada, com 4 semanas. Use “Apagar base de execução” antes de subir a planilha real.', false);
+});
+function baseExemploExec() {
+  const tipos = ['Indisponível - Bateria', 'Comissionamento', 'Reajuste', 'Indisponível - Telecontrole',
+                 'Instalação Telecontrole', 'Preventiva', 'Indisponível - Equipamento'];
+  const polos = ['PM', 'PO', 'BD', 'UR', 'AX', 'FR', 'UL', 'AG', 'TB'];
+  const muns = ['Patos de Minas', 'Patrocínio', 'Bom Despacho', 'Uberaba', 'Araxá', 'Frutal', 'Uberlândia', 'Araguari', 'Ituiutaba'];
+  const hoje = segunda(hojeISO());
+  const semanas = [somaDias(hoje, -21), somaDias(hoje, -14), somaDias(hoje, -7), hoje];
+  let seed = 7;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const escolhe = a => a[Math.floor(rnd() * a.length)];
+  const linhas = [];
+  let ativos = [];
+  const nova = (sem, id) => ({sol: String(20000 + id), tipo: escolhe(tipos), polo: escolhe(polos),
+    est: rnd() < 0.5 ? 0 : 1, cad: somaDias(sem, -Math.floor(rnd() * rnd() * 200) - 1),
+    disp: String(100000 + Math.floor(rnd() * 400000)), mun: Math.floor(rnd() * 9), req: 0});
+  let seq = 1;
+  semanas.forEach((sem, wi) => {
+    if (!wi) { for (let i = 0; i < 160; i++) ativos.push(nova(sem, seq++)); }
+    else {
+      ativos = ativos.filter(() => rnd() > 0.12);
+      ativos.forEach(a => { if (a.est === 0 && rnd() < 0.25) a.est = 1; });
+      const n = 12 + Math.floor(rnd() * 14);
+      for (let i = 0; i < n; i++) ativos.push(nova(sem, seq++));
+    }
+    ativos.forEach(a => linhas.push([wi, a.sol, tipos.indexOf(a.tipo), polos.indexOf(a.polo), a.est,
+      a.cad, a.disp, a.mun, 0, 'Exemplo gerado para testar as telas.', '']));
+  });
+  return {semanas, tipos, polos, municipios: muns, solicitantes: ['c000000'], linhas};
+}
+
+/* ============================================================
    INÍCIO
    ============================================================ */
 function baseDemo() {
@@ -5285,9 +6896,12 @@ function baseDemo() {
           responsaveis: DEMO_RESPONSAVEIS, linhas: DEMO_LINHAS};
 }
 recuperaAnotacoes();
+recuperaEx();
 const guardada = baseGuardada();
 aplicaBase(guardada || baseDemo(), guardada ? 'da planilha (guardada neste navegador)' : 'demonstração');
+if (EX.semanas.length) { sx.b = EX.semanas.length - 1; sx.a = sx.b - 1; }
 montaControles();
+montaControlesEx();
 render();
 </script>
 </body>

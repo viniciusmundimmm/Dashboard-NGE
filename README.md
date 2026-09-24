@@ -1,10 +1,18 @@
 # Dashboard NGE — Análise Equipamentos TRIÂNGULO
 
-Página única em HTML puro (`dashboard-nge.html`), sem bibliotecas externas e com os dados
-embutidos no próprio arquivo. Abre com duplo clique em qualquer navegador, funciona offline
-e pode ser projetada direto na reunião.
+Página única em HTML puro (`dashboard-nge.html`), sem bibliotecas externas. Abre com duplo
+clique em qualquer navegador, funciona offline e pode ser projetada direto na reunião.
 
-## O que o dashboard mostra
+São dois ambientes, escolhidos pelas abas do topo:
+
+- **Indisponibilidade** — equipamentos indisponíveis no SCADA, a partir da planilha semanal.
+- **Execução** — guias de inspeção na carteira da Execução Regional, a partir dos arquivos
+  `AbertoTR` e `AndamentoTR`.
+
+O escopo (gerência e polo) acompanha a troca de ambiente. Cada ambiente tem sua semana, seus
+filtros e suas anotações; as imagens da Visão geral e o relatório em PDF são comuns aos dois.
+
+## Ambiente Indisponibilidade
 
 Toda a leitura é feita entre **duas datas da coluna A** (semana atual × semana de comparação,
 por padrão a imediatamente anterior):
@@ -50,6 +58,60 @@ Cada gráfico tem o botão **Tabela**, que troca o desenho pelos números.
 
 Anotações, legendas e imagens ficam guardadas no navegador do computador em uso.
 
+## Ambiente Execução
+
+Cada linha dos arquivos é uma **guia de inspeção**, identificada pela solicitação; o `Tipo` é o
+**tipo de serviço**. Os dois arquivos são carregados de uma vez e viram um conjunto só, com o
+estágio como coluna:
+
+- **Aberta** — em avaliação de programação.
+- **Andamento** — em rota de execução, já com recursos avaliados e guia disponibilizada no G-DIS OP.
+
+O arquivo não traz a data da coleta, então ela é **carimbada na carga** — é essa data que monta o
+histórico. A idade de cada guia é contada da data de cadastro até a data da foto, e não até hoje,
+para que uma semana antiga continue mostrando as idades daquele dia.
+
+As telas: resumo, cascata e evolução, idade em cinco faixas (até 15, 16 a 30, 31 a 60, 61 a 120 e
+acima de 120 dias), estágio com o fluxo entre eles, tipo de serviço aberto por TR, gerência ou
+polo, polo e gerência, mapa de tipo × idade, capacidade, programação, cruzamento e detalhe.
+
+**O vocabulário do movimento é literal**: "saíram da execução" significa que a guia não está mais
+na carteira — pode ter sido concluída, cancelada ou redirecionada. Em nenhum lugar o painel diz
+"concluída". "Foram para rota de execução" conta as guias que passaram de Aberta para Andamento
+na semana, que é a medida direta de programação realizada.
+
+Equipamentos com mais de uma guia aberta aparecem marcados na lista, separando o caso de **duas
+guias do mesmo tipo** (possível duplicidade, marca vermelha) do caso de **tipos diferentes**
+(serviços distintos, marca roxa). A aba *Equip. com 2+ guias* isola esses casos.
+
+### Capacidade e programação
+
+Cadastre as equipes (nome e gerência). O painel calcula, por gerência, quantas equipes seriam
+necessárias para zerar a fila em um mês e em quanto tempo ela zera, com dois parâmetros editáveis
+e **guardados por semana**: serviços por equipe/dia (padrão 4) e dias úteis por mês (padrão 20),
+mais a **% de dedicação** de cada gerência — sem ela o painel supõe equipes dedicadas em tempo
+integral e mostra um prazo otimista demais.
+
+O prazo aparece em duas versões: **bruto** (zerar o que está em tela) e **líquido** (descontando
+as guias que entram por semana, medidas no histórico). Se a entrada superar a capacidade, o painel
+diz que a fila não zera em vez de inventar uma data.
+
+Na lista de detalhe, selecione as guias e atribua **equipe e semana prevista** em lote. Isso
+alimenta a carga por equipe (quantas guias por semana contra a capacidade de cada uma) e a
+**projeção da fila**, com três curvas: pelo programado, pela capacidade teórica e sem executar
+nada. A programação é local, feita à mão, e não vai para o G-DIS OP.
+
+### Cruzamento com a indisponibilidade
+
+A regra: **equipamento indisponível sob `Regional - Automação` deve ter guia**; nas demais
+responsabilidades, não. O painel confere isso pelo número do equipamento (nunca pelo tipo de
+serviço) e mostra a cobertura, a lista de quem está sem guia — com uma **tolerância em dias**
+configurável, para não cobrar guia de equipamento que ficou indisponível ontem — e a lista de quem
+já tem, com os dias de indisponibilidade ao lado da idade da guia.
+
+A projeção também estima a redução de indisponíveis, mas por uma **taxa de conversão** editável:
+atender a guia não garante o equipamento voltar a ficar disponível, e o painel diz isso.
+
 ## Regras de negócio embutidas
 
 | Estrutura | Definição |
@@ -61,6 +123,17 @@ Anotações, legendas e imagens ficam guardadas no navegador do computador em us
 | Execução Regional | Regional - Automação, Regional - Manutenção |
 | NGE-TR | Não Lançado, Regional - RD, Regional - Transporte, Regional - Projetos, Oficina |
 | Demais responsáveis | apresentados individualmente, com o texto da coluna F |
+
+## Como carregar as guias de execução
+
+Na aba **Execução**, botão **Carregar guias**: confirme a data da foto e selecione os arquivos
+`AbertoTR` e `AndamentoTR` como saem do sistema — eles são tabelas HTML com extensão `.xls`, e o
+leitor abre esse formato direto, sem precisar reabrir e salvar no Excel. Também aceita `.xlsx` e
+`.csv`. Carregar duas vezes a mesma data substitui a foto daquele dia.
+
+O painel lista as fotos carregadas e permite remover qualquer uma. **Carregar exemplo** gera quatro
+semanas fictícias para conhecer as telas antes de ter histórico real; **Apagar base de execução**
+limpa tudo antes de subir a planilha de verdade.
 
 ## Como analisar com os dados reais
 
