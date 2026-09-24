@@ -96,10 +96,20 @@ O prazo aparece em duas versões: **bruto** (zerar o que está em tela) e **líq
 as guias que entram por semana, medidas no histórico). Se a entrada superar a capacidade, o painel
 diz que a fila não zera em vez de inventar uma data.
 
-Na lista de detalhe, selecione as guias e atribua **equipe e semana prevista** em lote. Isso
-alimenta a carga por equipe (quantas guias por semana contra a capacidade de cada uma) e a
-**projeção da fila**, com três curvas: pelo programado, pela capacidade teórica e sem executar
-nada. A programação é local, feita à mão, e não vai para o G-DIS OP.
+Na lista de detalhe, selecione as guias e atribua **equipe e semana prevista** em lote. O filtro
+**Vínculo** isola as guias de equipamento indisponível, para programá-las primeiro.
+
+Isso alimenta duas telas:
+
+- **Serviços previstos por equipe** — uma grade de 8 semanas com `programadas / capacidade` em cada
+  célula (capacidade = serviços por dia × 5 dias × dedicação; vermelho acima dela). Clicando numa
+  célula, abaixo aparece **a lista dos serviços previstos** daquela equipe naquela semana: guia,
+  tipo, polo, município, idade, equipamento e se ele está indisponível.
+- **Projeção da fila** — parte do total de hoje e, a cada semana, subtrai o que sai e soma o que
+  entra. Três linhas: pelo programado, pela capacidade teórica e uma referência cinza de não
+  executar nada. Quando uma delas chega a zero dentro do horizonte, o gráfico marca a semana.
+
+A programação é local, feita à mão, e não vai para o G-DIS OP.
 
 ### Cruzamento com a indisponibilidade
 
@@ -109,8 +119,18 @@ serviço) e mostra a cobertura, a lista de quem está sem guia — com uma **tol
 configurável, para não cobrar guia de equipamento que ficou indisponível ontem — e a lista de quem
 já tem, com os dias de indisponibilidade ao lado da idade da guia.
 
+O foco do painel é saber **quais indisponíveis têm guia e se essa guia está programada**: além da
+cobertura, há o indicador *com guia, sem programação* e a coluna de programação na lista. O bloco
+**Prioridade na programação** compara as guias de equipamento indisponível com as demais — quantas
+estão programadas, o percentual, quantas caem na próxima semana e a semana média — que é a
+evidência de que elas estão mesmo na frente.
+
 A projeção também estima a redução de indisponíveis, mas por uma **taxa de conversão** editável:
 atender a guia não garante o equipamento voltar a ficar disponível, e o painel diz isso.
+
+Na seção de tipo de serviço, uma **rosca** mostra a participação de cada tipo no total (cinco
+maiores e "Outros tipos", com a legenda trazendo todos com valor e percentual) e, ao lado, quanto
+do total é de tipo ligado a indisponibilidade.
 
 ## Regras de negócio embutidas
 

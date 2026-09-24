@@ -124,6 +124,26 @@
   .eq-item .ger{color:var(--tinta-3);font-size:12.5px}
   .eq-item .carga{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--tinta-2)}
 
+  .explica{
+    margin:2px 0 10px;padding:9px 12px;border-left:3px solid var(--verde-medio);
+    background:#f4faf6;border-radius:0 8px 8px 0;font-size:12.5px;line-height:1.6;color:var(--tinta-2);
+  }
+  .explica b{color:var(--tinta)}
+  .sub-tit{margin:16px 0 8px;font-size:13px;font-weight:700;color:var(--tinta)}
+  table.dt td.cel-prog{cursor:pointer;font-variant-numeric:tabular-nums}
+  table.dt td.cel-prog:hover{background:#e8f4ec}
+  table.dt td.cel-prog.sel{outline:2px solid var(--verde-forte);outline-offset:-2px;font-weight:700}
+  table.dt td.cheia{color:#fff;background:var(--ruim)!important;font-weight:700}
+  .prog-eq{border:1px solid var(--borda);border-radius:11px;padding:11px 13px;margin-top:12px;background:var(--surface)}
+  .pe-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:7px}
+  .pe-cab b{font-size:14.5px}
+  .pe-cab .ger{font-size:12px;color:var(--tinta-3)}
+  .pe-cab .cnt{margin-left:auto;font-size:13px;font-weight:650;font-variant-numeric:tabular-nums}
+  .barra{height:8px;border-radius:5px;background:#e6efe9;overflow:hidden;flex:0 0 160px}
+  .barra i{display:block;height:100%;background:var(--s2, #2a78d6)}
+  .vinc-chip{display:inline-flex;font-size:11px;font-weight:700;padding:1px 6px;border-radius:5px;
+    background:rgba(160,58,134,.13);color:#7c2c67}
+
   /* seleção em lote no detalhe */
   .lote{
     display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:0 0 10px;
@@ -756,6 +776,17 @@
 
     <section class="secao">
       <h2>Tipo de serviço</h2>
+      <div class="grade g-73" style="margin-bottom:16px">
+        <div class="card">
+          <div class="card-hd"><h3>Participação de cada tipo</h3><span class="sub" id="ex-sub-pizza"></span>
+            <div class="tools"><button class="tbtn" data-tab="ex-pizza" aria-pressed="false">Tabela</button></div></div>
+          <div id="ex-pizza"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><h3>Ligação com indisponibilidade</h3><span class="sub">do total de guias</span></div>
+          <div id="ex-liga"></div>
+        </div>
+      </div>
       <div class="card">
         <div class="card-hd"><h3>Guias por tipo de serviço</h3><span class="sub" id="ex-sub-tipo"></span>
           <div class="abas" role="tablist" aria-label="abrir por">
@@ -813,13 +844,18 @@
     <section class="secao">
       <h2>Programação</h2>
       <div class="card">
-        <div class="card-hd"><h3>Carga por equipe</h3><span class="sub" id="ex-sub-carga"></span>
+        <div class="card-hd"><h3>Serviços previstos por equipe</h3><span class="sub" id="ex-sub-carga"></span>
           <div class="tools"><button class="tbtn" data-tab="ex-carga" aria-pressed="false">Tabela</button></div></div>
         <div id="ex-carga"></div>
       </div>
       <div class="card" style="margin-top:16px">
         <div class="card-hd"><h3>Projeção da fila</h3><span class="sub" id="ex-sub-proj"></span>
           <div class="tools"><button class="tbtn" data-tab="ex-proj" aria-pressed="false">Tabela</button></div></div>
+        <div class="explica">
+          Parte do total de hoje e caminha semana a semana: <b>subtrai o que sai</b> e <b>soma o que entra</b>.
+          A linha azul usa as guias que você programou em cada semana; a verde usa a capacidade teórica das
+          equipes; a cinza é a referência de não executar nada.
+        </div>
         <div class="param-linha">
           <label>Entrada por semana <input id="p-ent" type="number" min="0" max="500" step="1"></label>
           <label>Conversão em regularização <input id="p-conv" type="number" min="0" max="100" step="5"> %</label>
@@ -860,6 +896,7 @@
           <div class="campo"><label for="ed-ger">Gerência</label><select id="ed-ger"></select></div>
           <div class="campo"><label for="ed-polo">Polo</label><select id="ed-polo"></select></div>
           <div class="campo"><label for="ed-equipe">Equipe</label><select id="ed-equipe"></select></div>
+          <div class="campo"><label for="ed-vinc">Vínculo</label><select id="ed-vinc"></select></div>
           <div class="campo"><label for="ed-busca">Guia ou equipamento</label><input id="ed-busca" type="search" placeholder="número" autocomplete="off"></div>
           <button class="btn" id="ed-limpa" type="button">Limpar lista</button>
           <span class="conta" id="ed-conta"></span>
@@ -5771,7 +5808,7 @@ function semanasFuturas(iso, n) {
 const sx = {
   b: 0, a: -1, tipo: '', estagio: '', modo: 'tr', det: 'todos',
   dTipo: '', dEst: '', dGer: '', dPolo: '', dEquipe: '', dBusca: '',
-  dOrd: {col: 'idade', dir: -1}, dAssin: '', sel: new Set()
+  dOrd: {col: 'idade', dir: -1}, dAssin: '', sel: new Set(), semProg: '', dVinc: ''
 };
 function corGer(g) {
   if (COR.ger && COR.ger[g]) return COR.ger[g];
@@ -6177,42 +6214,142 @@ function pintaEquipes() {
       <button class="x" data-rm-eq="${e.id}" type="button">remover</button></div>`;
   }).join('') : '<div class="vazio">Cadastre as equipes para programar as guias e dimensionar a capacidade.</div>';
 }
-function gExCarga(mB) {
-  const sems = semanasFuturas(EX.semanas[sx.b], 8);
-  const eqs = PROG.equipes.filter(e => e.ativa !== false && (!st.ger || e.ger === st.ger));
-  if (!eqs.length) return {svg: '<div class="vazio">Cadastre ao menos uma equipe para ver a carga.</div>', tabela: null};
-  const iso = EX.semanas[sx.b];
-  const conta = {};
-  eqs.forEach(e => { conta[e.id] = {}; sems.forEach(s => conta[e.id][s] = 0); });
-  let semProg = 0;
-  mB.forEach((l, sol) => {
-    const p = PROG.prog[sol];
-    if (!p || !p.eq) { semProg++; return; }
-    if (conta[p.eq] && conta[p.eq][p.sem] != null) conta[p.eq][p.sem]++;
+const COR_PIZZA = ['#2a78d6', '#1baf7a', '#a03a86', '#eda100', '#4a3aa7', '#e34948'];
+const COR_OUTROS = '#6c7a72';
+
+/* --- pizza: participação de cada tipo de serviço --- */
+function gExPizza(mB) {
+  const c = contaPor(mB, l => EX.tipos[l[XTIPO]]);
+  const total = mB.size;
+  if (!total) return {svg: '<div class="vazio">Sem guias no filtro atual.</div>', tabela: null};
+  let itens = Array.from(c.entries()).map(([t, v]) => ({t, v})).sort((a, b) => b.v - a.v);
+  const todos = itens.slice();
+  let fatias = itens;
+  if (itens.length > 6) {
+    const resto = itens.slice(5).reduce((a, x) => a + x.v, 0);
+    fatias = itens.slice(0, 5).concat([{t: 'Outros tipos', v: resto, outros: 1}]);
+  }
+  const cor = (i, f) => f.outros ? COR_OUTROS : COR_PIZZA[i % COR_PIZZA.length];
+  const W = 900, H = 330, cx = 190, cy = 160, ro = 118, ri = 74;
+  let s = '', ang = -Math.PI / 2;
+  fatias.forEach((f, i) => {
+    const a = (f.v / total) * Math.PI * 2, a1 = ang + a, gr = a > Math.PI ? 1 : 0;
+    const p = (r, x) => [cx + r * Math.cos(x), cy + r * Math.sin(x)];
+    const [x1, y1] = p(ro, ang), [x2, y2] = p(ro, a1), [x3, y3] = p(ri, a1), [x4, y4] = p(ri, ang);
+    s += `<path d="M${x1},${y1} A${ro},${ro} 0 ${gr} 1 ${x2},${y2} L${x3},${y3} A${ri},${ri} 0 ${gr} 0 ${x4},${y4} Z"
+            fill="${cor(i, f)}" stroke="${COR.surface}" stroke-width="2" class="hit"
+            data-t="${esc(`<b>${fmt(f.v)}</b> · ${pct1(pct(f.v, total))}%<br><span class="l">${f.t}</span>`)}"/>`;
+    if (a > 0.34) {
+      const [lx, ly] = p((ro + ri) / 2, ang + a / 2);
+      s += txt(lx, ly + 5, pct1(pct(f.v, total)) + '%', {cor: tintaSobre(cor(i, f)), tam: 13.5, anc: 'middle', peso: 700});
+    }
+    ang = a1;
   });
-  const ml = 190, mr = 20, mt = 46, W = 1000, alt = 42, gap = 2;
-  const H = mt + eqs.length * alt + 26;
-  const cw = (W - ml - mr) / sems.length;
-  let s = '';
-  sems.forEach((sm, j) => s += txt(ml + cw * j + cw / 2, mt - 16, dcurta(sm), {cor: COR.t2, tam: 12, anc: 'middle', peso: 600, tab: 1}));
-  eqs.forEach((e, i) => {
-    const y = mt + i * alt;
-    const cap = Math.round(capacidade(e.ger, iso).dia * 5 * ((paramsSemana(iso).ded[e.ger] || 100) / 100));
-    s += txt(ml - 14, y + alt / 2 + 1, corta(e.nome, 22), {cor: COR.t1, tam: 12.5, anc: 'end', peso: 600});
-    s += txt(ml - 14, y + alt / 2 + 14, `${e.ger} · cap ${fmt(cap)}/sem`, {cor: COR.t3, tam: 10.5, anc: 'end'});
-    sems.forEach((sm, j) => {
-      const v = conta[e.id][sm], u = cap ? v / cap : 0;
-      const c = v === 0 ? '#f2f6f3' : (u > 1 ? COR.ruim : COR.q[Math.min(5, Math.max(1, Math.round(u * 5)))]);
-      const x = ml + cw * j;
-      s += `<rect x="${x}" y="${y}" width="${cw - gap}" height="${alt - gap}" rx="4" fill="${c}" class="hit" data-t="${esc(`<b>${fmt(v)}</b> de ${fmt(cap)}<br><span class="l">${e.nome} · semana de ${dlonga(sm)}${u > 1 ? ' · acima da capacidade' : ''}</span>`)}"/>`;
-      if (v) s += txt(x + (cw - gap) / 2, y + alt / 2 + 5, `${fmt(v)}/${fmt(cap)}`,
-                      {cor: tintaSobre(c), tam: 12.5, anc: 'middle', peso: 650});
-    });
+  s += txt(cx, cy + 2, fmt(total), {cor: COR.t1, tam: 40, anc: 'middle', peso: 650});
+  s += txt(cx, cy + 24, 'guias', {cor: COR.t3, tam: 12.5, anc: 'middle'});
+  /* legenda em duas colunas, com valor e percentual de todos os tipos */
+  const lx0 = 360, lh = 26;
+  todos.forEach((f, i) => {
+    const col = i < 5 ? 0 : 1, lin = i % 5;
+    const x = lx0 + col * 270, y = 52 + lin * lh;
+    const idx = fatias.findIndex(z => z.t === f.t);
+    const c2 = idx >= 0 ? cor(idx, fatias[idx]) : COR_OUTROS;
+    s += `<rect x="${x}" y="${y - 9}" width="11" height="11" rx="3" fill="${c2}"/>`;
+    s += txt(x + 18, y, corta(f.t, 20), {cor: COR.t1, tam: 12.5, peso: 600});
+    s += txt(x + 252, y, `${fmt(f.v)} · ${pct1(pct(f.v, total))}%`, {cor: COR.t2, tam: 12.5, anc: 'end', tab: 1});
   });
   return {svg: svgRoot(W, H, s),
-          pe: `<div class="nota">${fmt(semProg)} guia(s) em tela ainda sem programação. Selecione linhas no detalhe para programar.</div>`,
-          tabela: {cab: ['Equipe', 'Gerência'].concat(sems.map(dcurta)),
-                   linhas: eqs.map(e => [esc(e.nome), e.ger].concat(sems.map(sm => fmt(conta[e.id][sm]))))}};
+          pe: todos.length > 6 ? `<div class="nota">As fatias mostram os cinco maiores tipos; os demais entram em “Outros tipos”. A legenda traz todos com valor e percentual.</div>` : '',
+          tabela: {cab: ['Tipo de serviço', 'Guias', '% do total'],
+                   linhas: todos.map(f => [esc(f.t), fmt(f.v), pct1(pct(f.v, total)) + '%'])}};
+}
+function pintaLigacao(mB) {
+  const total = mB.size;
+  let lig = 0;
+  mB.forEach(l => { if (ligadoIndisp(EX.tipos[l[XTIPO]])) lig++; });
+  const pc = pct(lig, total || 1);
+  $('#ex-sub-pizza').textContent = `${fmt(total)} guias`;
+  $('#ex-liga').innerHTML = `
+    <div style="display:flex;align-items:baseline;gap:12px;margin:10px 0 4px">
+      <span style="font-size:52px;font-weight:650;color:${COR.s3};letter-spacing:-.02em">${pct1(pc)}%</span>
+      <span style="font-size:13px;color:var(--tinta-2)">do total são de tipo ligado a indisponibilidade</span>
+    </div>
+    <div class="barra" style="flex:1;height:14px;margin:8px 0 12px"><i style="width:${pc}%;background:${COR.s3}"></i></div>
+    <div class="tab-wrap"><table class="dt"><tbody>
+      <tr><td>Ligadas a indisponibilidade</td><td>${fmt(lig)}</td><td>${pct1(pc)}%</td></tr>
+      <tr><td>Demais serviços</td><td>${fmt(total - lig)}</td><td>${pct1(100 - pc)}%</td></tr>
+    </tbody></table></div>`;
+}
+
+/* --- serviços previstos por equipe --- */
+function pintaPrevisto(mB) {
+  const sems = semanasFuturas(EX.semanas[sx.b], 8);
+  if (!sx.semProg || sems.indexOf(sx.semProg) < 0) sx.semProg = sems[0];
+  const eqs = PROG.equipes.filter(e => e.ativa !== false && (!st.ger || e.ger === st.ger));
+  const iso = EX.semanas[sx.b];
+  if (!eqs.length) {
+    return {svg: '<div class="vazio">Cadastre ao menos uma equipe para programar e ver os serviços previstos.</div>', tabela: null};
+  }
+  const capDe = e => Math.round(capacidade(e.ger, iso).dia * 5 * ((paramsSemana(iso).ded[e.ger] || 100) / 100));
+  const guiasDe = (eqId, sem) => {
+    const o = [];
+    mB.forEach((l, sol) => { const p = PROG.prog[sol]; if (p && p.eq === eqId && p.sem === sem) o.push(l); });
+    return o.sort((a, b) => idadeEx(b, sx.b) - idadeEx(a, sx.b));
+  };
+  const cruz = dadosCruz(mB);
+  let semProg = 0;
+  mB.forEach((l, sol) => { if (!PROG.prog[sol]) semProg++; });
+
+  let html = `<div class="explica">
+    Cada célula traz <b>guias programadas / capacidade da equipe na semana</b>. A capacidade vem de
+    serviços por dia × 5 dias × dedicação da gerência. Célula em vermelho está acima da capacidade.
+    <b>Clique numa célula</b> para ver, abaixo, quais serviços estão previstos ali.</div>`;
+  html += `<div class="tab-wrap"><table class="dt"><thead><tr><th>Equipe</th><th>Cap.</th>` +
+    sems.map(s => `<th${s === sx.semProg ? ' style="color:var(--verde-forte)"' : ''}>${dcurta(s)}</th>`).join('') +
+    `</tr></thead><tbody>` +
+    eqs.map(e => {
+      const cap = capDe(e);
+      return `<tr><td>${esc(e.nome)}<span class="ger" style="color:var(--tinta-3);font-weight:400"> · ${esc(e.ger)}</span></td>
+        <td>${fmt(cap)}</td>` +
+        sems.map(s => {
+          const n = guiasDe(e.id, s).length;
+          const cls = 'cel-prog' + (s === sx.semProg ? ' sel' : '') + (cap && n > cap ? ' cheia' : '');
+          return `<td class="${cls}" data-eq="${e.id}" data-sem="${s}">${n ? fmt(n) + '/' + fmt(cap) : '—'}</td>`;
+        }).join('') + `</tr>`;
+    }).join('') + `</tbody></table></div>`;
+
+  html += `<h4 class="sub-tit">Previsto para a semana de ${dlonga(sx.semProg)}</h4>`;
+  let algum = false;
+  eqs.forEach(e => {
+    const gs = guiasDe(e.id, sx.semProg), cap = capDe(e);
+    if (!gs.length) return;
+    algum = true;
+    const u = cap ? Math.min(100, gs.length / cap * 100) : 0;
+    html += `<div class="prog-eq">
+      <div class="pe-cab"><b>${esc(e.nome)}</b><span class="ger">${esc(e.ger)}</span>
+        <span class="barra"><i style="width:${u}%;background:${gs.length > cap ? COR.ruim : COR.s2}"></i></span>
+        <span class="cnt">${fmt(gs.length)} de ${fmt(cap)}${gs.length > cap ? ' · acima da capacidade' : ''}</span></div>
+      <div class="tab-wrap"><table class="dt"><thead><tr>
+        <th>Guia</th><th>Tipo de serviço</th><th>Polo</th><th>Município</th><th>Idade</th><th>Equip.</th><th>Vínculo</th>
+      </tr></thead><tbody>` +
+      gs.map(l => {
+        const d = String(l[XDISP] || '');
+        const ind = cruz.todosInd && cruz.todosInd.has(d);
+        return `<tr><td>${esc(String(l[XSOL]))}</td><td>${esc(EX.tipos[l[XTIPO]])}</td>
+          <td>${esc(poloDe(l))}</td><td>${esc(EX.municipios[l[XMUN]] || '')}</td>
+          <td>${fmt(idadeEx(l, sx.b))}</td><td>${esc(d)}</td>
+          <td>${ind ? '<span class="vinc-chip">indisponível</span>' : '—'}</td></tr>`;
+      }).join('') + `</tbody></table></div></div>`;
+  });
+  if (!algum) html += `<div class="vazio">Nada programado para esta semana. Selecione guias no detalhe e use “Programar”.</div>`;
+  if (semProg) html += `<div class="nota">${fmt(semProg)} guia(s) em tela ainda sem programação.</div>`;
+
+  const linhas = [];
+  eqs.forEach(e => sems.forEach(s => {
+    const n = guiasDe(e.id, s).length;
+    if (n) linhas.push([esc(e.nome), e.ger, dlonga(s), fmt(n), fmt(capDe(e))]);
+  }));
+  return {svg: html, tabela: {cab: ['Equipe', 'Gerência', 'Semana', 'Programadas', 'Capacidade'], linhas}};
 }
 
 /* --- projeção da fila --- */
@@ -6243,9 +6380,17 @@ function gExProj(mB) {
     o += txt(x(dados.length - 1) + 10, y(dados[dados.length - 1]) + 4, `${fmt(Math.round(dados[dados.length - 1]))} ${rot}`, {cor: COR.t2, tam: 12, peso: 650});
     return o;
   };
-  s += linha(sNada, COR.s3, 'sem executar');
+  s += linha(sNada, COR.t3, 'referência');
   s += linha(sCap, COR.s1, 'pela capacidade');
   s += linha(sProg, COR.s2, 'pelo programado');
+  /* marca a semana em que cada cenário zera, quando acontece dentro do horizonte */
+  [[sProg, COR.s2], [sCap, COR.s1]].forEach(([d, c]) => {
+    const k = d.findIndex((v, i) => i > 0 && v <= 0);
+    if (k > 0) {
+      s += `<line x1="${x(k)}" y1="${py0}" x2="${x(k)}" y2="${py1}" stroke="${c}" stroke-width="1"/>`;
+      s += txt(x(k), py0 - 8, 'zera em ' + dcurta(sems[k - 1]), {cor: c, tam: 11.5, anc: 'middle', peso: 650});
+    }
+  });
   s += `<circle cx="${x(0)}" cy="${y(f0)}" r="5" fill="${COR.t1}"/>`;
   s += txt(x(0), y(f0) - 14, fmt(f0), {cor: COR.t1, tam: 16, peso: 650, anc: 'middle'});
   s += txt(x(0), py1 + 20, 'hoje', {cor: COR.t1, tam: 11.5, anc: 'middle', peso: 700});
@@ -6262,7 +6407,7 @@ function gExProj(mB) {
   const conv = (+PROG.cfg.conv || 0) / 100;
   const pe = legenda([{cor: COR.s2, rot: 'pelo programado', linha: true},
                       {cor: COR.s1, rot: 'pela capacidade teórica', linha: true},
-                      {cor: COR.s3, rot: 'sem executar nada', linha: true}]) +
+                      {cor: COR.t3, rot: 'referência: se nada for executado', linha: true}]) +
     `<div class="nota">Entrada considerada: <b>${fmt(ent)}</b> guia(s) por semana. ` +
     `Das guias programadas para as próximas 8 semanas, <b>${fmt(ligadas)}</b> são de equipamentos hoje indisponíveis em ${RESP_COM_GUIA}; ` +
     `com conversão de ${fmt(PROG.cfg.conv)}%, a expectativa é de <b>${fmt(Math.round(ligadas * conv))}</b> regularização(ões). ` +
@@ -6311,7 +6456,7 @@ function dadosCruz(mB) {
     });
   });
   return {wi, semanaInd: wi >= 0 ? SEMANAS[wi] : null, auto, setAuto, porDisp, orfas,
-          indTotal: todosInd.size};
+          todosInd, indTotal: todosInd.size};
 }
 function pintaCruz(mB) {
   const c = dadosCruz(mB);
@@ -6322,47 +6467,85 @@ function pintaCruz(mB) {
   }
   const tol = +PROG.cfg.tol || 0;
   $('#p-tol').value = tol;
-  const com = c.auto.filter(x => x.guias.length);
-  const sem = c.auto.filter(x => !x.guias.length).sort((a, b) => b.dias - a.dias);
-  const semForaTol = sem.filter(x => x.dias > tol);
-  const cob = c.auto.length ? com.length / c.auto.length * 100 : 0;
   const dist = Math.abs(diasEntre(c.semanaInd, EX.semanas[sx.b]));
-  $('#ex-sub-cruz').textContent =
-    `indisponibilidade de ${dlonga(c.semanaInd)} × guias de ${dlonga(EX.semanas[sx.b])}`;
+  $('#ex-sub-cruz').textContent = `indisponibilidade de ${dlonga(c.semanaInd)} × guias de ${dlonga(EX.semanas[sx.b])}`;
   let alerta = '';
   if (/demonstra/i.test(ORIGEM)) alerta = 'O módulo de indisponibilidade está com a <b>base de demonstração</b>, cujos equipamentos são fictícios — por isso nada cruza. Carregue a planilha real para este quadro valer.';
   else if (dist > 7) alerta = `As duas fotos estão a <b>${fmt(dist)} dias</b> de distância. O cruzamento só é confiável com fotos da mesma semana.`;
   const aviso = alerta ? `<div class="msg erro" style="margin:0 0 14px">${alerta}</div>` : '';
 
+  const sems = semanasFuturas(EX.semanas[sx.b], 8);
+  const progDe = l => PROG.prog[l[XSOL]];
+  const com = c.auto.filter(x => x.guias.length);
+  const sem = c.auto.filter(x => !x.guias.length).sort((a, b) => b.dias - a.dias);
+  const semForaTol = sem.filter(x => x.dias > tol);
+  const comSemProg = com.filter(x => !x.guias.some(progDe));
+  const cob = c.auto.length ? com.length / c.auto.length * 100 : 0;
+
   const tiles = `<div class="kpis" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:14px">
-    <div class="tile"><span class="rot">Em ${esc(RESP_COM_GUIA)}</span><span class="val">${fmt(c.auto.length)}</span>
-      <span class="pe">equipamentos indisponíveis que deveriam ter guia</span></div>
+    <div class="tile"><span class="rot">Indisponíveis em ${esc(RESP_COM_GUIA)}</span><span class="val">${fmt(c.auto.length)}</span>
+      <span class="pe">deveriam ter guia aberta</span></div>
     <div class="tile"><span class="rot">Com guia</span><span class="val" style="color:#006300">${fmt(com.length)}</span>
       <span class="pe">cobertura de ${pct1(cob)}%</span></div>
+    <div class="tile"><span class="rot">Com guia, sem programação</span><span class="val" style="color:${COR.ruim}">${fmt(comSemProg.length)}</span>
+      <span class="pe">a guia existe mas não tem equipe nem semana</span></div>
     <div class="tile"><span class="rot">Sem guia</span><span class="val" style="color:${COR.ruim}">${fmt(semForaTol.length)}</span>
-      <span class="pe">acima de ${fmt(tol)} dias indisponíveis · ${fmt(sem.length - semForaTol.length)} ainda dentro da tolerância</span></div>
-    ${c.orfas.length > c.indTotal
-      ? `<div class="tile"><span class="rot">Guia sem indisponível</span><span class="val" style="color:${COR.t3}">—</span>
-           <span class="pe">a base de indisponibilidade tem ${fmt(c.indTotal)} equipamentos e há ${fmt(c.orfas.length)} guias fora dela: as duas listas parecem cobrir escopos diferentes</span></div>`
-      : `<div class="tile"><span class="rot">Guia sem indisponível</span><span class="val">${fmt(c.orfas.length)}</span>
-           <span class="pe">tipo de serviço de indisponibilidade, mas o equipamento não está na lista — vale conferir, nem sempre é erro</span></div>`}
+      <span class="pe">acima de ${fmt(tol)} dias · ${fmt(sem.length - semForaTol.length)} dentro da tolerância</span></div>
   </div>`;
+
+  /* evidência de prioridade: as guias de indisponível estão na frente das demais? */
+  const grupos = [{rot: 'Guias de equipamento indisponível', liga: 1}, {rot: 'Demais guias', liga: 0}];
+  const dados = grupos.map(g => {
+    let tot = 0, prog = 0, prim = 0, somaSem = 0;
+    mB.forEach((l, sol) => {
+      const lig = c.todosInd.has(String(l[XDISP] || '')) ? 1 : 0;
+      if (lig !== g.liga) return;
+      tot++;
+      const p = PROG.prog[sol];
+      if (!p) return;
+      const k = sems.indexOf(p.sem);
+      if (k < 0) return;
+      prog++; somaSem += k + 1;
+      if (k === 0) prim++;
+    });
+    return {rot: g.rot, tot, prog, prim, media: prog ? somaSem / prog : null};
+  });
+  const prio = `<h4 class="sub-tit">Prioridade na programação</h4>
+    <div class="explica">Compara as guias de equipamentos hoje indisponíveis com as demais: se elas são
+    mesmo prioridade, devem estar mais programadas e em semanas mais próximas.</div>
+    <div class="tab-wrap"><table class="dt"><thead><tr>
+      <th>Grupo</th><th>Guias</th><th>Programadas</th><th>% programadas</th><th>Para a próxima semana</th><th>Semana média</th>
+    </tr></thead><tbody>` +
+    dados.map(d => `<tr><td>${esc(d.rot)}</td><td>${fmt(d.tot)}</td><td>${fmt(d.prog)}</td>
+      <td>${d.tot ? pct1(pct(d.prog, d.tot)) + '%' : '—'}</td><td>${fmt(d.prim)}</td>
+      <td>${d.media ? d.media.toFixed(1).replace('.', ',') + 'ª' : '—'}</td></tr>`).join('') +
+    `</tbody></table></div>`;
+
+  const tabCom = com.length ? `<h4 class="sub-tit">Indisponíveis com guia — a guia está programada?</h4>
+    <div class="tab-wrap"><table class="dt"><thead><tr>
+      <th>Equip.</th><th>Polo</th><th>Dias indisponível</th><th>Guia</th><th>Estágio</th>
+      <th>Tipo de serviço</th><th>Idade da guia</th><th>Programação</th></tr></thead><tbody>` +
+    com.sort((a, b) => b.dias - a.dias).map(x => x.guias.map((g, k) => {
+      const p = progDe(g);
+      return `<tr><td>${k ? '' : esc(x.eq)}</td><td>${k ? '' : esc(x.polo)}</td><td>${k ? '' : fmt(x.dias)}</td>
+        <td>${esc(String(g[XSOL]))}</td><td>${esc(ESTAGIOS[g[XEST]])}</td><td>${esc(EX.tipos[g[XTIPO]])}</td>
+        <td>${fmt(idadeEx(g, sx.b))}</td>
+        <td>${p ? `<span class="prog-chip">${esc(nomeEquipe(p.eq))} · ${dcurta(p.sem)}</span>`
+                : '<span class="chip c-ruim">sem programação</span>'}</td></tr>`;
+    }).join('')).join('') + `</tbody></table></div>` : '';
 
   const tabSem = sem.length ? `<h4 class="sub-tit">Indisponíveis sem guia</h4><div class="tab-wrap"><table class="dt"><thead><tr>
       <th>Equip.</th><th>Tipo</th><th>Polo</th><th>Gerência</th><th>Dias indisponível</th><th>Situação</th></tr></thead><tbody>` +
     sem.map(x => `<tr${x.dias <= tol ? ' class="tenue"' : ''}><td>${esc(x.eq)}</td><td>${esc(x.tipo)}</td><td>${esc(x.polo)}</td>
       <td>${esc(x.ger)}</td><td>${fmt(x.dias)}</td>
       <td>${x.dias <= tol ? '<span class="chip c-zero">dentro do prazo de abertura</span>' : '<span class="chip c-ruim">abrir guia</span>'}</td></tr>`).join('') +
-    `</tbody></table></div>` : '<div class="vazio">Todos os equipamentos em ' + esc(RESP_COM_GUIA) + ' têm guia aberta.</div>';
+    `</tbody></table></div>` : `<div class="vazio">Todos os equipamentos em ${esc(RESP_COM_GUIA)} têm guia aberta.</div>`;
 
-  const tabCom = com.length ? `<h4 class="sub-tit">Indisponíveis com guia</h4><div class="tab-wrap"><table class="dt"><thead><tr>
-      <th>Equip.</th><th>Polo</th><th>Dias indisponível</th><th>Guia</th><th>Estágio</th><th>Tipo de serviço</th><th>Idade da guia</th></tr></thead><tbody>` +
-    com.sort((a, b) => b.dias - a.dias).map(x => x.guias.map((g, k) => `<tr>
-      <td>${k ? '' : esc(x.eq)}</td><td>${k ? '' : esc(x.polo)}</td><td>${k ? '' : fmt(x.dias)}</td>
-      <td>${esc(g[XSOL])}</td><td>${esc(ESTAGIOS[g[XEST]])}</td><td>${esc(EX.tipos[g[XTIPO]])}</td>
-      <td>${fmt(idadeEx(g, sx.b))}</td></tr>`).join('')).join('') + `</tbody></table></div>` : '';
+  const orf = c.orfas.length > c.indTotal
+    ? `<div class="nota">Guias de tipo de indisponibilidade cujo equipamento não está na lista: ${fmt(c.orfas.length)} — como a base de indisponibilidade tem ${fmt(c.indTotal)} equipamentos, as duas listas parecem cobrir escopos diferentes e essa contagem não é confiável.</div>`
+    : `<div class="nota">${fmt(c.orfas.length)} guia(s) de tipo de indisponibilidade cujo equipamento não consta na lista de indisponíveis — vale conferir, nem sempre é erro.</div>`;
 
-  $('#ex-cruz').innerHTML = aviso + tiles + tabSem + tabCom;
+  $('#ex-cruz').innerHTML = aviso + tiles + prio + tabCom + tabSem + orf;
 }
 
 /* --- KPIs e detalhe da execução --- */
@@ -6442,7 +6625,10 @@ function pintaExDetalhe(mA, mB) {
   });
 
   const busca = sx.dBusca.trim().toLowerCase();
+  const ligados = dadosCruz(mB).todosInd;
+  const ehLigada = x => ligados.has(String(x.l[XDISP] || ''));
   const passa = (x, exceto) =>
+    (!sx.dVinc || (sx.dVinc === 'ind' ? ehLigada(x) : !ehLigada(x))) &&
     (exceto === 'tipo' || !sx.dTipo || VAL_EX.tipo(x) === sx.dTipo) &&
     (exceto === 'est'  || !sx.dEst  || VAL_EX.est(x)  === sx.dEst) &&
     (exceto === 'ger'  || !sx.dGer  || VAL_EX.ger(x)  === sx.dGer) &&
@@ -6462,6 +6648,8 @@ function pintaExDetalhe(mA, mB) {
   const assin = [oTipo.join('~'), oEst.join('~'), oGer.join('~'), oPolo.join('~'), eqOps.length].join('|');
   if (assin !== sx.dAssin) {
     sx.dAssin = assin;
+    opcoes($('#ed-vinc'), [{v: '', r: 'Todas as guias'}, {v: 'ind', r: 'de equipamento indisponível'},
+                           {v: 'nao', r: 'demais guias'}], sx.dVinc);
     opcoes($('#ed-tipo'), [{v: '', r: 'Todos os tipos'}].concat(oTipo.map(v => ({v, r: v}))), sx.dTipo);
     opcoes($('#ed-estagio'), [{v: '', r: 'Todos os estágios'}].concat(oEst.map(v => ({v, r: v}))), sx.dEst);
     opcoes($('#ed-ger'), [{v: '', r: 'Todas as gerências'}].concat(oGer.map(v => ({v, r: v}))), sx.dGer);
@@ -6498,7 +6686,8 @@ function pintaExDetalhe(mA, mB) {
       guia: esc(sol) + (nGuias > 1 ? `<span class="dup-chip${mesmoTipo ? ' mesmo' : ''}" title="${nGuias} guias para o equipamento ${esc(d)}${mesmoTipo ? ', do mesmo tipo' : ''}">${nGuias} guias</span>` : ''),
       tipo: esc(EX.tipos[l[XTIPO]]), est: esc(ESTAGIOS[l[XEST]]), polo: esc(poloDe(l)),
       ger: esc(gerenciaDe(poloDe(l))), idade: fmt(x.idade), faixa: esc(FAIXAS_EX[faixaEx(x.idade)]),
-      equip: esc(d), mun: esc(EX.municipios[l[XMUN]] || ''),
+      equip: esc(d) + (ehLigada(x) ? '<span class="vinc-chip" title="equipamento na lista de indisponíveis">indisp.</span>' : ''),
+      mun: esc(EX.municipios[l[XMUN]] || ''),
       prog: p ? `<span class="prog-chip">${esc(nomeEquipe(p.eq))} · ${dcurta(p.sem)}</span>` : '<span class="add">—</span>',
       nota: ''
     };
@@ -6558,7 +6747,7 @@ function renderEx() {
     : sx.modo === 'ger' ? 'aberto por gerência' : 'aberto por polo · cor = gerência';
   $('#ex-tit-polo').textContent = st.ger ? 'Guias por polo' : 'Guias por gerência';
   $('#ex-sub-polo').textContent = st.ger ? `${st.ger} · ${polosDeGer(st.ger).join(', ')}` : 'TR · gerências';
-  $('#ex-sub-carga').textContent = 'próximas 8 semanas';
+  $('#ex-sub-carga').textContent = sx.semProg ? 'semana de ' + dlonga(sx.semProg) : 'próximas 8 semanas';
   $('#ex-sub-proj').textContent = 'próximas 8 semanas';
   $('#p-ent').value = PROG.cfg.ent == null ? entradaEmUso() : PROG.cfg.ent;
   $('#p-conv').value = PROG.cfg.conv;
@@ -6570,12 +6759,14 @@ function renderEx() {
   pinta('ex-evo', gExEvolucao());
   pinta('ex-idade', gExIdade(mA, mB));
   pinta('ex-estagio', gExEstagio(mA, mB, fluxo));
+  pinta('ex-pizza', gExPizza(mB));
+  pintaLigacao(mB);
   pinta('ex-tipo', gExTipo(mA, mB));
   pinta('ex-polo', gExPolo(mA, mB));
   pinta('ex-mapa', gExMapa(mB));
   pintaCapacidade(mB);
   pintaEquipes();
-  pinta('ex-carga', gExCarga(mB));
+  pinta('ex-carga', pintaPrevisto(mB));
   pinta('ex-proj', gExProj(mB));
   pintaCruz(mB);
   pintaExDetalhe(mA, mB);
@@ -6654,11 +6845,11 @@ $$('.aba[data-edet]').forEach(b => b.addEventListener('click', () => {
 
 /* filtros da lista */
 [['ed-tipo', 'dTipo'], ['ed-estagio', 'dEst'], ['ed-ger', 'dGer'], ['ed-polo', 'dPolo'],
- ['ed-equipe', 'dEquipe'], ['ed-busca', 'dBusca']].forEach(([id, campo]) => {
+ ['ed-equipe', 'dEquipe'], ['ed-vinc', 'dVinc'], ['ed-busca', 'dBusca']].forEach(([id, campo]) => {
   $('#' + id).addEventListener(id === 'ed-busca' ? 'input' : 'change', e => { sx[campo] = e.target.value; render(); });
 });
 $('#ed-limpa').addEventListener('click', () => {
-  sx.dTipo = sx.dEst = sx.dGer = sx.dPolo = sx.dEquipe = sx.dBusca = '';
+  sx.dTipo = sx.dEst = sx.dGer = sx.dPolo = sx.dEquipe = sx.dVinc = sx.dBusca = '';
   sx.dAssin = ''; $('#ed-busca').value = ''; render();
 });
 $('#ex-det').addEventListener('click', ev => {
@@ -6724,6 +6915,13 @@ paramNum('p-mes', v => { paramsSemana(EX.semanas[sx.b]).mes = Math.max(1, v); })
 paramNum('p-ent', v => { PROG.cfg.ent = Math.max(0, v); });
 paramNum('p-conv', v => { PROG.cfg.conv = Math.min(100, Math.max(0, v)); });
 paramNum('p-tol', v => { PROG.cfg.tol = Math.max(0, v); });
+$('#ex-carga').addEventListener('click', ev => {
+  const td = ev.target.closest && ev.target.closest('td.cel-prog');
+  if (!td) return;
+  sx.semProg = td.dataset.sem;
+  render();
+  $('#ex-carga').scrollIntoView({block: 'nearest'});
+});
 $('#ex-cap').addEventListener('change', ev => {
   const i = ev.target.closest && ev.target.closest('input.ded');
   if (!i) return;
