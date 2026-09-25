@@ -171,12 +171,16 @@ divide as colunas por tipo de serviço no modo TR.
 | NGE-TR | Não Lançado, Regional - RD, Regional - Transporte, Regional - Projetos, Oficina |
 | Demais responsáveis | apresentados individualmente, com o texto da coluna F |
 
+## Qual versão do arquivo está aberta
+
+O rodapé de qualquer uma das abas começa com **Painel versão dd/mm/aaaa**. Use isso para confirmar
+que o arquivo aberto é o mais recente antes de procurar uma tela nova.
+
 ## Como carregar as guias de execução
 
-Na aba **Execução**, botão **Carregar guias**: confirme a data da foto e use o botão
-**Guias · Aberto e Andamento** para os arquivos `AbertoTR` e `AndamentoTR`, ou
-**Executados · G-DIS OP** para a lista do que foi executado na semana. Os arquivos são lidos como
-saem do sistema — eles são tabelas HTML com extensão `.xls`, e o
+Na aba **Execução**, botão **Carregar dados** (no alto da página): confirme a data da foto e use
+**1 · AbertoTR e AndamentoTR** para as guias, ou **2 · Executados G-DIS OP** para a lista do que foi
+executado em campo naquela semana. Os arquivos são lidos como saem do sistema — eles são tabelas HTML com extensão `.xls`, e o
 leitor abre esse formato direto, sem precisar reabrir e salvar no Excel. Também aceita `.xlsx` e
 `.csv`. Carregar duas vezes a mesma data substitui a foto daquele dia.
 

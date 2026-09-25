@@ -112,6 +112,8 @@
   .param-linha .nota{margin:0;font-size:12px}
 
   /* equipes */
+  .carga{display:flex;flex-direction:column;gap:5px}
+  .carga-rot{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--verde-forte);font-weight:700}
   .eq-nova{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 10px}
   .eq-nova input,.eq-nova select{
     font:inherit;font-size:13.5px;color:var(--tinta);background:var(--surface);
@@ -745,7 +747,7 @@
       <div class="campo" style="min-width:190px"><label for="e-tipo">Tipo de serviço</label><select id="e-tipo"></select></div>
       <div class="campo"><label for="e-estagio">Estágio</label><select id="e-estagio"></select></div>
       <button class="btn" id="e-limpa" type="button">Limpar filtros</button>
-      <button class="btn" id="bt-edados" type="button" aria-expanded="false">Carregar guias</button>
+      <button class="btn" id="bt-edados" type="button" aria-expanded="false">Carregar dados</button>
     </div>
   </div>
 
@@ -758,12 +760,18 @@
       <b>F</b> (data e hora), <b>G</b> (veículo), <b>K</b> (polo executora) e <b>M</b> (equipamento).
       Como nenhum dos dois traz a data da coleta, ela é carimbada aqui.
     </p>
-    <div class="painel-acoes">
+    <div class="painel-acoes" style="align-items:flex-end">
       <div class="campo"><label for="e-data">Data desta foto</label><input type="date" id="e-data"></div>
-      <label class="btn forte" for="earq">Guias · Aberto e Andamento</label>
-      <input type="file" id="earq" accept=".xls,.xlsx,.htm,.html,.csv,.txt" multiple hidden>
-      <label class="btn" for="garq">Executados · G-DIS OP</label>
-      <input type="file" id="garq" accept=".xls,.xlsx,.htm,.html,.csv,.txt" multiple hidden>
+      <div class="carga">
+        <span class="carga-rot">1 · Guias de inspeção</span>
+        <label class="btn forte" for="earq">AbertoTR e AndamentoTR</label>
+        <input type="file" id="earq" accept=".xls,.xlsx,.htm,.html,.csv,.txt" multiple hidden>
+      </div>
+      <div class="carga">
+        <span class="carga-rot">2 · Executado em campo</span>
+        <label class="btn forte" for="garq">Executados G-DIS OP</label>
+        <input type="file" id="garq" accept=".xls,.xlsx,.htm,.html,.csv,.txt" multiple hidden>
+      </div>
       <button class="btn" id="bt-eexemplo" type="button">Carregar exemplo</button>
       <button class="btn" id="bt-eapaga" type="button">Apagar base de execução</button>
       <button class="btn" id="bt-efechar" type="button" style="margin-left:auto">Fechar</button>
@@ -773,8 +781,11 @@
   </div>
 
   <div class="vazio-mod" id="e-vazio" hidden>
-    <b>Nenhuma guia carregada.</b>
-    Clique em <b>Carregar guias</b> e selecione os arquivos AbertoTR e AndamentoTR.
+    <b>Nenhum dado carregado.</b>
+    Clique em <b>Carregar dados</b>, no alto da página. Lá entram dois arquivos:
+    <b>1</b> as guias de inspeção (AbertoTR e AndamentoTR) e
+    <b>2</b> os executados em campo (G-DIS OP), que alimentam a seção
+    <b>Executado na semana</b> lá embaixo.
     Para conhecer as telas antes de ter histórico, use <b>Carregar exemplo</b>.
   </div>
 
@@ -5323,6 +5334,7 @@ function renderIndisp() {
     `emitido em ${agora.toLocaleDateString('pt-BR')} ${agora.toLocaleTimeString('pt-BR').slice(0, 5)}`;
 
   $('#rodape').innerHTML =
+    `<b>Painel versão ${VERSAO}</b> · ` +
     `Base ${esc(ORIGEM)}: ${fmt(LINHAS.length)} registros · ${fmt(SEMANAS.length)} semanas (${dlonga(SEMANAS[0])} a ${dlonga(SEMANAS[SEMANAS.length - 1])}) · ` +
     `Superintendência TR = ${GERS.map(g => (GER_POLOS[g] || []).join(', ')).join(', ')}. ` +
     `Execução Regional = Regional - Automação e Regional - Manutenção. ` +
@@ -5803,6 +5815,7 @@ let PORSEM_EX = [], ORIGEM_EX = '';
 let PROG = {equipes: [], prog: {}, sem: {}, cfg: {ent: null, conv: 70, tol: 5}};
 
 const CHAVE_EX = 'nge-exec-v1', CHAVE_PROG = 'nge-prog-v1';
+const VERSAO = '25/09/2026';                       /* confere se o arquivo aberto é o mais recente */
 
 function diasEntre(isoA, isoB) {                    /* isoB - isoA, em dias */
   const a = new Date(isoA + 'T00:00:00'), b = new Date(isoB + 'T00:00:00');
@@ -6888,7 +6901,7 @@ function renderEx() {
     $('#pill-ant').innerHTML = 'Execução <b>sem dados</b>';
     $('#pill-atu').innerHTML = 'Carregue <b>AbertoTR e AndamentoTR</b>';
     $('#pill-escopo').innerHTML = '';
-    $('#rodape').textContent = 'Módulo de execução sem base carregada.';
+    $('#rodape').innerHTML = `<b>Painel versão ${VERSAO}</b> · módulo de execução sem base carregada.`;
     pintaAnotacoes();
     return;
   }
@@ -6949,6 +6962,7 @@ function renderEx() {
     `comparação ${sx.a < 0 ? '—' : dlonga(EX.semanas[sx.a])} · escopo ${escopo} · ` +
     `emitido em ${agora.toLocaleDateString('pt-BR')} ${agora.toLocaleTimeString('pt-BR').slice(0, 5)}`;
   $('#rodape').innerHTML =
+    `<b>Painel versão ${VERSAO}</b> · ` +
     `Execução ${esc(ORIGEM_EX || 'sem origem')}: ${fmt(EX.linhas.length)} registros · ${fmt(EX.semanas.length)} foto(s) ` +
     (GD.linhas.length ? `· executados G-DIS OP: ${fmt(GD.linhas.length)} serviços em ${fmt(GD.semanas.length)} semana(s) ` : '') +
     `(${dlonga(EX.semanas[0])} a ${dlonga(EX.semanas[EX.semanas.length - 1])}). ` +
