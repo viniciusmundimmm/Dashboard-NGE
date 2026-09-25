@@ -115,6 +115,27 @@ Isso alimenta duas telas:
 
 A programação é local, feita à mão, e não vai para o G-DIS OP.
 
+### Executado na semana · G-DIS OP
+
+O terceiro arquivo é a lista do que as equipes **de fato executaram em campo**. É lido pelas colunas
+**D** (nº do serviço), **F** (data e hora), **G** (veículo), **K** (polo executora) e **M**
+(equipamento) — se o cabeçalho trouxer esses nomes, ele é reconhecido; senão vale a posição da
+letra. Na carga, o painel mostra as primeiras linhas lidas para conferência.
+
+O cruzamento usa o **equipamento** e responde o que o planejamento sozinho não responde:
+
+- quantos serviços foram executados em equipamento **com guia de inspeção** e quantos **sem guia
+  nenhuma** — estes últimos são execução fora do controle;
+- quantos foram feitos e a **guia continua aberta** (pode ser outra guia do mesmo equipamento, ou
+  falta de encerramento) e quantos tiveram a **guia encerrada na semana**;
+- **aderência à programação**: das guias programadas para aquela semana, quantas tiveram serviço
+  executado no equipamento, quantas ficaram para trás e quantos serviços saíram sem estar
+  programados;
+- quantos tocaram **equipamento indisponível**;
+- o mesmo recorte por **polo** e por **veículo**, mais a lista completa dos serviços.
+
+A comparação do que foi encerrado exige duas fotos de guias; com uma só, o painel avisa.
+
 ### Cruzamento com a indisponibilidade
 
 A regra: **equipamento indisponível sob `Regional - Automação` deve ter guia**; nas demais
@@ -152,8 +173,10 @@ divide as colunas por tipo de serviço no modo TR.
 
 ## Como carregar as guias de execução
 
-Na aba **Execução**, botão **Carregar guias**: confirme a data da foto e selecione os arquivos
-`AbertoTR` e `AndamentoTR` como saem do sistema — eles são tabelas HTML com extensão `.xls`, e o
+Na aba **Execução**, botão **Carregar guias**: confirme a data da foto e use o botão
+**Guias · Aberto e Andamento** para os arquivos `AbertoTR` e `AndamentoTR`, ou
+**Executados · G-DIS OP** para a lista do que foi executado na semana. Os arquivos são lidos como
+saem do sistema — eles são tabelas HTML com extensão `.xls`, e o
 leitor abre esse formato direto, sem precisar reabrir e salvar no Excel. Também aceita `.xlsx` e
 `.csv`. Carregar duas vezes a mesma data substitui a foto daquele dia.
 
