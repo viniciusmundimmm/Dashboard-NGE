@@ -71,9 +71,19 @@ estágio como coluna:
 - **Aberta** — em avaliação de programação.
 - **Andamento** — em rota de execução, já com recursos avaliados e guia disponibilizada no G-DIS OP.
 
-O arquivo não traz a data da coleta, então ela é **carimbada na carga** — é essa data que monta o
-histórico. A idade de cada guia é contada da data de cadastro até a data da foto, e não até hoje,
-para que uma semana antiga continue mostrando as idades daquele dia.
+A data de cada linha é a **data da coleta** — é ela que monta o histórico. Há dois jeitos de
+informá-la:
+
+- **coluna A com a data** (recomendado): acrescente uma coluna `Data` ou `Semana` no início da
+  planilha e empurre as colunas originais de B em diante. Assim um arquivo só pode carregar várias
+  coletas de uma vez, e recarregá-lo não duplica nada — cada data presente no arquivo substitui
+  inteira a foto daquele dia.
+- **sem a coluna**: a data informada no painel é carimbada em todas as linhas, e o arquivo vale por
+  uma coleta só.
+
+Os dois formatos convivem, e o painel avisa na carga quantas linhas trouxeram data própria e quais
+datas o arquivo repôs. A idade de cada guia é contada da data de cadastro até a data da foto, e não
+até hoje, para que uma semana antiga continue mostrando as idades daquele dia.
 
 As telas: resumo, cascata e evolução, idade em cinco faixas (até 15, 16 a 30, 31 a 60, 61 a 120 e
 acima de 120 dias), estágio com o fluxo entre eles, tipo de serviço aberto por TR, gerência ou
@@ -121,6 +131,11 @@ O terceiro arquivo é a lista do que as equipes **de fato executaram em campo**.
 **D** (nº do serviço), **F** (data e hora), **G** (veículo), **K** (polo executora) e **M**
 (equipamento) — se o cabeçalho trouxer esses nomes, ele é reconhecido; senão vale a posição da
 letra. Na carga, o painel mostra as primeiras linhas lidas para conferência.
+
+Aqui a data já vem na própria linha (coluna F), então pode ser **um arquivo único acumulado**: cada
+serviço entra pela sua data de execução e recarregar o mesmo arquivo não duplica (serviço + data +
+equipamento repetidos são ignorados). O painel guarda tudo e o cruzamento usa a janela entre a foto
+de guias comparada e a foto selecionada — sem foto anterior, os sete dias antes dela.
 
 O cruzamento usa o **equipamento** e responde o que o planejamento sozinho não responde:
 
@@ -180,9 +195,19 @@ que o arquivo aberto é o mais recente antes de procurar uma tela nova.
 
 Na aba **Execução**, botão **Carregar dados** (no alto da página): confirme a data da foto e use
 **1 · AbertoTR e AndamentoTR** para as guias, ou **2 · Executados G-DIS OP** para a lista do que foi
-executado em campo naquela semana. Os arquivos são lidos como saem do sistema — eles são tabelas HTML com extensão `.xls`, e o
+executado em campo. Os arquivos são lidos como saem do sistema — eles são tabelas HTML com extensão `.xls`, e o
 leitor abre esse formato direto, sem precisar reabrir e salvar no Excel. Também aceita `.xlsx` e
-`.csv`. Carregar duas vezes a mesma data substitui a foto daquele dia.
+`.csv`.
+
+- **Guias**: se a planilha tiver a data na coluna A, a data do painel é ignorada e cada coleta do
+  arquivo vira uma foto; senão vale a data confirmada no painel. Carregar de novo uma data já
+  existente substitui a foto daquele dia.
+- **Executados**: a data está na coluna F de cada linha, então basta manter um arquivo só e ir
+  acrescentando as semanas — o painel acumula e ignora repetidos.
+- **Um arquivo por polo ou um só com vários polos**: tanto faz. O polo vem da própria linha e a
+  carga de guias repõe apenas os pares **data + polo** presentes no arquivo, então seis arquivos de
+  polos diferentes com a mesma data dão o mesmo resultado de um arquivo único, e recarregar o de um
+  polo não apaga os outros.
 
 O painel lista as fotos carregadas e permite remover qualquer uma. **Carregar exemplo** gera quatro
 semanas fictícias para conhecer as telas antes de ter histórico real; **Apagar base de execução**
