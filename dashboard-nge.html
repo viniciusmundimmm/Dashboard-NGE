@@ -307,6 +307,39 @@
   table.dt tr:hover td{background:#f4faf6}
   .tsub td:first-child{padding-left:26px;font-weight:400;color:var(--tinta-2)}
 
+  /* caixa de múltipla escolha */
+  .msel{position:relative;min-width:150px}
+  .msel-bt{
+    width:100%;text-align:left;font:inherit;font-size:13.5px;color:var(--tinta);
+    background:var(--surface);border:1px solid var(--borda);border-radius:8px;
+    padding:7px 26px 7px 9px;min-height:36px;cursor:pointer;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .msel-bt::after{content:'▾';position:absolute;right:9px;top:8px;color:var(--tinta-3);font-size:12px}
+  .msel-bt:hover{background:#f1f8f3}
+  .msel-bt:focus-visible{outline:2px solid var(--verde-medio);outline-offset:1px}
+  .msel-bt.ativo{border-color:var(--verde-forte);font-weight:650}
+  .msel-pop{
+    position:absolute;z-index:40;top:calc(100% + 4px);left:0;min-width:288px;max-width:380px;
+    max-height:340px;overflow:auto;background:var(--surface);border:1px solid var(--borda);
+    border-radius:10px;box-shadow:0 10px 28px rgba(11,11,11,.16);padding:6px;
+  }
+  .msel-acoes{display:flex;gap:6px;padding:2px 4px 6px;border-bottom:1px solid var(--grade);margin-bottom:4px}
+  .msel-acoes button{
+    font:inherit;font-size:11.5px;font-weight:600;color:var(--tinta-2);background:transparent;
+    border:1px solid var(--borda);border-radius:6px;padding:3px 9px;cursor:pointer;
+  }
+  .msel-acoes button:hover{background:#f1f8f3;color:var(--tinta)}
+  .msel-pop label{
+    display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:7px;
+    font-size:13px;font-weight:400;color:var(--tinta);cursor:pointer;
+    text-transform:none;letter-spacing:0;line-height:1.35;
+  }
+  .msel-pop label:hover{background:#f1f8f3}
+  .msel-pop label input[type=checkbox]{width:15px;min-width:0;height:15px;cursor:pointer;flex:none;padding:0}
+  .msel-pop label > span:first-of-type{flex:1 1 auto;min-width:0}
+  .msel-pop .n{flex:none;margin-left:10px;color:var(--tinta-3);font-size:12px;font-variant-numeric:tabular-nums}
+
   /* filtros da lista */
   .filtros-lista{
     display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;
@@ -630,7 +663,11 @@
       </div>
       <div class="card">
         <div class="card-hd">
-          <h3>Responsável × faixa de dias</h3><span class="sub">semana atual</span>
+          <h3 id="tit-mapa">Responsável × faixa de dias</h3><span class="sub">semana atual</span>
+          <div class="abas" role="tablist" aria-label="cruzar com">
+            <button class="aba" role="tab" data-mdim="faixa" aria-selected="true">Faixa de dias</button>
+            <button class="aba" role="tab" data-mdim="polo" aria-selected="false">Polo</button>
+          </div>
           <div class="tools"><button class="tbtn" data-tab="mapa" aria-pressed="false">Tabela</button></div>
         </div>
         <div id="mapa"></div>
@@ -683,10 +720,10 @@
         </div>
       </div>
       <div class="filtros-lista">
-        <div class="campo"><label for="d-resp">Responsável</label><select id="d-resp"></select></div>
-        <div class="campo"><label for="d-ger">Gerência</label><select id="d-ger"></select></div>
-        <div class="campo"><label for="d-polo">Polo</label><select id="d-polo"></select></div>
-        <div class="campo"><label for="d-tipo">Tipo</label><select id="d-tipo"></select></div>
+        <div class="campo"><label id="rot-d-resp">Responsável</label><div class="msel" id="d-resp" data-campo="dResp" data-rot="Todos os responsáveis"></div></div>
+        <div class="campo"><label id="rot-d-ger">Gerência</label><div class="msel" id="d-ger" data-campo="dGer" data-rot="Todas as gerências"></div></div>
+        <div class="campo"><label id="rot-d-polo">Polo</label><div class="msel" id="d-polo" data-campo="dPolo" data-rot="Todos os polos"></div></div>
+        <div class="campo"><label id="rot-d-tipo">Tipo</label><div class="msel" id="d-tipo" data-campo="dTipo" data-rot="Todos os tipos"></div></div>
         <div class="campo"><label for="d-busca">Equipamento</label><input id="d-busca" type="search" placeholder="número" autocomplete="off"></div>
         <button class="btn" id="d-limpa" type="button">Limpar lista</button>
         <span class="conta" id="d-conta"></span>
@@ -4080,7 +4117,7 @@ function aplicaBase(b, origem) {
   st.b = Math.max(0, SEMANAS.length - 1);
   st.a = Math.max(0, SEMANAS.length - 2);
   st.ger = st.polo = st.tipo = st.resp = '';
-  st.det = 'todos'; st.dResp = st.dGer = st.dPolo = st.dTipo = st.dBusca = '';
+  st.det = 'todos'; st.dResp = []; st.dGer = []; st.dPolo = []; st.dTipo = []; st.dBusca = '';
   st.dOrd = {col: 'dias', dir: -1}; st.dAssin = ''; st.tab = {};
 }
 
@@ -4175,7 +4212,8 @@ const st = {
   ger: '', polo: '', tipo: '', resp: '',
   det: 'todos',
   respModo: 'tr',
-  dResp: '', dGer: '', dPolo: '', dTipo: '', dBusca: '',
+  mapaDim: 'faixa',
+  dResp: [], dGer: [], dPolo: [], dTipo: [], dBusca: '',
   dOrd: {col: 'dias', dir: -1},
   dAssin: '',
   tab: {}
@@ -4567,43 +4605,79 @@ function gRespColuna(mA, mB) {
 
 /* --- mapa de calor: responsabilidade x faixa --- */
 function gMapa(mB) {
+  const porPolo = st.mapaDim === 'polo';
+  const polos = POLOS.filter(p => (!st.ger || POLO_GER[p] === st.ger) && (!st.polo || p === st.polo));
+  const colunas = porPolo ? polos : FAIXAS;
+  const idxCol = l => porPolo ? colunas.indexOf(POLOS[l[P]]) : faixaDe(l[D]);
   const cats = GRUPOS.slice();
   const m = {};
-  cats.forEach(g => m[g] = [0,0,0,0]);
-  mB.forEach(l => { const g = grupoResp(RESPONSAVEIS[l[R]]); if (m[g]) m[g][faixaDe(l[D])]++; });
+  cats.forEach(g => m[g] = colunas.map(() => 0));
+  mB.forEach(l => {
+    const g = grupoResp(RESPONSAVEIS[l[R]]), j = idxCol(l);
+    if (m[g] && j >= 0) m[g][j]++;
+  });
+  const soma = a => a.reduce((x, y) => x + y, 0);
   const vivos = cats.filter(g => m[g].some(v => v > 0))
-                    .sort((a, b) => (m[b][2] + m[b][3]) - (m[a][2] + m[a][3]) ||
-                                     m[b].reduce((x, y) => x + y, 0) - m[a].reduce((x, y) => x + y, 0));
-  if (!vivos.length) return {svg: '<div class="vazio">Sem dados no filtro atual.</div>', tabela: null};
+    .sort((a, b) => porPolo ? soma(m[b]) - soma(m[a])
+                            : (m[b][2] + m[b][3]) - (m[a][2] + m[a][3]) || soma(m[b]) - soma(m[a]));
+  if (!vivos.length || !colunas.length) return {svg: '<div class="vazio">Sem dados no filtro atual.</div>', tabela: null};
 
-  const ml = 208, mr = 74, mt = 44, W = 920, alt = 44, gap = 2;
-  const H = mt + vivos.length * alt + 30;
-  const cw = (W - ml - mr) / 4;
+  const ml = 208, mr = 74, mt = porPolo ? 60 : 44, W = porPolo ? 1000 : 920, alt = 44, gap = 2;
+  const H = mt + vivos.length * alt + 34;
+  const cw = (W - ml - mr) / colunas.length;
   const max = Math.max(1, ...vivos.map(g => Math.max(...m[g])));
   const cor = v => v === 0 ? '#f2f6f3' : COR.q[Math.min(5, Math.max(0, Math.round((v / max) * 5)))];
+  const geral = soma(vivos.map(g => soma(m[g])));
   let s = '';
-  FAIXAS.forEach((f, j) => s += txt(ml + cw * j + cw / 2, mt - 16, f, {cor: COR.t2, tam: 12.5, anc: 'middle', peso: 600}));
-  s += txt(W - 6, mt - 16, 'Total', {cor: COR.t2, tam: 12.5, anc: 'end', peso: 600});
+
+  /* cabeçalho: no modo polo, uma tarja por gerência acima dos polos */
+  if (porPolo) {
+    let i = 0;
+    while (i < colunas.length) {
+      const g = POLO_GER[colunas[i]];
+      let j = i;
+      while (j + 1 < colunas.length && POLO_GER[colunas[j + 1]] === g) j++;
+      const x0 = ml + cw * i, x1 = ml + cw * (j + 1) - gap;
+      s += `<rect x="${x0}" y="${mt - 42}" width="${x1 - x0}" height="17" rx="4" fill="${corGer(g)}" fill-opacity="0.16"/>`;
+      s += txt((x0 + x1) / 2, mt - 30, g, {cor: corGer(g), tam: 11.5, anc: 'middle', peso: 700});
+      i = j + 1;
+    }
+  }
+  colunas.forEach((c, j) => s += txt(ml + cw * j + cw / 2, mt - 14, porPolo ? c : corta(c, 14),
+    {cor: COR.t2, tam: porPolo ? 13 : 12, anc: 'middle', peso: porPolo ? 700 : 600}));
+  s += txt(W - 6, mt - 14, 'Total', {cor: COR.t2, tam: 12, anc: 'end', peso: 600});
+
   vivos.forEach((g, i) => {
-    const y = mt + i * alt;
+    const y = mt + i * alt, tot = soma(m[g]);
     s += txt(ml - 14, y + alt / 2 + 5, corta(g, 27), {cor: COR.t1, tam: 13, anc: 'end', peso: 600});
-    const tot = m[g].reduce((a, b) => a + b, 0);
     m[g].forEach((v, j) => {
       const c = cor(v), x = ml + cw * j;
-      const dica = `<b>${fmt(v)}</b><br><span class="l">${g} · ${FAIXAS[j]}</span>`;
+      const dica = `<b>${fmt(v)}</b>${tot ? ' · ' + pct1(pct(v, tot)) + '% de ' + g : ''}` +
+                   `<br><span class="l">${g} · ${porPolo ? 'Polo ' + colunas[j] : colunas[j]}</span>`;
       s += `<rect x="${x}" y="${y}" width="${cw - gap}" height="${alt - gap}" rx="4" fill="${c}" class="hit" data-t="${esc(dica)}"/>`;
       s += txt(x + (cw - gap) / 2, y + alt / 2 + 6, fmt(v), {cor: v === 0 ? COR.t3 : tintaSobre(c), tam: 16, anc: 'middle', peso: 650});
     });
     s += txt(W - 6, y + alt / 2 + 6, fmt(tot), {cor: COR.t1, tam: 16, anc: 'end', peso: 650, tab: 1});
   });
+  /* rodapé com o total de cada coluna */
+  const yR = mt + vivos.length * alt + 18;
+  colunas.forEach((c, j) => {
+    const tc = soma(vivos.map(g => m[g][j]));
+    s += txt(ml + cw * j + cw / 2, yR, `${fmt(tc)} · ${pct1(pct(tc, geral || 1))}%`,
+             {cor: COR.t3, tam: 11.5, anc: 'middle', tab: 1});
+  });
+  s += txt(ml - 14, yR, 'total da coluna', {cor: COR.t3, tam: 11.5, anc: 'end'});
+
   const escala = `<div class="legenda"><span>menos</span>` +
     COR.q.map(c => `<i class="sw" style="background:${c};margin:0"></i>`).join('') +
     `<span>mais equipamentos</span></div>`;
   return {
     svg: svgRoot(W, H, s), pe: escala,
     tabela: {
-      cab: ['Responsabilidade'].concat(FAIXAS).concat(['Total']),
-      linhas: vivos.map(g => [esc(g)].concat(m[g].map(fmt)).concat([fmt(m[g].reduce((a, b) => a + b, 0))]))
+      cab: ['Responsabilidade'].concat(colunas).concat(['Total']),
+      linhas: vivos.map(g => [esc(g)].concat(m[g].map(fmt)).concat([fmt(soma(m[g]))]))
+        .concat([['Total da coluna'].concat(colunas.map((c, j) => fmt(soma(vivos.map(g => m[g][j])))))
+                 .concat([fmt(geral)])])
     }
   };
 }
@@ -4783,16 +4857,89 @@ const VAL_DET = {
   nota:  x => notas()[String(x.l[E])] || ''
 };
 
-function opcoesDetalhe(oResp, oGer, oPolo, oTipo) {
-  const assin = [oResp.join('~'), oGer.join('~'), oPolo.join('~'), oTipo.join('~')].join('|');
-  if (assin === st.dAssin) return;
-  st.dAssin = assin;
-  const monta = (sel, itens, rotulo, valor) => opcoes($('#' + sel),
-    [{v: '', r: rotulo}].concat(itens.map(i => ({v: i, r: i}))), valor);
-  monta('d-resp', oResp, 'Todos os responsáveis', st.dResp);
-  monta('d-ger',  oGer,  'Todas as gerências',    st.dGer);
-  monta('d-polo', oPolo, 'Todos os polos',        st.dPolo);
-  monta('d-tipo', oTipo, 'Todos os tipos',        st.dTipo);
+/* ---------- caixa de múltipla escolha ---------- */
+function rotuloMsel(cx, sel, rot) {
+  if (!sel.length) return rot;
+  if (sel.length === 1) return sel[0];
+  return `${fmt(sel.length)} selecionados`;
+}
+const MSEL_CACHE = {};
+function montaMsel(id, itens, contagem) {
+  const cx = $('#' + id), campo = cx.dataset.campo, rot = cx.dataset.rot;
+  const sel = st[campo] || (st[campo] = []);
+  const validos = sel.filter(v => itens.indexOf(v) >= 0);   /* some o que saiu da fatia */
+  if (validos.length !== sel.length) st[campo] = validos;
+  /* só reconstrói quando a lista ou as contagens mudam: assim marcar
+     várias caixas seguidas não perde o foco nem a rolagem do painel */
+  const chave = itens.map(v => v + ':' + ((contagem && contagem[v]) || '')).join('~');
+  if (MSEL_CACHE[id] !== chave) {
+    MSEL_CACHE[id] = chave;
+    const pop = cx.querySelector('.msel-pop');
+    const aberto = pop && !pop.hidden;
+    cx.innerHTML =
+      `<button type="button" class="msel-bt" aria-expanded="${aberto}"></button>
+       <div class="msel-pop"${aberto ? '' : ' hidden'}>
+         <div class="msel-acoes"><button type="button" data-acao="todos">marcar todos</button>
+           <button type="button" data-acao="nenhum">limpar</button></div>` +
+      itens.map(v => `<label><input type="checkbox" value="${esc(v)}">
+          <span>${esc(v)}</span>${contagem && contagem[v] != null ? `<span class="n">${fmt(contagem[v])}</span>` : ''}</label>`).join('') +
+      `</div>`;
+  }
+  cx.querySelectorAll('input[type=checkbox]').forEach(i => i.checked = st[campo].indexOf(i.value) >= 0);
+  const bt = cx.querySelector('.msel-bt');
+  bt.textContent = rotuloMsel(cx, st[campo], rot);
+  bt.title = st[campo].length ? st[campo].join(', ') : rot;
+  bt.classList.toggle('ativo', !!st[campo].length);
+}
+function ligaMsel(id) {
+  const cx = $('#' + id), campo = cx.dataset.campo;
+  cx.addEventListener('click', ev => {
+    const bt = ev.target.closest('.msel-bt');
+    if (bt) {
+      const pop = cx.querySelector('.msel-pop'), abrir = pop.hidden;
+      fechaMsel(cx);
+      pop.hidden = !abrir;
+      bt.setAttribute('aria-expanded', String(abrir));
+      return;
+    }
+    const acao = ev.target.closest('[data-acao]');
+    if (acao) {
+      st[campo] = acao.dataset.acao === 'todos'
+        ? Array.from(cx.querySelectorAll('input[type=checkbox]')).map(i => i.value) : [];
+      render();
+      return;
+    }
+  });
+  cx.addEventListener('change', ev => {
+    const i = ev.target.closest('input[type=checkbox]');
+    if (!i) return;
+    const sel = st[campo] || [];
+    st[campo] = i.checked ? sel.concat([i.value]) : sel.filter(v => v !== i.value);
+    render();
+  });
+}
+['d-resp', 'd-ger', 'd-polo', 'd-tipo'].forEach(ligaMsel);
+/* fecha no mousedown: o painel aberto cobre o botão do filtro vizinho,
+   então o primeiro clique fora precisa dispensá-lo */
+function fechaMsel(exceto) {
+  $$('.msel').forEach(m => {
+    if (m === exceto) return;
+    const p = m.querySelector('.msel-pop'), b = m.querySelector('.msel-bt');
+    if (p) p.hidden = true;
+    if (b) b.setAttribute('aria-expanded', 'false');
+  });
+}
+document.addEventListener('mousedown', ev => {
+  const dentro = ev.target.closest && ev.target.closest('.msel');
+  fechaMsel(dentro);
+}, true);
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') fechaMsel(null); });
+
+function opcoesDetalhe(oResp, oGer, oPolo, oTipo, cont) {
+  montaMsel('d-resp', oResp, cont.resp);
+  montaMsel('d-ger',  oGer,  cont.ger);
+  montaMsel('d-polo', oPolo, cont.polo);
+  montaMsel('d-tipo', oTipo, cont.tipo);
 }
 
 function pintaDetalhe(mA, mB, novos, reg) {
@@ -4811,20 +4958,25 @@ function pintaDetalhe(mA, mB, novos, reg) {
 
   /* cada campo oferece só o que existe considerando os demais, para não cair em lista vazia */
   const busca = st.dBusca.trim().toLowerCase();
+  const sel = c => st[c] || [];
+  const ok = (c, v) => !sel(c).length || sel(c).indexOf(v) >= 0;
   const passaDet = (x, exceto) =>
-    (exceto === 'resp' || !st.dResp || VAL_DET.resp(x) === st.dResp) &&
-    (exceto === 'ger'  || !st.dGer  || VAL_DET.ger(x)  === st.dGer)  &&
-    (exceto === 'polo' || !st.dPolo || VAL_DET.polo(x) === st.dPolo) &&
-    (exceto === 'tipo' || !st.dTipo || VAL_DET.tipo(x) === st.dTipo) &&
+    (exceto === 'resp' || ok('dResp', VAL_DET.resp(x))) &&
+    (exceto === 'ger'  || ok('dGer',  VAL_DET.ger(x)))  &&
+    (exceto === 'polo' || ok('dPolo', VAL_DET.polo(x))) &&
+    (exceto === 'tipo' || ok('dTipo', VAL_DET.tipo(x))) &&
     (!busca || String(x.l[E]).toLowerCase().indexOf(busca) >= 0);
-  const unicos = campo => Array.from(new Set(itens.filter(x => passaDet(x, campo)).map(VAL_DET[campo])))
-    .sort((a, b) => String(a).localeCompare(String(b), 'pt-BR'));
-  const oResp = unicos('resp'), oGer = unicos('ger'), oPolo = unicos('polo'), oTipo = unicos('tipo');
-  if (st.dResp && oResp.indexOf(st.dResp) < 0) st.dResp = '';
-  if (st.dGer  && oGer.indexOf(st.dGer)   < 0) st.dGer  = '';
-  if (st.dPolo && oPolo.indexOf(st.dPolo) < 0) st.dPolo = '';
-  if (st.dTipo && oTipo.indexOf(st.dTipo) < 0) st.dTipo = '';
-  opcoesDetalhe(oResp, oGer, oPolo, oTipo);
+  /* cada campo oferece o que existe considerando os demais, com a contagem ao lado */
+  const listaDe = campo => {
+    const c = {};
+    itens.filter(x => passaDet(x, campo)).forEach(x => {
+      const v = VAL_DET[campo](x); c[v] = (c[v] || 0) + 1;
+    });
+    return {itens: Object.keys(c).sort((a, b) => String(a).localeCompare(String(b), 'pt-BR')), cont: c};
+  };
+  const lResp = listaDe('resp'), lGer = listaDe('ger'), lPolo = listaDe('polo'), lTipo = listaDe('tipo');
+  opcoesDetalhe(lResp.itens, lGer.itens, lPolo.itens, lTipo.itens,
+                {resp: lResp.cont, ger: lGer.cont, polo: lPolo.cont, tipo: lTipo.cont});
 
   const lista = itens.filter(x => passaDet(x, null));
 
@@ -5142,6 +5294,7 @@ function renderIndisp() {
   pinta('comp',  gComposicao(mA, mB));
   pinta('resp',  gResp(mA, mB));
   pinta('mapa',  gMapa(mB));
+  $('#tit-mapa').textContent = st.mapaDim === 'polo' ? 'Responsável × polo' : 'Responsável × faixa de dias';
   pinta('rcol',  gRespColuna(mA, mB));
   $('#sub-rcol').textContent = st.respModo === 'tr'
     ? 'total por responsável · cor = grupo'
@@ -5206,16 +5359,9 @@ $$('.tbtn').forEach(b => b.addEventListener('click', () => {
   const id = b.dataset.tab;
   if (st.tab[id]) pinta(id, st.tab[id]);
 }));
-function ligaDetalhe(id, campo) {
-  $('#' + id).addEventListener(id === 'd-busca' ? 'input' : 'change', e => {
-    st[campo] = e.target.value; render();
-  });
-}
-ligaDetalhe('d-resp', 'dResp'); ligaDetalhe('d-ger', 'dGer');
-ligaDetalhe('d-polo', 'dPolo'); ligaDetalhe('d-tipo', 'dTipo');
-ligaDetalhe('d-busca', 'dBusca');
+$('#d-busca').addEventListener('input', e => { st.dBusca = e.target.value; render(); });
 $('#d-limpa').addEventListener('click', () => {
-  st.dResp = st.dGer = st.dPolo = st.dTipo = st.dBusca = '';
+  st.dResp = []; st.dGer = []; st.dPolo = []; st.dTipo = []; st.dBusca = '';
   st.dAssin = ''; $('#d-busca').value = '';
   render();
 });
@@ -5244,6 +5390,11 @@ $$('.aba[data-det]').forEach(b => b.addEventListener('click', () => {
   b.setAttribute('aria-selected', 'true');
   st.det = b.dataset.det;
   render();
+}));
+$$('.aba[data-mdim]').forEach(b => b.addEventListener('click', () => {
+  $$('.aba[data-mdim]').forEach(o => o.setAttribute('aria-selected', 'false'));
+  b.setAttribute('aria-selected', 'true');
+  st.mapaDim = b.dataset.mdim; render();
 }));
 $$('.aba[data-rmodo]').forEach(b => b.addEventListener('click', () => {
   $$('.aba[data-rmodo]').forEach(o => o.setAttribute('aria-selected', 'false'));
@@ -6542,10 +6693,9 @@ function pintaCruz(mB) {
     }).join('')).join('') + `</tbody></table></div>` : '';
 
   const tabSem = sem.length ? `<h4 class="sub-tit">Indisponíveis sem guia</h4><div class="tab-wrap"><table class="dt"><thead><tr>
-      <th>Equip.</th><th>Tipo</th><th>Polo</th><th>Gerência</th><th>Dias indisponível</th><th>Situação</th></tr></thead><tbody>` +
+      <th>Equip.</th><th>Tipo</th><th>Polo</th><th>Gerência</th><th>Dias indisponível</th></tr></thead><tbody>` +
     sem.map(x => `<tr${x.dias <= tol ? ' class="tenue"' : ''}><td>${esc(x.eq)}</td><td>${esc(x.tipo)}</td><td>${esc(x.polo)}</td>
-      <td>${esc(x.ger)}</td><td>${fmt(x.dias)}</td>
-      <td>${x.dias <= tol ? '<span class="chip c-zero">dentro do prazo de abertura</span>' : '<span class="chip c-ruim">abrir guia</span>'}</td></tr>`).join('') +
+      <td>${esc(x.ger)}</td><td>${fmt(x.dias)}</td></tr>`).join('') +
     `</tbody></table></div>` : `<div class="vazio">Todos os equipamentos em ${esc(RESP_COM_GUIA)} têm guia aberta.</div>`;
 
   const orf = c.orfas.length > c.indTotal

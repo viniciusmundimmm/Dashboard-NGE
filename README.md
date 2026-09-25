@@ -22,14 +22,18 @@ por padrão a imediatamente anterior):
   Quando o total não muda mas os equipamentos mudam, a diferença aparece como **Novos** e **Regularizados**
   (comparação por número de equipamento, não por quantidade).
 - **Faixa de dias** — até 30, 30 a 90, 90 a 120 e acima de 120 dias, com variação e composição × semana anterior.
-- **Responsabilidade** — carteira por grupo, cruzamento responsável × faixa de dias e um gráfico de
+- **Responsabilidade** — carteira por grupo, um cruzamento que alterna entre **responsável × faixa
+  de dias** e **responsável × polo** (com os polos agrupados pela gerência e o total de cada coluna),
+  e um gráfico de
   colunas por responsável que abre em **TR**, **Gerência** ou **Polo** (a cor mostra a que grupo
   cada responsável pertence, ou a gerência de cada faixa).
 - **Polo e tipo** — com TR selecionado o gráfico mostra as três gerências; ao escolher uma gerência,
   abre nos polos dela. Ao lado, a mistura por tipo de equipamento.
 - **Detalhe** — todos os indisponíveis da semana, ordenados por dias, com filtros próprios de
-  responsável (o texto exato da coluna F), gerência, polo, tipo e número do equipamento. Qualquer
-  coluna ordena ao ser clicada. As abas **Novos**, **Regularizados** e **Permanecem** mostram os
+  responsável (o texto exato da coluna F), gerência, polo, tipo e número do equipamento. Os quatro
+  primeiros são de **múltipla escolha**: cada um abre uma lista de caixas com a contagem ao lado,
+  dá para marcar quantas opções quiser e combinar os campos entre si. Qualquer coluna ordena ao ser
+  clicada. As abas **Novos**, **Regularizados** e **Permanecem** mostram os
   mesmos recortes da comparação semanal.
 - **Visão geral** — imagens e telas de apoio anexadas à reunião; abre o relatório em PDF.
 - **Anotações** — observações da reunião e anotação por equipamento, agrupadas por polo.
