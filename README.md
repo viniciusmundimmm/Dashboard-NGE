@@ -147,7 +147,18 @@ O cruzamento usa o **equipamento** e responde o que o planejamento sozinho não 
   executado no equipamento, quantas ficaram para trás e quantos serviços saíram sem estar
   programados;
 - quantos tocaram **equipamento indisponível**;
-- o mesmo recorte por **polo** e por **veículo**, mais a lista completa dos serviços.
+- o mesmo recorte por **gerência**, **polo** e **veículo**, mais a lista completa dos serviços.
+
+**Quem mais executou** põe esses recortes em ranking: a barra é o total de serviços, a parte cheia é
+o que tinha guia de inspeção e a parte clara é o que foi executado sem guia. A cor é sempre a da
+gerência — a posição mostra o ranking, a cor mostra de quem é o volume — e cada gráfico vem com a
+tabela ao lado. No ranking de veículos aparecem os 12 maiores; a tabela traz todos.
+
+**Ritmo: serviços por dia útil** compara a média diária do período com o esperado pela capacidade
+cadastrada (equipes × serviços por equipe/dia). A barra é o realizado, a marca preta é o esperado e
+o rótulo diz o percentual atingido. O esperado de cada polo é o da gerência rateado igualmente entre
+os polos dela, porque as equipes são cadastradas por gerência e não por polo — está escrito na tela.
+Sem equipe cadastrada não há esperado, e o painel avisa em vez de inventar um.
 
 A comparação do que foi encerrado exige duas fotos de guias; com uma só, o painel avisa.
 
@@ -161,7 +172,7 @@ já tem, com os dias de indisponibilidade ao lado da idade da guia.
 
 O foco do painel é saber **quais indisponíveis têm guia e se essa guia está programada**: além da
 cobertura, há o indicador *com guia, sem programação* e a coluna de programação na lista. O bloco
-**Prioridade na programação** compara as guias de equipamento indisponível com as demais — quantas
+**Prioridade na programação** compara as guias ligadas à indisponibilidade com as demais — quantas
 estão programadas, o percentual, quantas caem na próxima semana e a semana média — que é a
 evidência de que elas estão mesmo na frente.
 
@@ -170,9 +181,20 @@ atender a guia não garante o equipamento voltar a ficar disponível, e o painel
 
 Na seção de tipo de serviço, uma **rosca** mostra a participação de cada tipo no total, **um tipo
 por fatia**, com o percentual escrito na fatia e a legenda trazendo nome, quantidade e percentual
-de todos. Ao lado, quanto das guias é de **equipamento que continua indisponível** — vale qualquer
-tipo de guia, o que conta é o equipamento ainda estar na lista de indisponíveis. Esse mesmo vínculo
-divide as colunas por tipo de serviço no modo TR.
+de todos. Ao lado, a **ligação com indisponibilidade**, que soma duas regras e não conta ninguém
+duas vezes:
+
+1. **pelo tipo de serviço** — `Indisponível - Bateria`, `Indisponível - Telecontrole` e
+   `Indisponível - Equipamento` nascem da indisponibilidade, então contam sozinhas, independentemente
+   de o equipamento ainda estar na lista;
+2. **pelo equipamento** — guia de qualquer outro tipo cujo equipamento continue na lista de
+   indisponíveis da semana.
+
+O card mostra o total ligado, a quebra por tipo e o quanto vem de cada regra. Sem a planilha de
+indisponibilidade carregada na outra aba, só a primeira regra é contada, e o card diz isso. Essa
+mesma classificação em três níveis colore as colunas por tipo de serviço no modo TR, marca as guias
+no detalhe (`tipo ind.` / `equip. ind.`), alimenta o filtro **Vínculo** e separa os grupos do bloco
+Prioridade na programação.
 
 ## Regras de negócio embutidas
 
