@@ -132,6 +132,14 @@
   }
   .explica b{color:var(--tinta)}
   .sub-tit{margin:16px 0 8px;font-size:13px;font-weight:700;color:var(--tinta)}
+  #md-ns .plot{max-width:640px}
+  #md-prazo .plot{max-width:660px}
+  #md-cod .plot{max-width:800px}
+  table.dt th.cel-rot,table.dt td.cel-rot{min-width:220px;text-align:left}
+  .rot-in{width:100%;min-width:180px;border:1px solid var(--linha);border-radius:6px;
+    padding:3px 7px;font:inherit;font-size:12.5px;background:var(--papel);color:var(--tinta)}
+  .rot-in:focus{outline:2px solid var(--verde-forte);outline-offset:-1px}
+  table.dt code{font-size:12px;background:rgba(0,0,0,.05);padding:1px 5px;border-radius:4px}
   .mini-tit{margin:10px 0 2px;font-size:11.5px;font-weight:700;letter-spacing:.06em;
     text-transform:uppercase;color:var(--tinta-3)}
   .gd-rank{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 22px;align-items:start}
@@ -496,7 +504,9 @@
     .plot{max-height:57mm}
     #rcol .plot{max-height:74mm}
     /* rankings e ritmo são listas: a altura acompanha o número de linhas */
-    #gd-corpo .plot{max-height:none}
+    #gd-corpo .plot,#md-cod .plot,#md-ns .plot,#md-prazo .plot{max-height:none}
+    #sec-mdetalhe .card{break-inside:auto;page-break-inside:auto}
+    .rot-in{border:none;background:#fff;padding:0}
     #sec-gdis .card{break-inside:auto;page-break-inside:auto}
     .gd-par{grid-template-columns:minmax(0,1fr);break-inside:avoid}
     .gd-rank{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
@@ -558,6 +568,7 @@
     <nav class="ambientes" role="tablist" aria-label="ambiente">
       <button class="amb" role="tab" data-amb="indisp" aria-selected="true">Indisponibilidade</button>
       <button class="amb" role="tab" data-amb="exec" aria-selected="false">Execução</button>
+      <button class="amb" role="tab" data-amb="med" aria-selected="false">Medidas SAP</button>
     </nav>
     <div class="periodo">
       <span class="pill" id="pill-ant">—</span>
@@ -998,6 +1009,166 @@
     </section>
   </div>
 </div><!-- /amb-exec -->
+
+<div class="ambiente" id="amb-med" hidden>
+
+  <div class="filtros">
+    <div class="filtros-in">
+      <div class="campo"><label for="m-semana">Semana</label><select id="m-semana"></select></div>
+      <div class="campo"><label for="m-comp">Comparar com</label><select id="m-comp"></select></div>
+      <div class="campo"><label for="m-ger">Gerência</label><select id="m-ger"></select></div>
+      <div class="campo"><label for="m-polo">Polo</label><select id="m-polo"></select></div>
+      <div class="campo" style="min-width:180px"><label for="m-proc">Processo</label><select id="m-proc"></select></div>
+      <div class="campo" style="min-width:170px"><label for="m-fsu">Status do usuário</label><select id="m-fsu"></select></div>
+      <div class="campo" style="min-width:160px"><label for="m-fresp">Responsável</label><select id="m-fresp"></select></div>
+      <button class="btn" id="m-limpa" type="button">Limpar filtros</button>
+      <button class="btn" id="bt-mdados" type="button" aria-expanded="false">Carregar dados</button>
+    </div>
+  </div>
+
+  <div class="painel card" id="mpainel" hidden>
+    <p class="ph">
+      Selecione as exportações de <b>Medidas</b> como saem do SAP — <b>Gestão Campo</b> e
+      <b>Gestão Equipamento</b> podem vir juntas. São lidas as colunas <b>CóMd</b>, <b>Nota</b>,
+      <b>Status</b>, <b>StatUsuár.</b>, <b>Iníc/planj</b>, <b>Responsável</b>, <b>Regional</b> e
+      <b>Localiz.</b>. O <b>processo</b> é lido do rodapé “Filtros aplicados” da própria planilha;
+      não achando, vale o nome do arquivo. Se a planilha tiver uma coluna <b>Semana</b> ou
+      <b>Data</b> no início com a data da coleta, ela vale linha a linha e um arquivo acumulado
+      entra de uma vez; sem ela, vale a data carimbada abaixo. A carga repõe apenas os pares
+      <b>data + processo</b> do arquivo, então carregar Campo não apaga Equipamento da mesma data.
+    </p>
+    <div class="painel-acoes" style="align-items:flex-end">
+      <div class="campo"><label for="m-data">Data da coleta</label><input type="date" id="m-data"
+          title="usada apenas quando o arquivo não traz coluna de data"></div>
+      <div class="carga">
+        <span class="carga-rot">Medidas SAP</span>
+        <label class="btn forte" for="marq">Gestão Campo e Gestão Equipamento</label>
+        <input type="file" id="marq" accept=".xls,.xlsx,.htm,.html,.csv,.txt" multiple hidden>
+      </div>
+      <button class="btn" id="bt-mexemplo" type="button">Carregar exemplo</button>
+      <button class="btn" id="bt-mapaga" type="button">Apagar base de medidas</button>
+      <button class="btn" id="bt-mfechar" type="button" style="margin-left:auto">Fechar</button>
+    </div>
+    <div id="mmsg"></div>
+    <div id="m-semanas" class="lista-semanas"></div>
+  </div>
+
+  <div class="vazio-mod" id="m-vazio" hidden>
+    <b>Nenhuma medida carregada.</b>
+    Clique em <b>Carregar dados</b>, no alto da página, e selecione as exportações de medidas do SAP.
+    Para conhecer as telas antes de ter histórico, use <b>Carregar exemplo</b>.
+  </div>
+
+  <div id="m-corpo">
+    <section class="secao">
+      <h2>Resumo</h2>
+      <div class="kpis" id="md-kpis"></div>
+    </section>
+
+    <section class="secao">
+      <h2>Movimento</h2>
+      <div class="grade g-58">
+        <div class="card">
+          <div class="card-hd"><h3>Cascata da semana</h3><span class="sub" id="md-sub-casc"></span>
+            <div class="tools"><button class="tbtn" data-tab="md-casc" aria-pressed="false">Tabela</button></div></div>
+          <div id="md-casc"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><h3>Evolução semanal</h3><span class="sub">medidas em carteira</span>
+            <div class="tools"><button class="tbtn" data-tab="md-evo" aria-pressed="false">Tabela</button></div></div>
+          <div id="md-evo"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2>Status do usuário</h2>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-hd"><h3>Medidas por status do usuário</h3><span class="sub" id="md-sub-su"></span>
+          <div class="abas" role="tablist" aria-label="abrir por">
+            <button class="aba" role="tab" data-mmodo="tr" aria-selected="true">TR</button>
+            <button class="aba" role="tab" data-mmodo="ger" aria-selected="false">Gerência</button>
+            <button class="aba" role="tab" data-mmodo="proc" aria-selected="false">Processo</button>
+          </div>
+          <div class="tools"><button class="tbtn" data-tab="md-su" aria-pressed="false">Tabela</button></div>
+        </div>
+        <div id="md-su"></div>
+      </div>
+      <div class="grade g-73">
+        <div class="card">
+          <div class="card-hd"><h3>Rótulo de cada status</h3><span class="sub">o nome que aparece nas telas</span></div>
+          <div id="md-rot-su"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><h3>Status de prazo</h3><span class="sub">vem calculado do SAP</span>
+            <div class="tools"><button class="tbtn" data-tab="md-prazo" aria-pressed="false">Tabela</button></div></div>
+          <div id="md-prazo"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2>NS e medidas</h2>
+      <div class="card">
+        <div class="card-hd"><h3>Quantas medidas cada NS carrega</h3><span class="sub" id="md-sub-ns"></span></div>
+        <div id="md-ns"></div>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2>Códigos de medida</h2>
+      <div class="card">
+        <div class="card-hd"><h3>Volume por código</h3><span class="sub" id="md-sub-cod"></span>
+          <div class="tools"><button class="tbtn" data-tab="md-cod" aria-pressed="false">Tabela</button></div></div>
+        <div id="md-cod"></div>
+        <div id="md-rot-cod"></div>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2>Polo, gerência e responsável</h2>
+      <div class="grade g-2">
+        <div class="card">
+          <div class="card-hd"><h3 id="md-tit-polo">Medidas por gerência</h3><span class="sub" id="md-sub-polo"></span>
+            <div class="tools"><button class="tbtn" data-tab="md-polo" aria-pressed="false">Tabela</button></div></div>
+          <div id="md-polo"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><h3>Medidas por responsável</h3><span class="sub" id="md-sub-resp"></span>
+            <div class="tools"><button class="tbtn" data-tab="md-resp" aria-pressed="false">Tabela</button></div></div>
+          <div id="md-resp"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao" id="sec-mdetalhe">
+      <h2>Detalhe</h2>
+      <div class="card">
+        <div class="card-hd">
+          <h3 id="md-det-tit">Todas as medidas</h3><span class="sub" id="md-det-sub"></span>
+          <div class="abas" role="tablist">
+            <button class="aba" role="tab" data-mdet="todos" aria-selected="true">Todas</button>
+            <button class="aba" role="tab" data-mdet="novos" aria-selected="false">Entraram</button>
+            <button class="aba" role="tab" data-mdet="sai" aria-selected="false">Saíram</button>
+            <button class="aba" role="tab" data-mdet="dup" aria-selected="false">NS com 2+ medidas</button>
+          </div>
+        </div>
+        <div class="filtros-lista">
+          <div class="campo"><label>Processo</label><div class="msel" id="md-proc" data-campo="mProc" data-rot="Todos os processos"></div></div>
+          <div class="campo"><label>Medida</label><div class="msel" id="md-cod-f" data-campo="mCod" data-rot="Todas as medidas"></div></div>
+          <div class="campo"><label>Status do usuário</label><div class="msel" id="md-su-f" data-campo="mSu" data-rot="Todos os status"></div></div>
+          <div class="campo"><label>Responsável</label><div class="msel" id="md-resp-f" data-campo="mResp" data-rot="Todos os responsáveis"></div></div>
+          <div class="campo"><label>Gerência</label><div class="msel" id="md-ger-f" data-campo="mGer" data-rot="Todas as gerências"></div></div>
+          <div class="campo"><label>Polo</label><div class="msel" id="md-polo-f" data-campo="mPolo" data-rot="Todos os polos"></div></div>
+          <div class="campo"><label for="md-busca">NS ou código</label><input id="md-busca" type="search" placeholder="número" autocomplete="off"></div>
+          <button class="btn" id="md-limpa-lista" type="button">Limpar lista</button>
+          <span class="conta" id="md-conta"></span>
+        </div>
+        <div id="md-det"></div>
+      </div>
+    </section>
+  </div>
+</div><!-- /amb-med -->
 
   <section class="secao" id="sec-visao">
     <h2>Visão geral</h2>
@@ -4179,6 +4350,7 @@ const dcurta = iso => { const p = iso.split('-'); return p[2] + '/' + p[1]; };
 const dlonga = iso => { const p = iso.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; };
 const pct = (a, b) => b ? (a / b * 100) : 0;
 const pct1 = v => v.toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1});
+const pct2 = v => v.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
 
 /* variação: menos indisponíveis = melhor */
 function classeDelta(v, menorMelhor = true) {
@@ -5193,7 +5365,8 @@ function pintaAnotacoes() {
   $('#bloco-geral').classList.toggle('vazio', !NOTA_GERAL.trim());
   $('#sec-visao').classList.toggle('vazia', !EVID.length);
   $('#sec-notas').classList.toggle('vazia', !eqs.length && !NOTA_GERAL.trim());
-  $('#sec-notas').querySelector('h2').textContent = AMB === 'exec' ? 'Anotações · execução' : 'Anotações · indisponibilidade';
+  $('#sec-notas').querySelector('h2').textContent =
+    AMB === 'exec' ? 'Anotações · execução' : AMB === 'med' ? 'Anotações · medidas SAP' : 'Anotações · indisponibilidade';
 }
 function adicionaImagem(arq) {
   if (!arq || !/^image\//.test(arq.type)) return;
@@ -5307,7 +5480,7 @@ $('#mi-ok').addEventListener('click', () => {
    RENDER
    ============================================================ */
 let AMB = 'indisp';
-function render() { if (AMB === 'exec') renderEx(); else renderIndisp(); }
+function render() { if (AMB === 'exec') renderEx(); else if (AMB === 'med') renderMed(); else renderIndisp(); }
 function renderIndisp() {
   const mB = fatia(st.b), mA = fatia(st.a);
   const novos = [], reg = [];
@@ -5838,7 +6011,7 @@ let PORSEM_EX = [], ORIGEM_EX = '';
 let PROG = {equipes: [], prog: {}, sem: {}, cfg: {ent: null, conv: 70, tol: 5}};
 
 const CHAVE_EX = 'nge-exec-v1', CHAVE_PROG = 'nge-prog-v1';
-const VERSAO = '25/09/2026';                       /* confere se o arquivo aberto é o mais recente */
+const VERSAO = '26/09/2026';                       /* confere se o arquivo aberto é o mais recente */
 
 function diasEntre(isoA, isoB) {                    /* isoB - isoA, em dias */
   const a = new Date(isoA + 'T00:00:00'), b = new Date(isoB + 'T00:00:00');
@@ -7460,7 +7633,8 @@ function trocaAmbiente(a) {
   $$('.amb').forEach(b => b.setAttribute('aria-selected', String(b.dataset.amb === a)));
   $('#amb-indisp').hidden = a !== 'indisp';
   $('#amb-exec').hidden = a !== 'exec';
-  montaControles(); montaControlesEx();
+  $('#amb-med').hidden = a !== 'med';
+  montaControles(); montaControlesEx(); montaControlesMed();
   render();
   window.scrollTo({top: 0});
 }
@@ -7777,6 +7951,938 @@ function baseExemploExec() {
   return {semanas, tipos, polos, municipios: muns, solicitantes: ['c000000'], linhas};
 }
 
+
+/* ============================================================
+   MEDIDAS SAP — base, leitura e telas
+   ============================================================ */
+/* colunas da base compacta de medidas */
+const MS = 0, MPROC = 1, MCOD = 2, MNS = 3, MSTAT = 4, MSU = 5, MRESP = 6, MPOLO = 7, MINI = 8;
+
+const CHAVE_MED = 'nge-med-v1', CHAVE_MROT = 'nge-med-rot-v1';
+/* Localiz. do SAP -> polo do painel */
+const MAPA_LOC = {
+  'reg-pm': 'PM', 'reg-pt': 'PO', 'reg-bd': 'BD',
+  'reg-ur': 'UR', 'reg-ax': 'AX', 'reg-fr': 'FR',
+  'reg-ul': 'UL', 'reg-ag': 'AG', 'reg-it': 'TB'
+};
+/* ordem de gravidade do status de prazo, como o SAP entrega */
+const ORDEM_PRAZO = ['EM ATRASO', 'VENCE HOJE', 'VENCE 7 DIAS', 'NO PRAZO'];
+const COR_PRAZO = {'EM ATRASO': '#d03b3b', 'VENCE HOJE': '#e07b22', 'VENCE 7 DIAS': '#eda100', 'NO PRAZO': '#17996a'};
+
+let MED = {semanas: [], processos: [], codigos: [], status: [], su: [], resps: [], polos: [], linhas: []};
+let PORSEM_MED = [], ORIGEM_MED = '';
+let MROT = {cod: {}, su: {}};              /* rótulos que o usuário escreve */
+
+const mx = {
+  b: 0, a: -1, proc: '', su: '', resp: '', modo: 'tr', det: 'todos',
+  dBusca: '', dOrd: {col: 'ns', dir: 1}
+};
+
+/* a família do status do usuário é o prefixo: ABER… ou ANDM… */
+function familiaSu(v) {
+  const k = chaveTexto(v);
+  if (k.indexOf('andm') === 0) return 'ANDM';
+  if (k.indexOf('aber') === 0) return 'ABER';
+  return 'OUTRO';
+}
+const COR_FAM = {ABER: '#2a78d6', ANDM: '#17996a', OUTRO: '#83827b'};
+const rotSu = v => (MROT.su[v] || '').trim() || v;
+const rotCod = c => (MROT.cod[c] || '').trim() || c;
+/* o código com o nome ao lado, quando houver nome */
+const codLongo = c => (MROT.cod[c] || '').trim() ? c + ' · ' + MROT.cod[c].trim() : c;
+
+const chaveMed = l => MED.processos[l[MPROC]] + '|' + l[MNS] + '|' + MED.codigos[l[MCOD]];
+/* os polos de uma gerência dentro da base de medidas */
+const polosDeGerMed = g => MED.polos.filter(p => gerenciaDe(p) === g);
+function indexaMed() {
+  PORSEM_MED = MED.semanas.map(() => new Map());
+  MED.linhas.forEach(l => PORSEM_MED[l[MS]].set(chaveMed(l), l));
+}
+function guardaMed() {
+  try { localStorage.setItem(CHAVE_MED, JSON.stringify({base: MED, origem: ORIGEM_MED})); return true; }
+  catch (e) { return false; }
+}
+function guardaMrot() {
+  try { localStorage.setItem(CHAVE_MROT, JSON.stringify(MROT)); return true; } catch (e) { return false; }
+}
+function recuperaMed() {
+  try {
+    const s = localStorage.getItem(CHAVE_MED);
+    if (s) { const o = JSON.parse(s); if (o && o.base && Array.isArray(o.base.semanas)) { MED = o.base; ORIGEM_MED = o.origem || ''; } }
+  } catch (e) {}
+  try {
+    const s = localStorage.getItem(CHAVE_MROT);
+    if (s) { const o = JSON.parse(s); if (o) MROT = {cod: o.cod || {}, su: o.su || {}}; }
+  } catch (e) {}
+  indexaMed();
+}
+
+/* ---------- leitura das exportações de medidas ---------- */
+const ALVO_MED = {
+  sem:  ['semana', 'datadacoleta', 'datacoleta', 'datadecoleta', 'data'],
+  cod:  ['comd', 'codmd', 'codigodamedida', 'codmedida', 'medida'],
+  ns:   ['nota', 'ns', 'notadeservico', 'numerodanota'],
+  su:   ['statusuar', 'statususuario', 'statusuario', 'statusdousuario'],
+  stat: ['status', 'statusprazo', 'prazo'],
+  resp: ['responsavel', 'resp'],
+  reg:  ['regional', 'gerencia'],
+  loc:  ['localiz', 'localizacao', 'polo'],
+  ini:  ['inicplanj', 'inicioplanejado', 'inicplan', 'inicioplan', 'inicio']
+};
+/* su antes de stat: senão o prefixo "status" engole a coluna StatUsuár. */
+const ORDEM_MED = ['sem', 'cod', 'ns', 'su', 'stat', 'resp', 'reg', 'loc', 'ini'];
+function mapeiaMedida(cabecalho) {
+  const norm = cabecalho.map(c => chaveTexto(c).replace(/[^a-z0-9]+/g, ''));
+  const idx = {}, usado = new Set();
+  ORDEM_MED.forEach(k => idx[k] = -1);
+  const tenta = (k, exato) => {
+    if (idx[k] >= 0) return;
+    for (const alvo of ALVO_MED[k]) {
+      const i = norm.findIndex((c, j) => !usado.has(j) && (exato ? c === alvo : c.indexOf(alvo) === 0));
+      if (i >= 0) { idx[k] = i; usado.add(i); return; }
+    }
+  };
+  ORDEM_MED.forEach(k => tenta(k, true));
+  ORDEM_MED.forEach(k => tenta(k, false));
+  return idx;
+}
+const ehRodape = linha => /filtros?\s+aplicad/i.test(String(linha && linha[0] || ''));
+function processoDoRodape(texto) {
+  const m = String(texto || '').match(/processo\s+(?:é|eh|e)\s+([^\n\r]+)/i);
+  return m ? m[1].trim() : '';
+}
+function processoDoNome(nome) {
+  const k = chaveTexto(nome).replace(/[^a-z0-9]+/g, '');
+  if (k.indexOf('gestaoequipamento') >= 0 || k.indexOf('equipamento') >= 0) return 'Gestão Equipamento';
+  if (k.indexOf('gestaocampo') >= 0 || k.indexOf('campo') >= 0) return 'Gestão Campo';
+  return '';
+}
+
+/* matrizes: [{m: linhas, nome: arquivo}] — cada uma tem o seu processo */
+function montaMed(matrizes, dataISO) {
+  const regs = [], vistos = new Set();
+  let ruins = 0, dup = 0, lidas = 0, comColuna = 0, semProc = 0;
+  const procsLidos = new Set();
+  matrizes.forEach(par => {
+    const m = par.m || [];
+    /* o processo vale para o arquivo inteiro: rodapé primeiro, nome do arquivo depois */
+    let proc = '';
+    m.forEach(linha => { if (!proc && ehRodape(linha)) proc = processoDoRodape(linha.join(' ')); });
+    if (!proc) proc = processoDoNome(par.nome || '');
+    if (!proc) { proc = 'Sem processo'; semProc++; }
+    procsLidos.add(proc);
+    let idx = null;
+    m.forEach(linha => {
+      if (ehRodape(linha)) return;
+      if (!idx) {
+        const norm = linha.map(c => chaveTexto(c).replace(/[^a-z0-9]+/g, ''));
+        if (norm.indexOf('nota') >= 0 && (norm.indexOf('comd') >= 0 || norm.indexOf('status') >= 0)) idx = mapeiaMedida(linha);
+        return;
+      }
+      const v = k => (idx[k] >= 0 && linha[idx[k]] != null) ? String(linha[idx[k]]).trim() : '';
+      const ns = v('ns');
+      if (!ns || !/^\d+$/.test(ns)) { if (linha.join('').trim()) ruins++; return; }
+      const cod = v('cod') || '(sem código)';
+      const semLinha = leData(v('sem'));
+      const sem = semLinha || dataISO;
+      if (semLinha) comColuna++;
+      lidas++;
+      const ch = sem + '|' + proc + '|' + ns + '|' + cod;
+      if (vistos.has(ch)) { dup++; return; }
+      vistos.add(ch);
+      const loc = v('loc');
+      const polo = MAPA_LOC[chaveTexto(loc)] || (loc || '—');
+      regs.push({sem, proc, cod, ns, stat: v('stat') || '—', su: v('su') || '—',
+                 resp: v('resp') || '—', polo, ini: leData(v('ini')) || ''});
+    });
+  });
+  if (!regs.length) {
+    return {erro: 'Nenhuma medida reconhecida. Confira se a planilha tem as colunas Nota e CóMd.'};
+  }
+  /* cada par data+processo do arquivo é refeito; o resto da base fica como está */
+  const noArquivo = new Set(regs.map(r => r.sem + '\u0001' + r.proc));
+  const substituidas = new Set();
+  const antigos = MED.linhas
+    .filter(l => {
+      const sem = MED.semanas[l[MS]];
+      if (noArquivo.has(sem + '\u0001' + MED.processos[l[MPROC]])) { substituidas.add(sem); return false; }
+      return true;
+    })
+    .map(l => ({sem: MED.semanas[l[MS]], proc: MED.processos[l[MPROC]], cod: MED.codigos[l[MCOD]],
+                ns: l[MNS], stat: MED.status[l[MSTAT]], su: MED.su[l[MSU]],
+                resp: MED.resps[l[MRESP]], polo: MED.polos[l[MPOLO]], ini: l[MINI] || ''}));
+  const refeitas = Array.from(substituidas).sort();
+  const todos = antigos.concat(regs);
+
+  const ordemPolo = [].concat.apply([], Object.keys(MAPA_GERENCIA).map(g => MAPA_GERENCIA[g]));
+  const alfa = (a, b) => String(a).localeCompare(String(b), 'pt-BR');
+  const unicos = (fn, ord) => { const s = Array.from(new Set(todos.map(fn))); return ord ? s.sort(ord) : s; };
+  const semanas = unicos(x => x.sem, (a, b) => a < b ? -1 : a > b ? 1 : 0);
+  const processos = unicos(x => x.proc, alfa);
+  const codigos = unicos(x => x.cod, (a, b) => (parseInt(a, 10) || 1e9) - (parseInt(b, 10) || 1e9) || alfa(a, b));
+  const status = unicos(x => x.stat, (a, b) => {
+    const ia = ORDEM_PRAZO.indexOf(a), ib = ORDEM_PRAZO.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || alfa(a, b);
+  });
+  const su = unicos(x => x.su, (a, b) => alfa(familiaSu(a), familiaSu(b)) || a.length - b.length || alfa(a, b));
+  const resps = unicos(x => x.resp, alfa);
+  const polos = unicos(x => x.polo, (a, b) => {
+    const ia = ordemPolo.indexOf(a), ib = ordemPolo.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || alfa(a, b);
+  });
+  const pos = lista => { const o = {}; lista.forEach((v, i) => o[v] = i); return o; };
+  const iS = pos(semanas), iPr = pos(processos), iC = pos(codigos), iSt = pos(status),
+        iSu = pos(su), iR = pos(resps), iP = pos(polos);
+  const linhas = todos.map(x => [iS[x.sem], iPr[x.proc], iC[x.cod], x.ns, iSt[x.stat], iSu[x.su],
+                                 iR[x.resp], iP[x.polo], x.ini || '']);
+  return {base: {semanas, processos, codigos, status, su, resps, polos, linhas},
+          novas: regs.length, ruins, dup, lidas, refeitas, comColuna, semProc,
+          processos: Array.from(procsLidos).sort(),
+          datas: Array.from(new Set(regs.map(r => r.sem))).sort(), data: dataISO};
+}
+
+/* ---------- filtro e fatia ---------- */
+function passaMed(l) {
+  if (st.ger && gerenciaDe(MED.polos[l[MPOLO]]) !== st.ger) return false;
+  if (st.polo && MED.polos[l[MPOLO]] !== st.polo) return false;
+  if (mx.proc && MED.processos[l[MPROC]] !== mx.proc) return false;
+  if (mx.su && MED.su[l[MSU]] !== mx.su) return false;
+  if (mx.resp && MED.resps[l[MRESP]] !== mx.resp) return false;
+  return true;
+}
+function fatiaMed(wi) {
+  const m = new Map();
+  if (wi < 0 || wi >= MED.semanas.length) return m;
+  PORSEM_MED[wi].forEach((l, k) => { if (passaMed(l)) m.set(k, l); });
+  return m;
+}
+/* NS -> medidas daquela NS, dentro da fatia */
+function porNS(mapa) {
+  const o = new Map();
+  mapa.forEach(l => {
+    const k = MED.processos[l[MPROC]] + '|' + l[MNS];
+    if (!o.has(k)) o.set(k, []);
+    o.get(k).push(l);
+  });
+  return o;
+}
+
+/* ---------- resumo ---------- */
+function pintaMdKPIs(mA, mB, entraram, sairam, semComp) {
+  const ns = porNS(mB), nsA = porNS(mA);
+  const mult = Array.from(ns.values()).filter(v => v.length > 1).length;
+  const porMed = ns.size ? mB.size / ns.size : 0;
+  const dv = semComp ? null : mB.size - mA.size;
+  const tiles = [
+    {rot: 'Medidas em carteira', val: fmt(mB.size), hero: true,
+     pe: dv == null ? `${fmt(ns.size)} NS distintas` : `${seta(dv)} ${sinal(dv)} × ${fmt(mA.size)} da foto anterior`},
+    {rot: 'NS distintas', val: fmt(ns.size),
+     pe: semComp ? 'nesta foto' : `${sinal(ns.size - nsA.size)} × a foto anterior`},
+    {rot: 'NS com 2+ medidas', val: fmt(mult),
+     pe: `${pct1(pct(mult, ns.size || 1))}% das NS · ${pct2(porMed)} medida(s) por NS`},
+    {rot: 'Entraram', val: semComp ? '—' : fmt(entraram.length),
+     pe: semComp ? 'precisa de uma foto anterior' : 'medidas novas na carteira'},
+    {rot: 'Saíram', val: semComp ? '—' : fmt(sairam.length),
+     pe: semComp ? 'precisa de uma foto anterior' : 'sumiram da exportação — não quer dizer concluídas'}
+  ];
+  $('#md-kpis').innerHTML = tiles.map(t =>
+    `<div class="tile${t.hero ? ' hero' : ''}"><span class="rot">${esc(t.rot)}</span>
+      <span class="val">${t.val}</span><span class="pe">${t.pe}</span></div>`).join('');
+}
+
+/* ---------- movimento ---------- */
+function gMdCascata(antes, agora, entraram, sairam) {
+  const passos = [
+    {r: 'foto anterior', v: antes, tipo: 'base'},
+    {r: 'saíram', v: -sairam, tipo: 'neg'},
+    {r: 'entraram', v: entraram, tipo: 'pos'},
+    {r: 'foto atual', v: agora, tipo: 'base'}
+  ];
+  const W = 680, H = 330, ml = 54, mr = 20, mt = 40, mb = 54;
+  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
+  const topo = Math.max(antes, agora, antes + entraram);
+  const max = escalaMax(Math.max(1, topo) * 1.14);
+  const y = v => py1 - (v / max) * (py1 - py0);
+  let s = grade(px0, px1, marcasY(max).map(y));
+  s += marcasY(max).map(v => txt(px0 - 9, y(v) + 4, fmt(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1})).join('');
+  const banda = (px1 - px0) / passos.length, bw = Math.min(70, banda * 0.5);
+  let acum = 0;
+  passos.forEach((p, i) => {
+    const cx = px0 + banda * i + banda / 2;
+    let v0, v1, cor;
+    if (p.tipo === 'base') { v0 = 0; v1 = p.v; acum = p.v; cor = COR.t3; }
+    else { v0 = acum; v1 = acum + p.v; acum = v1; cor = p.tipo === 'neg' ? '#17996a' : COR.ruim; }
+    const yT = y(Math.max(v0, v1)), yB = y(Math.min(v0, v1));
+    const dica = `<b>${p.tipo === 'base' ? fmt(p.v) : sinal(p.v)}</b><br><span class="l">${p.r}</span>`;
+    s += colunaSVG(cx - bw / 2, yT, bw, Math.max(2, yB - yT), cor, dica);
+    s += txt(cx, yT - 10, p.tipo === 'base' ? fmt(p.v) : sinal(p.v),
+             {cor: COR.t1, tam: 18, peso: 650, anc: 'middle'});
+    s += txt(cx, py1 + 21, p.r, {cor: COR.t1, tam: 12.5, anc: 'middle', peso: 600});
+  });
+  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+  return {svg: svgRoot(W, H, s),
+          pe: `<div class="nota">“Saíram” é o que não aparece mais na exportação. Pode ter sido concluída,
+               cancelada ou trocada de processo — a planilha não diz qual.</div>`,
+          tabela: {cab: ['Passo', 'Medidas'], linhas: passos.map(p => [p.r, p.tipo === 'base' ? fmt(p.v) : sinal(p.v)])}};
+}
+function gMdEvolucao() {
+  const pts = MED.semanas.map((w, i) => {
+    let n = 0;
+    PORSEM_MED[i].forEach(l => { if (passaMed(l)) n++; });
+    return {w, n};
+  });
+  if (pts.length < 2) return {svg: '<div class="vazio">A evolução aparece a partir da segunda foto.</div>', tabela: null};
+  const W = 680, H = 330, ml = 54, mr = 22, mt = 40, mb = 50;
+  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
+  const max = escalaMax(Math.max(1, ...pts.map(p => p.n)) * 1.14);
+  const x = i => px0 + (pts.length === 1 ? (px1 - px0) / 2 : (i / (pts.length - 1)) * (px1 - px0));
+  const y = v => py1 - (v / max) * (py1 - py0);
+  let s = grade(px0, px1, marcasY(max).map(y));
+  s += marcasY(max).map(v => txt(px0 - 9, y(v) + 4, fmt(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1})).join('');
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${x(i)},${y(p.n)}`).join(' ');
+  s += `<path d="${d} L${x(pts.length - 1)},${py1} L${x(0)},${py1} Z" fill="${COR.s2}" opacity=".12"/>`;
+  s += `<path d="${d}" fill="none" stroke="${COR.s2}" stroke-width="2.5" stroke-linejoin="round"/>`;
+  const passo = Math.ceil(pts.length / 9);
+  pts.forEach((p, i) => {
+    s += `<circle cx="${x(i)}" cy="${y(p.n)}" r="4.5" fill="${COR.surface}" stroke="${COR.s2}" stroke-width="2.5"
+           class="hit" data-t="${esc(`<b>${fmt(p.n)}</b><br><span class="l">${dlonga(p.w)}</span>`)}"/>`;
+    if (i === 0 || i === pts.length - 1) s += txt(x(i), y(p.n) - 13, fmt(p.n),
+      {cor: COR.t1, tam: 14, peso: 650, anc: i ? 'end' : 'start'});
+    if (i % passo === 0 || i === pts.length - 1) s += txt(x(i), py1 + 20, dcurta(p.w),
+      {cor: COR.t3, tam: 11.5, anc: i ? (i === pts.length - 1 ? 'end' : 'middle') : 'start', tab: 1});
+  });
+  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+  return {svg: svgRoot(W, H, s),
+          tabela: {cab: ['Semana', 'Medidas'], linhas: pts.map(p => [dlonga(p.w), fmt(p.n)])}};
+}
+
+/* ---------- status do usuário ---------- */
+function gMdStatus(mA, mB) {
+  const modo = mx.modo;
+  const cats = MED.su.filter(v => { let usa = false; mB.forEach(l => { if (MED.su[l[MSU]] === v) usa = true; }); return usa; });
+  if (!cats.length) return {svg: '<div class="vazio">Sem medidas no filtro atual.</div>', tabela: null};
+  const gers = Object.keys(MAPA_GERENCIA).filter(g => MED.polos.some(p => gerenciaDe(p) === g));
+  const segs = modo === 'ger' ? gers
+    : modo === 'proc' ? MED.processos.filter(p => { let u = false; mB.forEach(l => { if (MED.processos[l[MPROC]] === p) u = true; }); return u; })
+    : ['un'];
+  const segDe = l => modo === 'ger' ? gerenciaDe(MED.polos[l[MPOLO]])
+    : modo === 'proc' ? MED.processos[l[MPROC]] : 'un';
+  const corProc = p => COR_PIZZA[MED.processos.indexOf(p) % COR_PIZZA.length];
+  const segCor = (sg, cat) => modo === 'ger' ? corGer(sg)
+    : modo === 'proc' ? corProc(sg) : COR_FAM[familiaSu(cat)];
+
+  const mapa = {}, totB = {}, totA = {};
+  cats.forEach(c => { mapa[c] = {}; segs.forEach(sg => mapa[c][sg] = 0); totB[c] = 0; totA[c] = 0; });
+  mB.forEach(l => { const c = MED.su[l[MSU]]; if (!(c in mapa)) return; const sg = segDe(l);
+                    if (sg in mapa[c]) mapa[c][sg]++; totB[c]++; });
+  mA.forEach(l => { const c = MED.su[l[MSU]]; if (c in totA) totA[c]++; });
+  cats.sort((a, b) => totB[b] - totB[a] || a.localeCompare(b, 'pt-BR'));
+
+  const W = 1400, H = 420, ml = 58, mr = 24, mt = 44, mb = 96;
+  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
+  const max = escalaMax(Math.max(1, ...cats.map(c => totB[c])) * 1.12);
+  const y = v => py1 - (v / max) * (py1 - py0);
+  let s = grade(px0, px1, marcasY(max).map(y));
+  s += marcasY(max).map(v => txt(px0 - 9, y(v) + 4, fmt(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1})).join('');
+  const banda = (px1 - px0) / cats.length, bw = Math.min(64, banda * 0.5);
+  const tam = cats.length > 7 ? 11.5 : 12.5;
+  const maxCh = Math.max(9, Math.floor(banda / (tam * 0.62))), tot = mB.size || 1;
+  cats.forEach((c, i) => {
+    const cx = px0 + banda * i + banda / 2;
+    let acum = 0;
+    segs.forEach(sg => {
+      const v = mapa[c][sg];
+      if (!v) return;
+      const yT = y(acum + v), yB = y(acum);
+      const alt = Math.max(1, yB - yT - (acum ? 2 : 0));
+      const cor = segCor(sg, c);
+      const dica = `<b>${fmt(v)}</b><br><span class="l">${rotSu(c)}${modo === 'tr' ? '' : ' · ' + sg}</span>`;
+      const ult = acum + v >= totB[c] - 0.5;
+      s += ult ? colunaSVG(cx - bw / 2, yT, bw, alt, cor, dica)
+               : `<rect x="${cx - bw / 2}" y="${yT}" width="${bw}" height="${alt}" fill="${cor}" class="hit" data-t="${esc(dica)}"/>`;
+      if (modo !== 'tr' && alt >= 16) s += txt(cx, yT + alt / 2 + 4, fmt(v), {cor: tintaSobre(cor), tam: 11.5, anc: 'middle', peso: 650});
+      acum += v;
+    });
+    s += txt(cx, y(totB[c]) - 11, fmt(totB[c]), {cor: COR.t1, tam: 19, peso: 650, anc: 'middle'});
+    const ls = quebra(rotSu(c), maxCh);
+    ls.forEach((ln, k) => s += txt(cx, py1 + 21 + k * 15, ln, {cor: COR.t1, tam, anc: 'middle', peso: 600}));
+    const by = py1 + 21 + ls.length * 15;
+    s += txt(cx, by + 2, pct1(pct(totB[c], tot)) + '% · ' + familiaSu(c), {cor: COR.t3, tam: 11, anc: 'middle'});
+    if (mx.a >= 0) {
+      const dv = totB[c] - totA[c];
+      s += txt(cx, by + 19, `${seta(dv)} ${sinal(dv)}`,
+               {cor: dv === 0 ? COR.t3 : (dv < 0 ? '#006300' : COR.ruim), tam: 12, anc: 'middle', peso: 650});
+    }
+  });
+  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+  const chaves = modo === 'ger' ? segs.map(g => ({cor: corGer(g), rot: g}))
+    : modo === 'proc' ? segs.map(p => ({cor: corProc(p), rot: p}))
+    : [{cor: COR_FAM.ABER, rot: 'família ABER'}, {cor: COR_FAM.ANDM, rot: 'família ANDM'}]
+        .concat(cats.some(c => familiaSu(c) === 'OUTRO') ? [{cor: COR_FAM.OUTRO, rot: 'outra família'}] : []);
+  return {svg: svgRoot(W, H, s), pe: legenda(chaves),
+          tabela: {cab: ['Status do usuário', 'Família'].concat(modo === 'tr' ? [] : segs).concat(['Total', '%', 'Anterior']),
+                   linhas: cats.map(c => [esc(rotSu(c)), familiaSu(c)]
+                     .concat(modo === 'tr' ? [] : segs.map(sg => fmt(mapa[c][sg])))
+                     .concat([fmt(totB[c]), pct1(pct(totB[c], tot)) + '%', fmt(totA[c])]))}};
+}
+/* editor dos rótulos de status */
+function pintaRotSu(mB) {
+  const cont = new Map();
+  mB.forEach(l => { const v = MED.su[l[MSU]]; cont.set(v, (cont.get(v) || 0) + 1); });
+  const lista = MED.su.filter(v => cont.has(v)).sort((a, b) => cont.get(b) - cont.get(a));
+  if (!lista.length) { $('#md-rot-su').innerHTML = '<div class="vazio">Sem medidas no filtro atual.</div>'; return; }
+  $('#md-rot-su').innerHTML =
+    `<div class="explica">O SAP entrega o código cru. Escreva aqui o nome que a reunião entende e ele
+     passa a valer em todas as telas e no PDF. Fica salvo neste navegador.</div>
+     <div class="tab-wrap"><table class="dt"><thead><tr>
+       <th>Status</th><th>Família</th><th>Medidas</th><th class="cel-rot">Como aparece nas telas</th>
+     </tr></thead><tbody>` +
+    lista.map(v => `<tr><td><code>${esc(v)}</code></td><td>${familiaSu(v)}</td><td>${fmt(cont.get(v))}</td>
+      <td class="cel-rot"><input class="rot-in" data-tipo="su" data-chave="${esc(v)}"
+        value="${esc(MROT.su[v] || '')}" placeholder="${esc(v)}" autocomplete="off"></td></tr>`).join('') +
+    `</tbody></table></div>`;
+}
+/* status de prazo, como vem do SAP */
+function gMdPrazo(mB) {
+  const cont = new Map();
+  mB.forEach(l => { const v = MED.status[l[MSTAT]]; cont.set(v, (cont.get(v) || 0) + 1); });
+  const cats = MED.status.filter(v => cont.has(v));
+  if (!cats.length) return {svg: '<div class="vazio">Sem medidas no filtro atual.</div>', tabela: null};
+  const total = mB.size || 1;
+  const W = 640, H = 40 + cats.length * 46, ml = 132, mr = 128;
+  const px0 = ml, px1 = W - mr;
+  const max = Math.max(1, ...cats.map(c => cont.get(c)));
+  let s = '';
+  cats.forEach((c, i) => {
+    const yc = 30 + i * 46;
+    const cor = COR_PRAZO[c] || COR.t3;
+    s += txt(10, yc + 5, corta(c, 16), {cor: COR.t1, tam: 13, peso: 600});
+    const larg = Math.max(2, (cont.get(c) / max) * (px1 - px0));
+    s += barraSVG(px0, yc - 10, larg, 20, cor,
+      `<b>${fmt(cont.get(c))}</b><br><span class="l">${c} · ${pct1(pct(cont.get(c), total))}%</span>`);
+    s += txt(W - 62, yc + 5, fmt(cont.get(c)), {cor: COR.t1, tam: 15, peso: 650, anc: 'end', tab: 1});
+    s += txt(W - 8, yc + 5, pct1(pct(cont.get(c), total)) + '%', {cor: COR.t3, tam: 11.5, anc: 'end', tab: 1});
+  });
+  return {svg: svgRoot(W, H, s),
+          pe: `<div class="nota">O prazo é calculado pelo SAP contra uma data de vencimento que não vem na
+               exportação, então o painel repete o que o sistema entrega e não recalcula nada.</div>`,
+          tabela: {cab: ['Status de prazo', 'Medidas', '% do total'],
+                   linhas: cats.map(c => [esc(c), fmt(cont.get(c)), pct1(pct(cont.get(c), total)) + '%'])}};
+}
+
+/* ---------- NS × medidas ---------- */
+function pintaMdNS(mB) {
+  const ns = porNS(mB);
+  if (!ns.size) { $('#md-ns').innerHTML = '<div class="vazio">Sem medidas no filtro atual.</div>'; return; }
+  const faixa = n => n === 1 ? '1 medida' : n === 2 ? '2 medidas' : n === 3 ? '3 medidas' : '4 ou mais';
+  const ordem = ['1 medida', '2 medidas', '3 medidas', '4 ou mais'];
+  const cont = new Map(ordem.map(o => [o, 0]));
+  ns.forEach(v => cont.set(faixa(v.length), cont.get(faixa(v.length)) + 1));
+  const cats = ordem.filter(o => cont.get(o));
+  const mult = Array.from(ns.entries()).filter(([, v]) => v.length > 1);
+  const total = ns.size;
+
+  const W = 620, H = 40 + cats.length * 44, px0 = 118, px1 = W - 130;
+  const max = Math.max(1, ...cats.map(c => cont.get(c)));
+  let s = '';
+  cats.forEach((c, i) => {
+    const yc = 28 + i * 44;
+    const cor = c === '1 medida' ? COR.t3 : COR.o[Math.min(3, ordem.indexOf(c))];
+    s += txt(10, yc + 5, c, {cor: COR.t1, tam: 13, peso: 600});
+    s += barraSVG(px0, yc - 10, Math.max(2, (cont.get(c) / max) * (px1 - px0)), 20, cor,
+      `<b>${fmt(cont.get(c))}</b> NS<br><span class="l">${c}</span>`);
+    s += txt(W - 62, yc + 5, fmt(cont.get(c)), {cor: COR.t1, tam: 15, peso: 650, anc: 'end', tab: 1});
+    s += txt(W - 8, yc + 5, pct1(pct(cont.get(c), total)) + '%', {cor: COR.t3, tam: 11.5, anc: 'end', tab: 1});
+  });
+
+  const linhas = mult.sort((a, b) => b[1].length - a[1].length ||
+      String(a[1][0][MNS]).localeCompare(String(b[1][0][MNS])))
+    .slice(0, 60).map(([, v]) => {
+      const l0 = v[0];
+      return `<tr><td>${esc(String(l0[MNS]))}</td><td>${esc(MED.processos[l0[MPROC]])}</td>
+        <td>${fmt(v.length)}</td><td>${esc(v.map(l => codLongo(MED.codigos[l[MCOD]])).join(' · '))}</td>
+        <td>${esc(MED.polos[l0[MPOLO]])}</td>
+        <td>${esc(Array.from(new Set(v.map(l => rotSu(MED.su[l[MSU]])))).join(' · '))}</td></tr>`;
+    }).join('');
+
+  $('#md-sub-ns').textContent = `${fmt(total)} NS · ${fmt(mB.size)} medidas`;
+  $('#md-ns').innerHTML =
+    `<div class="explica">Cada linha da exportação é <b>uma medida</b>. A mesma NS pode carregar mais de uma,
+     e é isso que faz a contagem de medidas ser maior que a de NS.</div>
+     <div class="gd-par"><div>${svgRoot(W, H, s)}</div>
+     <div><div class="tab-wrap"><table class="dt"><tbody>
+       <tr><td>NS distintas</td><td>${fmt(total)}</td><td>—</td></tr>
+       <tr><td><b>NS com mais de uma medida</b></td><td><b>${fmt(mult.length)}</b></td><td><b>${pct1(pct(mult.length, total))}%</b></td></tr>
+       <tr><td>Medidas em carteira</td><td>${fmt(mB.size)}</td><td>—</td></tr>
+       <tr><td>Medidas por NS</td><td>${pct2(mB.size / total)}</td><td>—</td></tr>
+       <tr><td>Medidas que vêm de NS compartilhada</td><td>${fmt(mult.reduce((a, [, v]) => a + v.length, 0))}</td>
+         <td>${pct1(pct(mult.reduce((a, [, v]) => a + v.length, 0), mB.size || 1))}%</td></tr>
+     </tbody></table></div></div></div>` +
+    (mult.length
+      ? `<h4 class="sub-tit">As NS que carregam mais de uma medida</h4>
+         <div class="tab-wrap"><table class="dt"><thead><tr>
+           <th>NS</th><th>Processo</th><th>Medidas</th><th>Códigos</th><th>Polo</th><th>Status do usuário</th>
+         </tr></thead><tbody>${linhas}</tbody></table></div>` +
+        (mult.length > 60 ? `<div class="nota">Mostrando as 60 primeiras de ${fmt(mult.length)}.</div>` : '')
+      : `<div class="nota">Nenhuma NS carrega mais de uma medida nesta foto.</div>`);
+}
+
+/* ---------- códigos de medida ---------- */
+function gMdCodigo(mA, mB) {
+  const cB = new Map(), cA = new Map(), nsPorCod = new Map();
+  mB.forEach(l => {
+    const c = MED.codigos[l[MCOD]];
+    cB.set(c, (cB.get(c) || 0) + 1);
+    if (!nsPorCod.has(c)) nsPorCod.set(c, new Set());
+    nsPorCod.get(c).add(MED.processos[l[MPROC]] + '|' + l[MNS]);
+  });
+  mA.forEach(l => { const c = MED.codigos[l[MCOD]]; cA.set(c, (cA.get(c) || 0) + 1); });
+  const cats = Array.from(cB.keys()).sort((a, b) => cB.get(b) - cB.get(a) || a.localeCompare(b, 'pt-BR'));
+  if (!cats.length) return {svg: '<div class="vazio">Sem medidas no filtro atual.</div>', tabela: null};
+  const teto = 18, mostra = cats.slice(0, teto), total = mB.size || 1;
+  const W = 800, ml = 246, mr = 146, mt = 26, rh = 30;
+  const H = mt + mostra.length * rh + 18;
+  const px0 = ml, px1 = W - mr;
+  const max = Math.max(1, ...mostra.map(c => cB.get(c)));
+  let s = '';
+  mostra.forEach((c, i) => {
+    const yc = mt + i * rh + rh / 2;
+    const cor = COR.o[Math.min(3, Math.floor(i / Math.max(1, Math.ceil(mostra.length / 4))))];
+    s += txt(10, yc + 4, String(i + 1), {cor: COR.t3, tam: 12, peso: 700, tab: 1});
+    s += txt(32, yc + 4, corta(codLongo(c), 25), {cor: COR.t1, tam: 12, peso: 600});
+    const dica = `<b>${fmt(cB.get(c))}</b> medidas<br><span class="l">${codLongo(c)} · ${fmt(nsPorCod.get(c).size)} NS</span>`;
+    s += barraSVG(px0, yc - 8, Math.max(2, (cB.get(c) / max) * (px1 - px0)), 16, cor, dica);
+    s += txt(W - 62, yc + 4, fmt(cB.get(c)), {cor: COR.t1, tam: 15, peso: 650, anc: 'end', tab: 1});
+    s += txt(W - 8, yc + 4, pct1(pct(cB.get(c), total)) + '%', {cor: COR.t3, tam: 11, anc: 'end', tab: 1});
+  });
+  const pe = (cats.length > teto ? `<div class="nota">Mostrando os ${teto} maiores de ${fmt(cats.length)} códigos; a tabela traz todos.</div>` : '')
+    + `<div class="nota">Cada código aparece uma vez por NS, então o número de medidas é também o número
+       de NS com aquele código — salvo quando a mesma NS repete o código, o que a base não permite.</div>`;
+  return {svg: svgRoot(W, H, s), pe,
+          tabela: {cab: ['Código', 'Nome', 'Medidas', 'NS', '% do total', 'Foto anterior'],
+                   linhas: cats.map(c => [esc(c), esc((MROT.cod[c] || '').trim() || '—'), fmt(cB.get(c)),
+                                          fmt(nsPorCod.get(c).size), pct1(pct(cB.get(c), total)) + '%',
+                                          fmt(cA.get(c) || 0)])}};
+}
+function pintaRotCod(mB) {
+  const cont = new Map();
+  mB.forEach(l => { const c = MED.codigos[l[MCOD]]; cont.set(c, (cont.get(c) || 0) + 1); });
+  const lista = Array.from(cont.keys()).sort((a, b) => cont.get(b) - cont.get(a));
+  if (!lista.length) { $('#md-rot-cod').innerHTML = ''; return; }
+  const nomeados = lista.filter(c => (MROT.cod[c] || '').trim()).length;
+  $('#md-rot-cod').innerHTML =
+    `<h4 class="sub-tit">Nome de cada código</h4>
+     <div class="explica">Escreva o nome da medida e ele passa a aparecer no gráfico, na lista e no PDF.
+     Fica salvo neste navegador. ${fmt(nomeados)} de ${fmt(lista.length)} códigos já têm nome.</div>
+     <div class="tab-wrap"><table class="dt"><thead><tr>
+       <th>Código</th><th>Medidas</th><th class="cel-rot">Nome da medida</th>
+     </tr></thead><tbody>` +
+    lista.map(c => `<tr><td><code>${esc(c)}</code></td><td>${fmt(cont.get(c))}</td>
+      <td class="cel-rot"><input class="rot-in" data-tipo="cod" data-chave="${esc(c)}"
+        value="${esc(MROT.cod[c] || '')}" placeholder="sem nome" autocomplete="off"></td></tr>`).join('') +
+    `</tbody></table></div>`;
+}
+
+/* ---------- polo, gerência e responsável ---------- */
+function gMdBarras(mB, mA, chave, cor, ordem) {
+  const cB = new Map(), cA = new Map();
+  mB.forEach(l => { const k = chave(l); cB.set(k, (cB.get(k) || 0) + 1); });
+  mA.forEach(l => { const k = chave(l); cA.set(k, (cA.get(k) || 0) + 1); });
+  let cats = Array.from(cB.keys());
+  cats = ordem ? ordem.filter(o => cB.has(o)) : cats.sort((a, b) => cB.get(b) - cB.get(a));
+  if (!cats.length) return {svg: '<div class="vazio">Sem medidas no filtro atual.</div>', tabela: null};
+  const total = mB.size || 1;
+  const W = 680, H = 300, ml = 52, mr = 20, mt = 42, mb = 62;
+  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
+  const max = escalaMax(Math.max(1, ...cats.map(c => cB.get(c))) * 1.14);
+  const y = v => py1 - (v / max) * (py1 - py0);
+  let s = grade(px0, px1, marcasY(max).map(y));
+  s += marcasY(max).map(v => txt(px0 - 9, y(v) + 4, fmt(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1})).join('');
+  const banda = (px1 - px0) / cats.length, bw = Math.min(46, banda * 0.5);
+  const tam = cats.length > 6 ? 11 : 12.5;
+  const maxCh = Math.max(7, Math.floor(banda / (tam * 0.62)));
+  cats.forEach((c, i) => {
+    const cx = px0 + banda * i + banda / 2, v = cB.get(c);
+    s += colunaSVG(cx - bw / 2, y(v), bw, Math.max(2, py1 - y(v)), cor(c),
+      `<b>${fmt(v)}</b><br><span class="l">${c} · ${pct1(pct(v, total))}%</span>`);
+    s += txt(cx, y(v) - 10, fmt(v), {cor: COR.t1, tam: 17, peso: 650, anc: 'middle'});
+    const ls = quebra(String(c), maxCh);
+    ls.forEach((ln, k) => s += txt(cx, py1 + 20 + k * 14, ln, {cor: COR.t1, tam, anc: 'middle', peso: 600}));
+    if (mx.a >= 0) {
+      const dv = v - (cA.get(c) || 0);
+      s += txt(cx, py1 + 20 + ls.length * 14 + 3, `${seta(dv)} ${sinal(dv)}`,
+               {cor: dv === 0 ? COR.t3 : (dv < 0 ? '#006300' : COR.ruim), tam: 11.5, anc: 'middle', peso: 650});
+    }
+  });
+  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+  return {svg: svgRoot(W, H, s),
+          tabela: {cab: ['Item', 'Medidas', '% do total', 'Foto anterior'],
+                   linhas: cats.map(c => [esc(String(c)), fmt(cB.get(c)), pct1(pct(cB.get(c), total)) + '%', fmt(cA.get(c) || 0)])}};
+}
+
+/* ---------- detalhe ---------- */
+const VAL_MED = {
+  proc: x => MED.processos[x.l[MPROC]],
+  cod:  x => codLongo(MED.codigos[x.l[MCOD]]),
+  su:   x => rotSu(MED.su[x.l[MSU]]),
+  resp: x => MED.resps[x.l[MRESP]],
+  ger:  x => gerenciaDe(MED.polos[x.l[MPOLO]]),
+  polo: x => MED.polos[x.l[MPOLO]]
+};
+function pintaMdDetalhe(mA, mB, entraram, sairam) {
+  const tit = {todos: 'Todas as medidas', novos: 'Medidas que entraram',
+               sai: 'Medidas que saíram', dup: 'Medidas de NS com 2+ medidas'};
+  $('#md-det-tit').textContent = tit[mx.det];
+  const ns = porNS(mB);
+  const multi = new Set();
+  ns.forEach((v, k) => { if (v.length > 1) multi.add(k); });
+
+  let itens;
+  if (mx.det === 'novos') itens = entraram.map(l => ({l}));
+  else if (mx.det === 'sai') itens = sairam.map(l => ({l, fora: true}));
+  else if (mx.det === 'dup') itens = Array.from(mB.values())
+    .filter(l => multi.has(MED.processos[l[MPROC]] + '|' + l[MNS])).map(l => ({l}));
+  else itens = Array.from(mB.values()).map(l => ({l}));
+
+  const busca = mx.dBusca.trim().toLowerCase();
+  const sel = c => st[c] || [];
+  const ok = (c, v) => !sel(c).length || sel(c).indexOf(v) >= 0;
+  const passaDet = (x, exceto) =>
+    (exceto === 'proc' || ok('mProc', VAL_MED.proc(x))) &&
+    (exceto === 'cod'  || ok('mCod',  VAL_MED.cod(x))) &&
+    (exceto === 'su'   || ok('mSu',   VAL_MED.su(x))) &&
+    (exceto === 'resp' || ok('mResp', VAL_MED.resp(x))) &&
+    (exceto === 'ger'  || ok('mGer',  VAL_MED.ger(x))) &&
+    (exceto === 'polo' || ok('mPolo', VAL_MED.polo(x))) &&
+    (!busca || String(x.l[MNS]).toLowerCase().indexOf(busca) >= 0 ||
+      MED.codigos[x.l[MCOD]].toLowerCase().indexOf(busca) >= 0 ||
+      VAL_MED.cod(x).toLowerCase().indexOf(busca) >= 0);
+  const unicos = campo => Array.from(new Set(itens.filter(x => passaDet(x, campo)).map(VAL_MED[campo])))
+    .sort((a, b) => String(a).localeCompare(String(b), 'pt-BR'));
+  const conta = campo => {
+    const o = {};
+    itens.filter(x => passaDet(x, campo)).forEach(x => { const v = VAL_MED[campo](x); o[v] = (o[v] || 0) + 1; });
+    return o;
+  };
+  montaMsel('md-proc', unicos('proc'), conta('proc'));
+  montaMsel('md-cod-f', unicos('cod'), conta('cod'));
+  montaMsel('md-su-f', unicos('su'), conta('su'));
+  montaMsel('md-resp-f', unicos('resp'), conta('resp'));
+  montaMsel('md-ger-f', unicos('ger'), conta('ger'));
+  montaMsel('md-polo-f', unicos('polo'), conta('polo'));
+
+  const linhas = itens.filter(x => passaDet(x));
+  const dir = mx.dOrd.dir, col = mx.dOrd.col;
+  const valor = x => col === 'ns' ? Number(x.l[MNS])
+    : col === 'cod' ? MED.codigos[x.l[MCOD]]
+    : col === 'nome' ? VAL_MED.cod(x)
+    : col === 'proc' ? VAL_MED.proc(x)
+    : col === 'su' ? VAL_MED.su(x)
+    : col === 'stat' ? ORDEM_PRAZO.indexOf(MED.status[x.l[MSTAT]])
+    : col === 'resp' ? VAL_MED.resp(x)
+    : col === 'polo' ? VAL_MED.polo(x)
+    : col === 'ini' ? (x.l[MINI] || '')
+    : Number(x.l[MNS]);
+  linhas.sort((a, b) => {
+    const va = valor(a), vb = valor(b);
+    const c = typeof va === 'number' ? va - vb : String(va).localeCompare(String(vb), 'pt-BR');
+    return c * dir || Number(a.l[MNS]) - Number(b.l[MNS]);
+  });
+  $('#md-conta').textContent = `${fmt(linhas.length)} de ${fmt(itens.length)} medidas`;
+  $('#md-det-sub').textContent = MED.semanas.length ? 'foto de ' + dlonga(MED.semanas[mx.b]) : '';
+
+  const cols = [['ns', 'NS'], ['cod', 'Código'], ['nome', 'Medida'], ['proc', 'Processo'],
+                ['su', 'Status do usuário'], ['stat', 'Prazo'], ['resp', 'Responsável'],
+                ['polo', 'Polo'], ['ini', 'Início planejado']];
+  const cab = cols.map(([k, r]) =>
+    `<th scope="col" class="ord" data-mord="${k}">${esc(r)}${col === k ? (dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('');
+  const corpo = linhas.slice(0, 900).map(x => {
+    const l = x.l, k = MED.processos[l[MPROC]] + '|' + l[MNS];
+    const prazo = MED.status[l[MSTAT]];
+    return `<tr${x.fora ? ' class="tsub"' : ''}><td>${esc(String(l[MNS]))}${multi.has(k) && !x.fora ? '<span class="vinc-chip" title="esta NS tem mais de uma medida">2+</span>' : ''}</td>
+      <td><code>${esc(MED.codigos[l[MCOD]])}</code></td><td>${esc((MROT.cod[MED.codigos[l[MCOD]]] || '').trim() || '—')}</td>
+      <td>${esc(MED.processos[l[MPROC]])}</td><td>${esc(rotSu(MED.su[l[MSU]]))}</td>
+      <td><span class="chip" style="background:${COR_PRAZO[prazo] || COR.t3};color:#fff">${esc(prazo)}</span></td>
+      <td>${esc(MED.resps[l[MRESP]])}</td><td>${esc(MED.polos[l[MPOLO]])}</td>
+      <td>${l[MINI] ? dlonga(l[MINI]) : '—'}</td></tr>`;
+  }).join('');
+  $('#md-det').innerHTML = `<div class="tab-wrap alta"><table class="dt"><thead><tr>${cab}</tr></thead>
+    <tbody>${corpo}</tbody></table></div>` +
+    (linhas.length > 900 ? `<div class="nota">Mostrando as 900 primeiras de ${fmt(linhas.length)}. Use os filtros para chegar no recorte.</div>` : '');
+}
+
+/* ---------- render do ambiente ---------- */
+function renderMed() {
+  const vazio = !MED.semanas.length;
+  $('#m-vazio').hidden = !vazio;
+  $('#m-corpo').hidden = vazio;
+  if (vazio) {
+    $('#pill-ant').innerHTML = 'Medidas <b>sem dados</b>';
+    $('#pill-atu').innerHTML = 'Carregue as <b>exportações do SAP</b>';
+    $('#pill-escopo').innerHTML = '';
+    $('#rodape').innerHTML = `<b>Painel versão ${VERSAO}</b> · módulo de medidas sem base carregada.`;
+    pintaAnotacoes();
+    return;
+  }
+  if (mx.b >= MED.semanas.length) { mx.b = MED.semanas.length - 1; mx.a = mx.b - 1; }
+  const mB = fatiaMed(mx.b), mA = fatiaMed(mx.a);
+  const semComp = mx.a < 0 || mx.a >= MED.semanas.length;
+  const entraram = [], sairam = [];
+  if (!semComp) {
+    mB.forEach((l, k) => { if (!mA.has(k)) entraram.push(l); });
+    mA.forEach((l, k) => { if (!mB.has(k)) sairam.push(l); });
+  }
+  const escopo = [st.ger || 'TR · todas as polos', st.polo ? 'Polo ' + st.polo : null,
+                  mx.proc || null, mx.su ? rotSu(mx.su) : null, mx.resp || null].filter(Boolean).join(' · ');
+  $('#pill-ant').innerHTML = semComp ? 'Comparação <b>primeira foto</b>' : `Comparação <b>${dlonga(MED.semanas[mx.a])}</b>`;
+  $('#pill-atu').innerHTML = `Semana <b>${dlonga(MED.semanas[mx.b])}</b>`;
+  $('#pill-escopo').innerHTML = `Escopo <b>${esc(escopo)}</b>`;
+  $('#md-sub-casc').textContent = semComp ? 'primeira foto' : `${dcurta(MED.semanas[mx.a])} → ${dcurta(MED.semanas[mx.b])}`;
+  $('#md-sub-su').textContent = mx.modo === 'tr' ? 'total por status · cor = família do código'
+    : mx.modo === 'ger' ? 'aberto por gerência' : 'aberto por processo';
+  $('#md-tit-polo').textContent = st.ger ? 'Medidas por polo' : 'Medidas por gerência';
+  $('#md-sub-polo').textContent = st.ger ? `${st.ger} · ${polosDeGerMed(st.ger).join(', ')}` : 'TR · gerências';
+  $('#md-sub-resp').textContent = `${fmt(MED.resps.length)} responsáveis na base`;
+  $('#md-sub-cod').textContent = `foto de ${dlonga(MED.semanas[mx.b])}`;
+
+  pintaMdKPIs(mA, mB, entraram, sairam, semComp);
+  pinta('md-casc', semComp
+    ? {svg: '<div class="vazio">A cascata compara duas fotos. Carregue a semana seguinte para vê-la.</div>', tabela: null}
+    : gMdCascata(mA.size, mB.size, entraram.length, sairam.length));
+  pinta('md-evo', gMdEvolucao());
+  pinta('md-su', gMdStatus(mA, mB));
+  pintaRotSu(mB);
+  pinta('md-prazo', gMdPrazo(mB));
+  pintaMdNS(mB);
+  pinta('md-cod', gMdCodigo(mA, mB));
+  pintaRotCod(mB);
+  const gersM = Object.keys(MAPA_GERENCIA).filter(g => MED.polos.some(p => gerenciaDe(p) === g));
+  pinta('md-polo', st.ger
+    ? gMdBarras(mB, mA, l => MED.polos[l[MPOLO]], p => corGer(gerenciaDe(p)), polosDeGerMed(st.ger))
+    : gMdBarras(mB, mA, l => gerenciaDe(MED.polos[l[MPOLO]]), g => corGer(g), gersM));
+  pinta('md-resp', gMdBarras(mB, mA, l => MED.resps[l[MRESP]],
+    r => COR_PIZZA[MED.resps.indexOf(r) % COR_PIZZA.length]));
+  pintaMdDetalhe(mA, mB, entraram, sairam);
+  pintaAnotacoes();
+
+  const agora = new Date();
+  $('#imp-cab').textContent = `Medidas SAP · semana ${dlonga(MED.semanas[mx.b])} · ` +
+    `comparação ${semComp ? '—' : dlonga(MED.semanas[mx.a])} · escopo ${escopo} · ` +
+    `emitido em ${agora.toLocaleDateString('pt-BR')} ${agora.toLocaleTimeString('pt-BR').slice(0, 5)}`;
+  $('#rodape').innerHTML =
+    `<b>Painel versão ${VERSAO}</b> · ` +
+    `Medidas ${esc(ORIGEM_MED || 'sem origem')}: ${fmt(MED.linhas.length)} registros · ` +
+    `${fmt(MED.semanas.length)} foto(s) (${dlonga(MED.semanas[0])} a ${dlonga(MED.semanas[MED.semanas.length - 1])}) · ` +
+    `${fmt(MED.processos.length)} processo(s).`;
+}
+
+/* ---------- controles ---------- */
+function montaControlesMed() {
+  const sems = MED.semanas.map((w, i) => ({v: String(i), r: dlonga(w)}));
+  opcoes($('#m-semana'), sems.length ? sems : [{v: '0', r: '—'}], String(mx.b));
+  opcoes($('#m-comp'), [{v: '-1', r: 'sem comparação'}].concat(sems), String(mx.a));
+  const gers = Object.keys(MAPA_GERENCIA).filter(g => MED.polos.some(p => gerenciaDe(p) === g));
+  opcoes($('#m-ger'), [{v: '', r: 'TR · Superintendência'}].concat((gers.length ? gers : Object.keys(MAPA_GERENCIA)).map(g => ({v: g, r: g}))), st.ger);
+  const polos = st.ger ? polosDeGerMed(st.ger) : MED.polos;
+  if (st.polo && polos.indexOf(st.polo) < 0) st.polo = '';
+  opcoes($('#m-polo'), [{v: '', r: 'Todos os polos'}].concat(polos.map(p => ({v: p, r: 'Polo ' + p}))), st.polo);
+  opcoes($('#m-proc'), [{v: '', r: 'Todos os processos'}].concat(MED.processos.map(p => ({v: p, r: p}))), mx.proc);
+  opcoes($('#m-fsu'), [{v: '', r: 'Todos os status'}].concat(MED.su.map(v => ({v, r: rotSu(v)}))), mx.su);
+  opcoes($('#m-fresp'), [{v: '', r: 'Todos os responsáveis'}].concat(MED.resps.map(r => ({v: r, r}))), mx.resp);
+
+  $('#m-semanas').innerHTML = MED.semanas.length
+    ? 'Fotos de medidas: ' + MED.semanas.map((w, i) =>
+        `<span class="sem-item">${dlonga(w)} · ${fmt(MED.linhas.filter(l => l[MS] === i).length)} medidas` +
+        `<button type="button" data-rm-msem="${esc(w)}" title="remover esta foto">×</button></span>`).join('')
+    : 'Nenhuma foto carregada.';
+}
+function avisoMed(html, erro) { $('#mmsg').innerHTML = `<div class="msg ${erro ? 'erro' : 'ok'}">${html}</div>`; }
+
+/* ---------- eventos do ambiente de medidas ---------- */
+$('#m-semana').addEventListener('change', e => { mx.b = +e.target.value; mx.a = mx.b - 1; montaControlesMed(); render(); });
+$('#m-comp').addEventListener('change', e => { mx.a = +e.target.value; render(); });
+$('#m-ger').addEventListener('change', e => { st.ger = e.target.value; st.polo = ''; montaPolos(); montaControlesMed(); render(); });
+$('#m-polo').addEventListener('change', e => { st.polo = e.target.value; montaPolos(); render(); });
+$('#m-proc').addEventListener('change', e => { mx.proc = e.target.value; render(); });
+$('#m-fsu').addEventListener('change', e => { mx.su = e.target.value; render(); });
+$('#m-fresp').addEventListener('change', e => { mx.resp = e.target.value; render(); });
+$('#m-limpa').addEventListener('click', () => {
+  st.ger = st.polo = ''; mx.proc = mx.su = mx.resp = '';
+  mx.b = Math.max(0, MED.semanas.length - 1); mx.a = mx.b - 1;
+  montaPolos(); montaControlesMed(); render();
+});
+$('#bt-mdados').addEventListener('click', () => {
+  const p = $('#mpainel'), abrir = p.hidden;
+  p.hidden = !abrir;
+  $('#bt-mdados').setAttribute('aria-expanded', String(abrir));
+  if (abrir && !$('#m-data').value) $('#m-data').value = MED.semanas.length ? MED.semanas[MED.semanas.length - 1] : hojeISO();
+});
+$('#bt-mfechar').addEventListener('click', () => {
+  $('#mpainel').hidden = true; $('#bt-mdados').setAttribute('aria-expanded', 'false');
+});
+$$('[data-mmodo]').forEach(b => b.addEventListener('click', () => {
+  mx.modo = b.dataset.mmodo;
+  $$('[data-mmodo]').forEach(o => o.setAttribute('aria-selected', String(o === b)));
+  render();
+}));
+$$('[data-mdet]').forEach(b => b.addEventListener('click', () => {
+  mx.det = b.dataset.mdet;
+  $$('[data-mdet]').forEach(o => o.setAttribute('aria-selected', String(o === b)));
+  render();
+}));
+['md-proc', 'md-cod-f', 'md-su-f', 'md-resp-f', 'md-ger-f', 'md-polo-f'].forEach(ligaMsel);
+$('#md-busca').addEventListener('input', e => { mx.dBusca = e.target.value; render(); });
+$('#md-limpa-lista').addEventListener('click', () => {
+  st.mProc = []; st.mCod = []; st.mSu = []; st.mResp = []; st.mGer = []; st.mPolo = [];
+  mx.dBusca = ''; $('#md-busca').value = ''; render();
+});
+$('#md-det').addEventListener('click', ev => {
+  const th = ev.target.closest('[data-mord]');
+  if (!th) return;
+  const c = th.dataset.mord;
+  mx.dOrd = {col: c, dir: mx.dOrd.col === c ? -mx.dOrd.dir : (c === 'ns' ? 1 : 1)};
+  render();
+});
+/* rótulos editáveis: gravam ao sair do campo e valem em todas as telas */
+document.addEventListener('change', ev => {
+  const inp = ev.target.closest('.rot-in');
+  if (!inp) return;
+  const alvo = inp.dataset.tipo === 'cod' ? MROT.cod : MROT.su;
+  const v = inp.value.trim();
+  if (v) alvo[inp.dataset.chave] = v; else delete alvo[inp.dataset.chave];
+  guardaMrot();
+  render();
+});
+$('#m-semanas').addEventListener('click', ev => {
+  const bt = ev.target.closest('[data-rm-msem]');
+  if (!bt) return;
+  const iso = bt.dataset.rmMsem;
+  const restam = MED.linhas.filter(l => MED.semanas[l[MS]] !== iso)
+    .map(l => ({sem: MED.semanas[l[MS]], proc: MED.processos[l[MPROC]], cod: MED.codigos[l[MCOD]],
+                ns: l[MNS], stat: MED.status[l[MSTAT]], su: MED.su[l[MSU]],
+                resp: MED.resps[l[MRESP]], polo: MED.polos[l[MPOLO]], ini: l[MINI] || ''}));
+  if (!restam.length) { apagaMed(); return; }
+  MED.semanas = MED.semanas.filter(s => s !== iso);
+  MED.linhas = restam.map(x => [MED.semanas.indexOf(x.sem), MED.processos.indexOf(x.proc),
+    MED.codigos.indexOf(x.cod), x.ns, MED.status.indexOf(x.stat), MED.su.indexOf(x.su),
+    MED.resps.indexOf(x.resp), MED.polos.indexOf(x.polo), x.ini]);
+  indexaMed(); guardaMed();
+  mx.b = Math.max(0, MED.semanas.length - 1); mx.a = mx.b - 1;
+  montaControlesMed(); render();
+  avisoMed(`Foto de ${dlonga(iso)} removida.`, false);
+});
+function apagaMed() {
+  MED = {semanas: [], processos: [], codigos: [], status: [], su: [], resps: [], polos: [], linhas: []};
+  ORIGEM_MED = '';
+  try { localStorage.removeItem(CHAVE_MED); } catch (e) {}
+  indexaMed();
+  mx.b = 0; mx.a = -1;
+  montaControlesMed(); render();
+}
+$('#bt-mapaga').addEventListener('click', () => { apagaMed(); avisoMed('Base de medidas apagada. Os rótulos que você escreveu continuam guardados.', false); });
+$('#bt-mexemplo').addEventListener('click', () => {
+  MED = baseExemploMed(); ORIGEM_MED = 'de exemplo';
+  indexaMed();
+  mx.b = MED.semanas.length - 1; mx.a = mx.b - 1;
+  guardaMed(); montaControlesMed(); render();
+  avisoMed('Base de <b>exemplo</b> carregada, com 4 semanas. Use “Apagar base de medidas” antes de subir a exportação real.', false);
+});
+function baseExemploMed() {
+  const procs = ['Gestão Campo', 'Gestão Equipamento'];
+  const codsC = ['2865', '732', '2729', '1087', '503', '2718', '718'];
+  const codsE = ['2742', '2729', '2718', '2703', '2629', '2738', '1087'];
+  const sus = ['ABER', 'ANDM', 'ABER PEND', 'ANDM PEND', 'ABER SUSP'];
+  const prazos = ['EM ATRASO', 'NO PRAZO', 'VENCE 7 DIAS', 'VENCE HOJE'];
+  const respC = ['Manutenção', 'Automação', 'Operação'];
+  const respE = ['PE/PM', 'Gestor Equipamento', 'PE/ES Concert'];
+  const polos = ['PM', 'PO', 'BD', 'UR', 'AX', 'FR', 'UL', 'AG', 'TB'];
+  const hoje = segunda(hojeISO());
+  const semanas = [somaDias(hoje, -21), somaDias(hoje, -14), somaDias(hoje, -7), hoje];
+  let seed = 11;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const pesa = a => a[Math.floor(rnd() * rnd() * a.length)];
+  const escolhe = a => a[Math.floor(rnd() * a.length)];
+  let ativos = [], seq = 1;
+  const nova = pi => ({proc: procs[pi], cod: pesa(pi ? codsE : codsC),
+    ns: String(1100000000 + Math.floor(rnd() * 200000000)),
+    stat: pesa(prazos), su: pesa(sus), resp: pesa(pi ? respE : respC), polo: escolhe(polos)});
+  const regs = [];
+  semanas.forEach((sem, wi) => {
+    if (!wi) { for (let i = 0; i < 300; i++) ativos.push(nova(rnd() < 0.68 ? 0 : 1)); 
+               for (let i = 0; i < 24; i++) { const b = ativos[Math.floor(rnd() * ativos.length)];
+                 ativos.push(Object.assign({}, b, {cod: pesa(b.proc === procs[0] ? codsC : codsE)})); } }
+    else {
+      ativos = ativos.filter(() => rnd() > 0.1);
+      ativos.forEach(a => { if (rnd() < 0.2) a.su = pesa(sus); if (rnd() < 0.15) a.stat = pesa(prazos); });
+      const n = 18 + Math.floor(rnd() * 18);
+      for (let i = 0; i < n; i++) ativos.push(nova(rnd() < 0.68 ? 0 : 1));
+    }
+    seq++;
+    ativos.forEach(a => regs.push(Object.assign({sem, ini: somaDias(sem, -Math.floor(rnd() * rnd() * 500) - 5)}, a)));
+  });
+  const alfa = (a, b) => String(a).localeCompare(String(b), 'pt-BR');
+  const uni = (fn, ord) => { const s = Array.from(new Set(regs.map(fn))); return ord ? s.sort(ord) : s; };
+  const codigos = uni(x => x.cod, (a, b) => (parseInt(a, 10) || 1e9) - (parseInt(b, 10) || 1e9));
+  const status = uni(x => x.stat, (a, b) => ORDEM_PRAZO.indexOf(a) - ORDEM_PRAZO.indexOf(b));
+  const su = uni(x => x.su, (a, b) => alfa(familiaSu(a), familiaSu(b)) || a.length - b.length || alfa(a, b));
+  const resps = uni(x => x.resp, alfa);
+  const pos = l => { const o = {}; l.forEach((v, i) => o[v] = i); return o; };
+  const iS = pos(semanas), iPr = pos(procs), iC = pos(codigos), iSt = pos(status), iSu = pos(su),
+        iR = pos(resps), iP = pos(polos);
+  return {semanas, processos: procs, codigos, status, su, resps, polos,
+          linhas: regs.map(x => [iS[x.sem], iPr[x.proc], iC[x.cod], x.ns, iSt[x.stat], iSu[x.su],
+                                 iR[x.resp], iP[x.polo], x.ini])};
+}
+$('#marq').addEventListener('change', async ev => {
+  const arqs = Array.from(ev.target.files || []);
+  ev.target.value = '';
+  if (!arqs.length) return;
+  const data = $('#m-data').value || hojeISO();
+  avisoMed('Lendo as medidas…', false);
+  try {
+    const mats = [];
+    for (const a of arqs) {
+      if (/\.(xlsx|xlsm)$/i.test(a.name)) {
+        const buf = await a.arrayBuffer(), zip = abreZip(buf);
+        const sst = await extraiZip(zip, 'xl/sharedStrings.xml');
+        const textos = sst ? porNome(xmlDoc(sst), 'si').map(si => textoDe(si, 't')) : [];
+        const abas = Array.from(zip.itens.keys()).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n)).sort();
+        for (const ab of abas) { const x = await extraiZip(zip, ab); if (x) mats.push({m: matrizDaAba(x, textos), nome: a.name}); }
+      } else {
+        const m = await leArquivoExec(a);
+        if (m) mats.push({m, nome: a.name});
+      }
+    }
+    const r = montaMed(mats.filter(x => x && x.m), data);
+    if (r.erro) { avisoMed(`<b>Não foi possível carregar.</b><br>${esc(r.erro)}`, true); return; }
+    MED = r.base; ORIGEM_MED = 'dos arquivos ' + arqs.map(a => a.name).join(', ');
+    indexaMed();
+    const ultima = r.datas[r.datas.length - 1];
+    mx.b = MED.semanas.indexOf(ultima); if (mx.b < 0) mx.b = MED.semanas.length - 1;
+    mx.a = mx.b - 1;
+    const coube = guardaMed();
+    montaControlesMed(); render();
+    const obs = [];
+    obs.push('processo(s) reconhecido(s): ' + r.processos.join(', '));
+    obs.push(r.comColuna
+      ? `data da coleta lida da coluna do arquivo em ${fmt(r.comColuna)} linha(s)`
+      : `o arquivo não traz coluna de data: vale a data carimbada aqui (${dlonga(data)})`);
+    if (r.datas.length > 1) obs.push('datas no arquivo: ' + r.datas.map(dcurta).join(', '));
+    if (r.refeitas.length) obs.push('já existiam e foram substituídas: ' + r.refeitas.map(dcurta).join(', '));
+    if (r.dup) obs.push(`${fmt(r.dup)} repetição(ões) de processo + NS + código na mesma data foram ignoradas`);
+    if (r.ruins) obs.push(`${fmt(r.ruins)} linha(s) ignoradas por não ter número de nota`);
+    if (r.semProc) obs.push(`${fmt(r.semProc)} arquivo(s) sem processo identificado ficaram como “Sem processo”`);
+    const fora = MED.polos.filter(p => gerenciaDe(p) === SEM_GERENCIA);
+    if (fora.length) obs.push('localizações fora do mapa de polos: ' + fora.join(', '));
+    if (!coube) obs.push('não coube no navegador: esta base vale só nesta sessão');
+    avisoMed(`<b>${fmt(r.novas)} medidas carregadas</b> em ${fmt(r.datas.length)} data(s) · ` +
+             `${fmt(MED.semanas.length)} foto(s) na base · ${fmt(MED.codigos.length)} códigos de medida.` +
+             `<ul>${obs.map(o => `<li>${esc(o)}</li>`).join('')}</ul>`, false);
+  } catch (e) {
+    avisoMed(`<b>Erro na leitura.</b><br>${esc(String(e && e.message || e))}`, true);
+  }
+});
+
 /* ============================================================
    INÍCIO
    ============================================================ */
@@ -7787,11 +8893,14 @@ function baseDemo() {
 recuperaAnotacoes();
 recuperaEx();
 recuperaGd();
+recuperaMed();
 const guardada = baseGuardada();
 aplicaBase(guardada || baseDemo(), guardada ? 'da planilha (guardada neste navegador)' : 'demonstração');
 if (EX.semanas.length) { sx.b = EX.semanas.length - 1; sx.a = sx.b - 1; }
+if (MED.semanas.length) { mx.b = MED.semanas.length - 1; mx.a = mx.b - 1; }
 montaControles();
 montaControlesEx();
+montaControlesMed();
 render();
 </script>
 </body>

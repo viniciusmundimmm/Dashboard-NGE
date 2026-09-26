@@ -8,6 +8,8 @@ São dois ambientes, escolhidos pelas abas do topo:
 - **Indisponibilidade** — equipamentos indisponíveis no SCADA, a partir da planilha semanal.
 - **Execução** — guias de inspeção na carteira da Execução Regional, a partir dos arquivos
   `AbertoTR` e `AndamentoTR`.
+- **Medidas SAP** — o volume de demandas em carteira que dá origem às guias, a partir das
+  exportações de medidas do SAP (`Gestão Campo` e `Gestão Equipamento`).
 
 O escopo (gerência e polo) acompanha a troca de ambiente. Cada ambiente tem sua semana, seus
 filtros e suas anotações; as imagens da Visão geral e o relatório em PDF são comuns aos dois.
@@ -196,6 +198,50 @@ mesma classificação em três níveis colore as colunas por tipo de serviço no
 no detalhe (`tipo ind.` / `equip. ind.`), alimenta o filtro **Vínculo** e separa os grupos do bloco
 Prioridade na programação.
 
+## Ambiente Medidas SAP
+
+Cada linha da exportação é **uma medida**: um código (`CóMd`) preso a uma nota de serviço (`Nota`).
+A mesma NS pode carregar mais de uma medida, então a chave de cada registro é
+**processo + NS + código** — é por ela que o painel deduplica e descobre o que entrou e o que saiu
+entre duas fotos.
+
+As duas exportações têm o **mesmo layout**, e o que as separa é o **processo**, lido do rodapé
+“Filtros aplicados” da própria planilha (`Processo é Gestão Campo`). Não achando o rodapé, vale o
+nome do arquivo. Por isso os dois arquivos entram de uma vez e viram uma base só, com o processo
+como dimensão e como filtro.
+
+Colunas lidas: `CóMd`, `Nota`, `Status`, `StatUsuár.`, `Iníc/planj`, `Responsável`, `Regional` e
+`Localiz.`. A `Localiz.` vira o polo do painel (`REG-PT` → **PO**, `REG-IT` → **TB**, os outros sete
+são diretos), e a `Regional` confere com a gerência — então o **filtro de escopo do topo vale nas
+três abas** e trocar de aba mantém o recorte.
+
+As telas:
+
+- **Resumo** — medidas em carteira, NS distintas, NS com 2+ medidas, entraram e saíram.
+- **Movimento** — cascata `foto anterior → saíram → entraram → foto atual` e evolução semanal.
+  “Saíram” é o que não aparece mais na exportação: pode ter sido concluída, cancelada ou trocada de
+  processo, e a planilha não diz qual. Está escrito na tela.
+- **Status do usuário** — a tela principal. Colunas por `StatUsuár.`, que abrem em TR, gerência ou
+  processo. A cor separa as **famílias** `ABER` e `ANDM` (o prefixo do código); os sufixos
+  (`PEND`, `SUSP`, `CORE`, `ENVI`, `RTEC`) aparecem como status próprios, cada um na sua coluna.
+- **Rótulo de cada status** — o SAP entrega o código cru. Escreva ao lado o nome que a reunião
+  entende e ele passa a valer no gráfico, nos filtros, na lista e no PDF. Fica salvo no navegador.
+- **Status de prazo** — `EM ATRASO`, `VENCE HOJE`, `VENCE 7 DIAS` e `NO PRAZO`, como o SAP entrega.
+  O painel **não recalcula** isso: a data de vencimento não vem na exportação, só o início
+  planejado, então recalcular seria inventar. O início planejado aparece na lista de detalhe e em
+  mais nada.
+- **NS e medidas** — quantas NS carregam 1, 2, 3 ou mais medidas, quantas medidas vêm de NS
+  compartilhada, e a lista das NS que carregam mais de uma, com os códigos de cada.
+- **Códigos de medida** — ranking por volume, com o número de NS de cada código, e a tabela onde
+  você escreve o **nome de cada medida** (também salvo no navegador).
+- **Polo, gerência e responsável** — volume por cada um, com a variação contra a foto anterior.
+- **Detalhe** — todas as medidas, com filtros de **múltipla escolha** (processo, medida, status,
+  responsável, gerência, polo), busca por NS ou código e ordenação por qualquer coluna. As abas
+  mostram o que entrou, o que saiu e as medidas de NS com 2+ medidas.
+
+Este módulo **não cruza com as guias de inspeção**: a exportação não traz número de equipamento nem
+de guia, então qualquer ligação registro a registro seria invenção.
+
 ## Regras de negócio embutidas
 
 | Estrutura | Definição |
@@ -207,11 +253,27 @@ Prioridade na programação.
 | Execução Regional | Regional - Automação, Regional - Manutenção |
 | NGE-TR | Não Lançado, Regional - RD, Regional - Transporte, Regional - Projetos, Oficina |
 | Demais responsáveis | apresentados individualmente, com o texto da coluna F |
+| `Localiz.` do SAP | REG-PM→PM, REG-PT→PO, REG-BD→BD, REG-UR→UR, REG-AX→AX, REG-FR→FR, REG-UL→UL, REG-AG→AG, REG-IT→TB |
+| Família do `StatUsuár.` | o prefixo: `ABER…` ou `ANDM…` |
+| Chave de uma medida | processo + NS + código (`CóMd`) |
 
 ## Qual versão do arquivo está aberta
 
 O rodapé de qualquer uma das abas começa com **Painel versão dd/mm/aaaa**. Use isso para confirmar
 que o arquivo aberto é o mais recente antes de procurar uma tela nova.
+
+## Como carregar as medidas SAP
+
+Na aba **Medidas SAP**, botão **Carregar dados**: selecione as exportações (`Gestão Campo` e
+`Gestão Equipamento` podem ir juntas). Aceita `.xlsx`, `.xls` e `.csv`.
+
+- Com uma coluna **Semana** ou **Data** no início da planilha (colunas originais de B em diante), a
+  data vale linha a linha e um arquivo acumulado carrega várias coletas de uma vez. Sem ela, vale a
+  data confirmada no painel.
+- A carga repõe apenas os pares **data + processo** presentes no arquivo, então carregar Gestão
+  Campo não apaga Gestão Equipamento da mesma data, e recarregar o mesmo arquivo não duplica nada.
+- O painel lista as fotos carregadas e permite remover qualquer uma. **Apagar base de medidas**
+  limpa os dados e **preserva os rótulos** que você escreveu.
 
 ## Como carregar as guias de execução
 
