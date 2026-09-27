@@ -5824,6 +5824,25 @@ function separaLinha(linha, sep) {
   out.push(cur);
   return out;
 }
+/* separa o texto inteiro de uma vez: um campo entre aspas pode conter quebra de
+   linha — é o caso do campo de observações exportado como texto pelo Excel */
+function matrizDeTexto(texto, sep) {
+  const t = texto.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const linhas = [];
+  let campo = '', linha = [], asp = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (asp) {
+      if (c === '"') { if (t[i + 1] === '"') { campo += '"'; i++; } else asp = false; }
+      else campo += c;
+    } else if (c === '"') asp = true;
+    else if (c === sep) { linha.push(campo); campo = ''; }
+    else if (c === '\n') { linha.push(campo); campo = ''; linhas.push(linha); linha = []; }
+    else campo += c;
+  }
+  if (campo !== '' || linha.length) { linha.push(campo); linhas.push(linha); }
+  return linhas.filter(l => l.some(x => String(x).trim()));
+}
 function detectaSep(linhas) {
   const amostra = linhas.slice(0, 12);
   const conta = s => amostra.reduce((n, l) => n + (l.split(s).length - 1), 0);
@@ -6178,7 +6197,7 @@ let PORSEM_EX = [], ORIGEM_EX = '';
 let PROG = {equipes: [], prog: {}, sem: {}, cfg: {ent: null, conv: 70, tol: 5}};
 
 const CHAVE_EX = 'nge-exec-v1', CHAVE_PROG = 'nge-prog-v1';
-const VERSAO = '26/09/2026';                       /* confere se o arquivo aberto é o mais recente */
+const VERSAO = '27/09/2026';                       /* confere se o arquivo aberto é o mais recente */
 
 function diasEntre(isoA, isoB) {                    /* isoB - isoA, em dias */
   const a = new Date(isoA + 'T00:00:00'), b = new Date(isoB + 'T00:00:00');
@@ -6248,14 +6267,23 @@ function mapeiaCabecalho(linha) {
   });
   return idx;
 }
+/* o cabeçalho das guias: aceita Solicitacao com acento, sufixo ou nº na frente */
+function ehCabecalhoGuia(linha) {
+  const norm = linha.map(c => chaveTexto(c).replace(/[^a-z0-9]+/g, ''));
+  if (norm.some(c => c.indexOf('solicitacao') === 0)) return true;
+  return norm.indexOf('dispositivo') >= 0 && norm.indexOf('cadastro') >= 0;
+}
 function montaExec(matrizes, dataISO) {
   const regs = [], vistos = new Set();
   let ruins = 0, dup = 0, lidas = 0, comColuna = 0;
+  let linhasLidas = 0, primeira = null;
   matrizes.forEach(m => {
     let idx = null;
     m.forEach(linha => {
+      linhasLidas++;
+      if (!primeira && linha.join('').trim()) primeira = linha;
       if (!idx) {
-        if (linha.some(c => chaveTexto(c) === 'solicitacao')) idx = mapeiaCabecalho(linha);
+        if (ehCabecalhoGuia(linha)) idx = mapeiaCabecalho(linha);
         return;
       }
       const v = k => (idx[k] >= 0 && linha[idx[k]] != null) ? String(linha[idx[k]]).trim() : '';
@@ -6280,7 +6308,14 @@ function montaExec(matrizes, dataISO) {
     });
   });
   if (!regs.length) {
-    return {erro: 'Nenhuma guia reconhecida. Confira se o arquivo tem a coluna Solicitacao e a coluna Cadastro com a data.'};
+    if (!linhasLidas) {
+      return {erro: 'O arquivo não tem nenhuma linha legível. Se ele foi aberto e salvo no Excel, ' +
+                    'provavelmente virou .xls binário — salve como .xlsx ou CSV e carregue de novo.'};
+    }
+    const viu = primeira ? primeira.slice(0, 12).map(c => String(c).trim()).filter(Boolean).join(' · ') : '(vazio)';
+    return {erro: `Nenhuma guia reconhecida em ${fmt(linhasLidas)} linha(s) lidas. O painel procura uma linha ` +
+                  `de cabeçalho com a coluna <b>Solicitacao</b> e não achou. A primeira linha com conteúdo era: ` +
+                  `<i>${esc(viu)}</i>`};
   }
   /* cada par data+polo que veio no arquivo é refeito; o resto da base fica como está.
      Assim um arquivo de um polo só não apaga os outros polos daquela data. */
@@ -7948,27 +7983,35 @@ $('#bt-edados').addEventListener('click', () => {
 $('#bt-efechar').addEventListener('click', () => {
   $('#epainel').hidden = true; $('#bt-edados').setAttribute('aria-expanded', 'false');
 });
-function leArquivoExec(arq) {
+/* o que o arquivo é de verdade, pela assinatura — a extensão engana */
+async function formatoReal(arq) {
+  try {
+    const b = new Uint8Array(await arq.slice(0, 8).arrayBuffer());
+    const hex = Array.from(b).map(x => x.toString(16).padStart(2, '0')).join('');
+    if (hex.indexOf('d0cf11e0a1b11ae1') === 0) return 'xls-binario';   /* .xls antigo do Excel */
+    if (hex.indexOf('504b0304') === 0) return 'zip';                    /* .xlsx com outra extensão */
+    if (hex.indexOf('fffe') === 0) return 'utf16le';                    /* "Texto Unicode" do Excel */
+    if (hex.indexOf('feff') === 0) return 'utf16be';
+  } catch (e) {}
+  return 'texto';
+}
+const codifDe = f => f === 'utf16le' ? 'utf-16le' : f === 'utf16be' ? 'utf-16be' : 'utf-8';
+const AVISO_BIN = nome => `<b>${esc(nome)}</b> está salvo como <b>.xls binário</b> (formato antigo do Excel), ` +
+  `que o painel não abre. Isso acontece quando o arquivo é aberto no Excel e salvo de novo. ` +
+  `Abra no Excel e use <b>Salvar como → Pasta de Trabalho do Excel (.xlsx)</b> ou <b>CSV</b>, e carregue de novo.`;
+const AVISO_ZIP = nome => `<b>${esc(nome)}</b> é um arquivo .xlsx com a extensão trocada. ` +
+  `Renomeie para <b>.xlsx</b> e carregue de novo.`;
+
+function leArquivoExec(arq, codificacao) {
   return new Promise((ok, falha) => {
     const nome = arq.name, fr = new FileReader();
     fr.onerror = () => falha(new Error('não foi possível ler ' + nome));
-    if (/\.(xlsx|xlsm)$/i.test(nome)) {
-      fr.onload = () => {
-        try {
-          abreZip(fr.result);
-        } catch (e) { falha(e); return; }
-        leXLSX(fr.result).then(r => ok(r.base ? null : null)).catch(falha);
-      };
-      fr.readAsArrayBuffer(arq);
-      return;
-    }
     fr.onload = () => {
       const t = String(fr.result);
       ok(/<\s*table|<\s*tr\b/i.test(t) ? matrizDeHTML(t)
-         : t.replace(/\r/g, '').split('\n').filter(l => l.trim())
-            .map(l => separaLinha(l, detectaSep(t.split('\n')))));
+         : matrizDeTexto(t, detectaSep(t.split('\n'))));
     };
-    fr.readAsText(arq, 'utf-8');
+    fr.readAsText(arq, codificacao || 'utf-8');
   });
 }
 $('#earq').addEventListener('change', async ev => {
@@ -7980,7 +8023,9 @@ $('#earq').addEventListener('change', async ev => {
   try {
     const mats = [];
     for (const a of arqs) {
-      if (/\.(xlsx|xlsm)$/i.test(a.name)) {
+      const fmtA = await formatoReal(a);
+      if (fmtA === 'xls-binario') { avisoEx(AVISO_BIN(a.name), true); return; }
+      if (fmtA === 'zip' || /\.(xlsx|xlsm)$/i.test(a.name)) {
         const buf = await a.arrayBuffer();
         const zip = abreZip(buf);
         const sst = await extraiZip(zip, 'xl/sharedStrings.xml');
@@ -7991,7 +8036,7 @@ $('#earq').addEventListener('change', async ev => {
           if (x) mats.push(matrizDaAba(x, textos));
         }
       } else {
-        mats.push(await leArquivoExec(a));
+        mats.push(await leArquivoExec(a, codifDe(fmtA)));
       }
     }
     const r = montaExec(mats.filter(Boolean), data);
@@ -8031,14 +8076,16 @@ $('#garq').addEventListener('change', async ev => {
   try {
     const mats = [];
     for (const a of arqs) {
-      if (/\.(xlsx|xlsm)$/i.test(a.name)) {
+      const fmtA = await formatoReal(a);
+      if (fmtA === 'xls-binario') { avisoEx(AVISO_BIN(a.name), true); return; }
+      if (fmtA === 'zip' || /\.(xlsx|xlsm)$/i.test(a.name)) {
         const buf = await a.arrayBuffer(), zip = abreZip(buf);
         const sst = await extraiZip(zip, 'xl/sharedStrings.xml');
         const textos = sst ? porNome(xmlDoc(sst), 'si').map(si => textoDe(si, 't')) : [];
         const abas = Array.from(zip.itens.keys()).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n)).sort();
         for (const ab of abas) { const x = await extraiZip(zip, ab); if (x) mats.push(matrizDaAba(x, textos)); }
       } else {
-        mats.push(await leArquivoExec(a));
+        mats.push(await leArquivoExec(a, codifDe(fmtA)));
       }
     }
     const r = montaGdis(mats.filter(Boolean), data);
@@ -9010,14 +9057,16 @@ $('#marq').addEventListener('change', async ev => {
   try {
     const mats = [];
     for (const a of arqs) {
-      if (/\.(xlsx|xlsm)$/i.test(a.name)) {
+      const fmtA = await formatoReal(a);
+      if (fmtA === 'xls-binario') { avisoMed(AVISO_BIN(a.name), true); return; }
+      if (fmtA === 'zip' || /\.(xlsx|xlsm)$/i.test(a.name)) {
         const buf = await a.arrayBuffer(), zip = abreZip(buf);
         const sst = await extraiZip(zip, 'xl/sharedStrings.xml');
         const textos = sst ? porNome(xmlDoc(sst), 'si').map(si => textoDe(si, 't')) : [];
         const abas = Array.from(zip.itens.keys()).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n)).sort();
         for (const ab of abas) { const x = await extraiZip(zip, ab); if (x) mats.push({m: matrizDaAba(x, textos), nome: a.name}); }
       } else {
-        const m = await leArquivoExec(a);
+        const m = await leArquivoExec(a, codifDe(fmtA));
         if (m) mats.push({m, nome: a.name});
       }
     }
@@ -10008,14 +10057,16 @@ $('#barq').addEventListener('change', async ev => {
     let ultimo = null;
     for (const a of arqs) {
       const mats = [];
-      if (/\.(xlsx|xlsm)$/i.test(a.name)) {
+      const fmtA = await formatoReal(a);
+      if (fmtA === 'xls-binario') { avisoBat(AVISO_BIN(a.name), true); return; }
+      if (fmtA === 'zip' || /\.(xlsx|xlsm)$/i.test(a.name)) {
         const buf = await a.arrayBuffer(), zip = abreZip(buf);
         const sst = await extraiZip(zip, 'xl/sharedStrings.xml');
         const textos = sst ? porNome(xmlDoc(sst), 'si').map(si => textoDe(si, 't')) : [];
         const abas = Array.from(zip.itens.keys()).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n)).sort();
         for (const ab of abas) { const x = await extraiZip(zip, ab); if (x) mats.push(matrizDaAba(x, textos)); }
       } else {
-        const m = await leArquivoExec(a);
+        const m = await leArquivoExec(a, codifDe(fmtA));
         if (m) mats.push(m);
       }
       const r = montaBat(mats.filter(Boolean), a.name);
