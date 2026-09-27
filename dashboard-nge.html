@@ -7995,6 +7995,26 @@ async function formatoReal(arq) {
   } catch (e) {}
   return 'texto';
 }
+/* "Salvar como → Página da Web" do Excel guarda só a casca: os dados vão para
+   uma pasta <nome>_arquivos ao lado, e o arquivo selecionado fica sem nenhuma linha */
+async function cascaWeb(arq) {
+  try {
+    const t = await arq.slice(0, 8192).text();
+    if (!/<\s*frameset|Excel Workbook Frameset/i.test(t)) return null;
+    const m = t.match(/href=["']?([^"'> ]+_arquivos\/sheet\d+\.html?)/i);
+    return m ? m[1] : '(a pasta ao lado do arquivo)';
+  } catch (e) {}
+  return null;
+}
+const AVISO_CASCA = (nome, alvo) => {
+  const pasta = alvo.indexOf('/') > 0 ? alvo.split('/')[0] : alvo;
+  const folha = alvo.indexOf('/') > 0 ? alvo.split('/').pop() : 'sheet001.htm';
+  return `<b>${esc(nome)}</b> foi salvo como <b>Página da Web</b> pelo Excel. Esse formato guarda só a ` +
+    `casca da planilha: os dados foram para a pasta <b>${esc(pasta)}</b>, ao lado do arquivo, e por isso ` +
+    `não há nenhuma linha para ler aqui.<br>São dois caminhos: no Excel, <b>Salvar como → Pasta de ` +
+    `Trabalho do Excel (.xlsx)</b>, que é o recomendado; ou selecionar aqui o arquivo ` +
+    `<b>${esc(folha)}</b> que está dentro dessa pasta, que também funciona.`;
+};
 const codifDe = f => f === 'utf16le' ? 'utf-16le' : f === 'utf16be' ? 'utf-16be' : 'utf-8';
 const AVISO_BIN = nome => `<b>${esc(nome)}</b> está salvo como <b>.xls binário</b> (formato antigo do Excel), ` +
   `que o painel não abre. Isso acontece quando o arquivo é aberto no Excel e salvo de novo. ` +
@@ -8021,10 +8041,12 @@ $('#earq').addEventListener('change', async ev => {
   const data = $('#e-data').value || hojeISO();
   avisoEx('Lendo os arquivos…', false);
   try {
-    const mats = [];
+    const mats = [], cascas = [];
     for (const a of arqs) {
       const fmtA = await formatoReal(a);
       if (fmtA === 'xls-binario') { avisoEx(AVISO_BIN(a.name), true); return; }
+      const cw = fmtA === 'texto' ? await cascaWeb(a) : null;
+      if (cw) { cascas.push([a.name, cw]); continue; }
       if (fmtA === 'zip' || /\.(xlsx|xlsm)$/i.test(a.name)) {
         const buf = await a.arrayBuffer();
         const zip = abreZip(buf);
@@ -8039,8 +8061,13 @@ $('#earq').addEventListener('change', async ev => {
         mats.push(await leArquivoExec(a, codifDe(fmtA)));
       }
     }
+    if (!mats.length && cascas.length) { avisoEx(AVISO_CASCA(cascas[0][0], cascas[0][1]), true); return; }
     const r = montaExec(mats.filter(Boolean), data);
-    if (r.erro) { avisoEx(`<b>Não foi possível carregar.</b><br>${esc(r.erro)}`, true); return; }
+    if (r.erro) {
+      avisoEx(`<b>Não foi possível carregar.</b><br>${r.erro}` +
+              (cascas.length ? '<br>' + AVISO_CASCA(cascas[0][0], cascas[0][1]) : ''), true);
+      return;
+    }
     EX = r.base; ORIGEM_EX = 'dos arquivos ' + arqs.map(a => a.name).join(', ');
     indexaEx();
     const ultima = r.datas[r.datas.length - 1];
@@ -8074,10 +8101,12 @@ $('#garq').addEventListener('change', async ev => {
   const data = $('#e-data').value || hojeISO();
   avisoEx('Lendo os executados…', false);
   try {
-    const mats = [];
+    const mats = [], cascas = [];
     for (const a of arqs) {
       const fmtA = await formatoReal(a);
       if (fmtA === 'xls-binario') { avisoEx(AVISO_BIN(a.name), true); return; }
+      const cw = fmtA === 'texto' ? await cascaWeb(a) : null;
+      if (cw) { cascas.push([a.name, cw]); continue; }
       if (fmtA === 'zip' || /\.(xlsx|xlsm)$/i.test(a.name)) {
         const buf = await a.arrayBuffer(), zip = abreZip(buf);
         const sst = await extraiZip(zip, 'xl/sharedStrings.xml');
@@ -8088,8 +8117,13 @@ $('#garq').addEventListener('change', async ev => {
         mats.push(await leArquivoExec(a, codifDe(fmtA)));
       }
     }
+    if (!mats.length && cascas.length) { avisoEx(AVISO_CASCA(cascas[0][0], cascas[0][1]), true); return; }
     const r = montaGdis(mats.filter(Boolean), data);
-    if (r.erro) { avisoEx(`<b>Não foi possível carregar os executados.</b><br>${esc(r.erro)}`, true); return; }
+    if (r.erro) {
+      avisoEx(`<b>Não foi possível carregar os executados.</b><br>${esc(r.erro)}` +
+              (cascas.length ? '<br>' + AVISO_CASCA(cascas[0][0], cascas[0][1]) : ''), true);
+      return;
+    }
     GD = r.base; ORIGEM_GD = 'de ' + arqs.map(a => a.name).join(', ');
     semData = r.semData;
     guardaGd(); montaControlesEx(); render();
@@ -9055,10 +9089,12 @@ $('#marq').addEventListener('change', async ev => {
   const data = $('#m-data').value || hojeISO();
   avisoMed('Lendo as medidas…', false);
   try {
-    const mats = [];
+    const mats = [], cascas = [];
     for (const a of arqs) {
       const fmtA = await formatoReal(a);
       if (fmtA === 'xls-binario') { avisoMed(AVISO_BIN(a.name), true); return; }
+      const cw = fmtA === 'texto' ? await cascaWeb(a) : null;
+      if (cw) { cascas.push([a.name, cw]); continue; }
       if (fmtA === 'zip' || /\.(xlsx|xlsm)$/i.test(a.name)) {
         const buf = await a.arrayBuffer(), zip = abreZip(buf);
         const sst = await extraiZip(zip, 'xl/sharedStrings.xml');
@@ -9070,8 +9106,13 @@ $('#marq').addEventListener('change', async ev => {
         if (m) mats.push({m, nome: a.name});
       }
     }
+    if (!mats.length && cascas.length) { avisoMed(AVISO_CASCA(cascas[0][0], cascas[0][1]), true); return; }
     const r = montaMed(mats.filter(x => x && x.m), data);
-    if (r.erro) { avisoMed(`<b>Não foi possível carregar.</b><br>${esc(r.erro)}`, true); return; }
+    if (r.erro) {
+      avisoMed(`<b>Não foi possível carregar.</b><br>${esc(r.erro)}` +
+               (cascas.length ? '<br>' + AVISO_CASCA(cascas[0][0], cascas[0][1]) : ''), true);
+      return;
+    }
     MED = r.base; ORIGEM_MED = 'dos arquivos ' + arqs.map(a => a.name).join(', ');
     indexaMed();
     const ultima = r.datas[r.datas.length - 1];
@@ -10059,6 +10100,8 @@ $('#barq').addEventListener('change', async ev => {
       const mats = [];
       const fmtA = await formatoReal(a);
       if (fmtA === 'xls-binario') { avisoBat(AVISO_BIN(a.name), true); return; }
+      const cw = fmtA === 'texto' ? await cascaWeb(a) : null;
+      if (cw) { avisoBat(AVISO_CASCA(a.name, cw), true); return; }
       if (fmtA === 'zip' || /\.(xlsx|xlsm)$/i.test(a.name)) {
         const buf = await a.arrayBuffer(), zip = abreZip(buf);
         const sst = await extraiZip(zip, 'xl/sharedStrings.xml');

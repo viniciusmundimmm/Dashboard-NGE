@@ -333,9 +333,14 @@ Regras que valem para as quatro:
 - **O formato é reconhecido pelo conteúdo, não pela extensão.** Um `.xlsx` salvo com o nome `.xls`
   abre normalmente, e o mesmo vale para “Texto Unicode” (UTF-16) e CSV. Campo entre aspas com
   quebra de linha dentro — o caso do campo de observações — é lido inteiro.
-- **O único formato que não abre é o `.xls` binário** (“Pasta de Trabalho do Excel 97-2003”). Se
-  você abrir o arquivo no Excel para acrescentar a coluna de data e salvar nesse formato, o painel
-  avisa e diz o que fazer: salvar como **.xlsx** ou **CSV**.
+- **Ao acrescentar a coluna de data, salve como `.xlsx`.** Os arquivos do sistema (`AbertoTR`,
+  `AndamentoTR`) são tabelas HTML com extensão `.xls`; ao editá-los no Excel, dois formatos de
+  saída quebram a leitura, e o painel reconhece os dois e explica o que fazer:
+  - **Pasta de Trabalho do Excel 97-2003 (`.xls` binário)** — formato proprietário antigo, que o
+    painel não abre.
+  - **Página da Web (`.htm`)** — guarda só a casca: os dados vão para uma pasta
+    `<nome>_arquivos` ao lado, e o arquivo selecionado fica sem nenhuma linha. Nesse caso dá para
+    carregar direto o `sheet001.htm` de dentro dessa pasta, que funciona.
 - **Um arquivo por polo ou um só com todos dá no mesmo** nas guias e nas medidas, porque a reposição
   é por data + polo e por data + processo.
 - **Antes da reunião**, confira o rodapé: ele diz a origem, a quantidade de registros e as datas de
