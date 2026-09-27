@@ -9079,7 +9079,7 @@ const DEPARA_PADRAO = {
   'Altere_V3_T': {q: 2, t: '12V 12Ah'}, 'Altere_V3': {q: 2, t: '12V 12Ah'}, 'Altere_V3_M': {q: 2, t: '12V 12Ah'},
   'Altere_V2': {q: 2, t: '12V 12Ah'}, 'Altere_V3-I_M05': {q: 2, t: '12V 12Ah'},
   'Altere': {q: 2, t: '12V 12Ah', sup: 1},
-  'AR-1000': {q: 2, t: '12V 12Ah'}, 'Form-6': {q: 2, t: '12V 12Ah'}, 'Form-5': {q: 2, t: '12V 12Ah'},
+  'AR-1000': {q: 2, t: '12V 18Ah'}, 'Form-6': {q: 2, t: '12V 12Ah'}, 'Form-5': {q: 2, t: '12V 12Ah'},
   'Nova': {q: 2, t: '12V 12Ah'}, 'PCD-2000': {q: 6, t: '12V 12Ah'},
   'ADVC2': {q: 2, t: '12V 7Ah'}, 'ADVC-Comp-Flex': {q: 2, t: '12V 7Ah'},
   'PTCC-TRO NULEC': {q: 2, t: '12V 7Ah'}, 'RUA-Nobreak': {q: 3, t: '12V 7Ah'}
@@ -9120,7 +9120,7 @@ const tiposBateria = () => {
 };
 /* cada tipo de bateria é um item de compra diferente, então a cor é de identidade,
    na ordem da capacidade para a legenda ficar estável */
-const COR_TIPO_BAT = [COR.s2, COR.s1, COR.s3, '#eb6834', '#4a3aa7', '#008300'];
+const COR_TIPO_BAT = [COR.s2, COR.s1, COR.s3, '#eda100', '#0d366b', '#e87ba4'];
 function corTipoBat(t) {
   const i = tiposBateria().indexOf(t);
   return i >= 0 ? COR_TIPO_BAT[i % COR_TIPO_BAT.length] : COR.t3;

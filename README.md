@@ -309,6 +309,34 @@ As telas:
 | Bateria sem data | conta como vencida, por falta de atualização do cadastro |
 | Chave de um religador | série + dispositivo |
 
+## Rotina semanal
+
+Toda semana, na mesma ordem. O escopo (gerência e polo) do topo vale para as quatro abas, então
+escolha o recorte uma vez e ele acompanha a troca de aba.
+
+| # | Aba | Arquivo | Modelo de atualização | Como a comparação funciona |
+|---|---|---|---|---|
+| 1 | **Indisponibilidade** | a planilha única, com a semana na coluna A | substitui a base inteira | duas datas da coluna A, escolhidas nos seletores |
+| 2 | **Execução** · guias | `AbertoTR` + `AndamentoTR`, data da coleta na coluna A | repõe os pares **data + polo** do arquivo | foto atual × foto anterior |
+| 3 | **Execução** · executados | arquivo único acumulado do G-DIS OP | acrescenta, ignorando repetidos | janela entre as duas fotos de guias |
+| 4 | **Medidas SAP** | Gestão Campo + Gestão Equipamento, data na coluna A | repõe os pares **data + processo** | foto atual × foto anterior |
+| 5 | **Baterias** | cadastro de religadores | cada carga vira um arquivo novo | dois arquivos escolhidos nos seletores |
+
+Regras que valem para as quatro:
+
+- **Recarregar o mesmo arquivo não duplica nada.** Cada módulo tem a sua chave: equipamento
+  (indisponibilidade), solicitação (guias), serviço + data + equipamento (executados), processo +
+  NS + código (medidas), série + dispositivo (baterias).
+- **Não é preciso arrumar a planilha.** Cabeçalho fora da primeira linha, célula mesclada, várias
+  abas, `.xls` que é tabela HTML, data como número de série do Excel e acento no nome da coluna já
+  são tratados.
+- **Um arquivo por polo ou um só com todos dá no mesmo** nas guias e nas medidas, porque a reposição
+  é por data + polo e por data + processo.
+- **Antes da reunião**, confira o rodapé: ele diz a origem, a quantidade de registros e as datas de
+  cada base carregada.
+- **Tudo fica guardado no navegador daquela máquina.** Trocar de computador ou limpar os dados do
+  navegador zera o histórico, a programação e as anotações.
+
 ## Qual versão do arquivo está aberta
 
 O rodapé de qualquer uma das abas começa com **Painel versão dd/mm/aaaa**. Use isso para confirmar
