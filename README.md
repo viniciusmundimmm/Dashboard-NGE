@@ -10,6 +10,8 @@ São dois ambientes, escolhidos pelas abas do topo:
   `AbertoTR` e `AndamentoTR`.
 - **Medidas SAP** — o volume de demandas em carteira que dá origem às guias, a partir das
   exportações de medidas do SAP (`Gestão Campo` e `Gestão Equipamento`).
+- **Baterias** — o passivo de baterias vencidas dos religadores e quantas comprar, a partir do
+  cadastro de religadores.
 
 O escopo (gerência e polo) acompanha a troca de ambiente. Cada ambiente tem sua semana, seus
 filtros e suas anotações; as imagens da Visão geral e o relatório em PDF são comuns aos dois.
@@ -242,6 +244,52 @@ As telas:
 Este módulo **não cruza com as guias de inspeção**: a exportação não traz número de equipamento nem
 de guia, então qualquer ligação registro a registro seria invenção.
 
+## Ambiente Baterias
+
+A pergunta do módulo não é o percentual vencido: é **quantas baterias comprar**. Cada linha da
+exportação é um religador; o que vira pedido é a **bateria**, e cada modelo de relé leva de 1 a 6
+unidades — por isso o número de baterias é sempre bem maior que o de religadores.
+
+Colunas lidas: `N_Serie`, `Fabricante`, `Modelo`, `Dispositivo`, `Conjunto`, `Data baterias` e
+`Gerência`. O conjunto vira o polo tirando o **T** da frente (`TFR` → FR, `TPM` → PM), então o
+filtro de escopo do topo vale nas quatro abas.
+
+**As duas regras que definem o passivo:**
+
+1. A bateria vence **2 anos** depois da data em `Data baterias`. Regra fixa.
+2. Linha **sem data legível conta como vencida**, por falta de atualização do cadastro. Isso infla o
+   passivo de propósito, para não esconder risco, e a faixa aparece separada em todas as telas.
+
+**Sem série de fotos semanais.** Cada carga entra como um arquivo; a comparação é entre dois
+arquivos e responde só uma coisa: *avançou?*. A chave é **série + dispositivo** — a mesma série
+aparece em equipamentos diferentes no cadastro, então só a série não serve.
+
+As telas:
+
+- **Resumo** — baterias a comprar, religadores vencidos, passivo, o que vence no horizonte, trocadas.
+- **Plano de compra** — por tipo de bateria: passivo, o que vence dentro do horizonte, total e
+  quantas por mês. O **horizonte é editável** (1 a 36 meses): é a resposta para "em quanto tempo
+  quero zerar o passivo".
+- **Curva de vencimento** — quantas baterias vencem em cada um dos próximos 24 meses, para o pedido
+  não ser dimensionado duas vezes. O acumulado fica na tabela.
+- **Passivo por polo/gerência** e **idade da bateria**, em faixas.
+- **Vencimento por modelo de relé** — % vencido de cada modelo, com a bateria que ele usa ao lado.
+  Mostra quando o problema é de lote ou fabricante, e não só de idade.
+- **Avanço** — entre dois arquivos: trocadas, quantas venceram no intervalo, datas preenchidas,
+  variação do passivo, e a lista das trocas com data anterior × atual.
+- **Cruzamento** — pelo número do dispositivo: bateria vencida que também está indisponível no
+  SCADA, que tem guia aberta (e quantas dessas são guias do tipo `Indisponível - …`), e as que estão
+  **sem tratamento nenhum**.
+- **De-para de baterias** — quantas unidades e de que tipo cada modelo leva. Já vem com o que a
+  engenharia informou; o que você escrever vale por cima e fica salvo no navegador. Modelo sem
+  de-para **não entra na conta de compra** e aparece em vermelho, para o número nunca ficar menor do
+  que deveria sem aviso.
+- **Divergências de cadastro** — sem data, fabricante fora do esperado para o modelo, dispositivo
+  repetido, data no futuro, data anterior a 2010, sem número de dispositivo e conjunto fora do
+  Triângulo. É a lista de correção da base.
+- **Detalhe** — todos os religadores, com filtros de múltipla escolha e abas para vencidas, sem data
+  e trocadas.
+
 ## Regras de negócio embutidas
 
 | Estrutura | Definição |
@@ -256,11 +304,23 @@ de guia, então qualquer ligação registro a registro seria invenção.
 | `Localiz.` do SAP | REG-PM→PM, REG-PT→PO, REG-BD→BD, REG-UR→UR, REG-AX→AX, REG-FR→FR, REG-UL→UL, REG-AG→AG, REG-IT→TB |
 | Família do `StatUsuár.` | o prefixo: `ABER…` ou `ANDM…` |
 | Chave de uma medida | processo + NS + código (`CóMd`) |
+| `Conjunto` do cadastro | o polo sem o T da frente: TFR→FR, TPM→PM, TTB→TB |
+| Vida útil da bateria | 24 meses a partir de `Data baterias` |
+| Bateria sem data | conta como vencida, por falta de atualização do cadastro |
+| Chave de um religador | série + dispositivo |
 
 ## Qual versão do arquivo está aberta
 
 O rodapé de qualquer uma das abas começa com **Painel versão dd/mm/aaaa**. Use isso para confirmar
 que o arquivo aberto é o mais recente antes de procurar uma tela nova.
+
+## Como carregar as baterias
+
+Na aba **Baterias**, botão **Carregar dados**, e selecione o cadastro de religadores. Aceita
+`.xls` (inclusive o `.xls` que é tabela HTML), `.xlsx` e `.csv`. Cada carga vira um arquivo na
+base, identificado pelo nome e pela data em que foi carregado; escolha dois nos seletores do topo
+para ver o avanço. O painel lista os arquivos e permite remover qualquer um. **Apagar base de
+baterias** limpa os dados e **preserva o de-para** que você ajustou.
 
 ## Como carregar as medidas SAP
 

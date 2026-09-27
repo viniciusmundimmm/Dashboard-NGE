@@ -135,6 +135,10 @@
   #md-ns .plot{max-width:640px}
   #md-prazo .plot{max-width:660px}
   #md-cod .plot{max-width:800px}
+  #bt-idade .plot,#bt-mod .plot{max-width:840px}
+  .dep-in{border:1px solid var(--linha);border-radius:6px;padding:3px 7px;font:inherit;font-size:12.5px;
+    background:var(--papel);color:var(--tinta);width:100%;min-width:0}
+  .dep-in:focus{outline:2px solid var(--verde-forte);outline-offset:-1px}
   table.dt th.cel-rot,table.dt td.cel-rot{min-width:220px;text-align:left}
   .rot-in{width:100%;min-width:180px;border:1px solid var(--linha);border-radius:6px;
     padding:3px 7px;font:inherit;font-size:12.5px;background:var(--papel);color:var(--tinta)}
@@ -504,7 +508,10 @@
     .plot{max-height:57mm}
     #rcol .plot{max-height:74mm}
     /* rankings e ritmo são listas: a altura acompanha o número de linhas */
-    #gd-corpo .plot,#md-cod .plot,#md-ns .plot,#md-prazo .plot{max-height:none}
+    #gd-corpo .plot,#md-cod .plot,#md-ns .plot,#md-prazo .plot,
+    #bt-mod .plot,#bt-idade .plot,#bt-curva .plot{max-height:none}
+    #sec-bdetalhe .card,#sec-bavanco .card,#sec-bcruz .card{break-inside:auto;page-break-inside:auto}
+    .dep-in{border:none;background:#fff;padding:0}
     #sec-mdetalhe .card{break-inside:auto;page-break-inside:auto}
     .rot-in{border:none;background:#fff;padding:0}
     #sec-gdis .card{break-inside:auto;page-break-inside:auto}
@@ -569,6 +576,7 @@
       <button class="amb" role="tab" data-amb="indisp" aria-selected="true">Indisponibilidade</button>
       <button class="amb" role="tab" data-amb="exec" aria-selected="false">Execução</button>
       <button class="amb" role="tab" data-amb="med" aria-selected="false">Medidas SAP</button>
+      <button class="amb" role="tab" data-amb="bat" aria-selected="false">Baterias</button>
     </nav>
     <div class="periodo">
       <span class="pill" id="pill-ant">—</span>
@@ -1169,6 +1177,159 @@
     </section>
   </div>
 </div><!-- /amb-med -->
+
+<div class="ambiente" id="amb-bat" hidden>
+
+  <div class="filtros">
+    <div class="filtros-in">
+      <div class="campo" style="min-width:210px"><label for="b-foto">Arquivo</label><select id="b-foto"></select></div>
+      <div class="campo" style="min-width:210px"><label for="b-comp">Comparar com</label><select id="b-comp"></select></div>
+      <div class="campo"><label for="b-ger">Gerência</label><select id="b-ger"></select></div>
+      <div class="campo"><label for="b-polo">Polo</label><select id="b-polo"></select></div>
+      <div class="campo" style="min-width:180px"><label for="b-fmod">Modelo</label><select id="b-fmod"></select></div>
+      <div class="campo" style="min-width:160px"><label for="b-ftipo">Tipo de bateria</label><select id="b-ftipo"></select></div>
+      <button class="btn" id="b-limpa" type="button">Limpar filtros</button>
+      <button class="btn" id="bt-bdados" type="button" aria-expanded="false">Carregar dados</button>
+    </div>
+  </div>
+
+  <div class="painel card" id="bpainel" hidden>
+    <p class="ph">
+      Selecione a exportação de religadores como ela sai do sistema. São lidas as colunas
+      <b>N_Serie</b>, <b>Fabricante</b>, <b>Modelo</b>, <b>Dispositivo</b>, <b>Conjunto</b>,
+      <b>Data baterias</b> e <b>Gerência</b>. O conjunto vira o polo tirando o <b>T</b> da frente
+      (TFR → FR, TPM → PM). A bateria vence <b>2 anos</b> depois da data da coluna
+      <b>Data baterias</b>; linha <b>sem data legível conta como vencida</b>, por falta de atualização
+      do cadastro. Cada carga entra como um arquivo novo, e a comparação entre dois arquivos mostra
+      o que foi trocado.
+    </p>
+    <div class="painel-acoes" style="align-items:flex-end">
+      <div class="carga">
+        <span class="carga-rot">Cadastro de religadores</span>
+        <label class="btn forte" for="barq">Selecionar arquivo</label>
+        <input type="file" id="barq" accept=".xls,.xlsx,.htm,.html,.csv,.txt" multiple hidden>
+      </div>
+      <button class="btn" id="bt-bexemplo" type="button">Carregar exemplo</button>
+      <button class="btn" id="bt-bapaga" type="button">Apagar base de baterias</button>
+      <button class="btn" id="bt-bfechar" type="button" style="margin-left:auto">Fechar</button>
+    </div>
+    <div id="bmsg"></div>
+    <div id="b-fotos" class="lista-semanas"></div>
+  </div>
+
+  <div class="vazio-mod" id="b-vazio" hidden>
+    <b>Nenhum cadastro carregado.</b>
+    Clique em <b>Carregar dados</b>, no alto da página, e selecione a exportação de religadores.
+    Para conhecer as telas antes de ter o arquivo real, use <b>Carregar exemplo</b>.
+  </div>
+
+  <div id="b-corpo">
+    <section class="secao">
+      <h2>Resumo</h2>
+      <div class="kpis" id="bt-kpis"></div>
+    </section>
+
+    <section class="secao">
+      <h2>Plano de compra</h2>
+      <div class="card">
+        <div class="card-hd"><h3>Quantas baterias comprar</h3><span class="sub" id="bt-sub-plano"></span>
+          <div class="param-linha" style="margin:0 0 0 auto;padding:0;border:none;background:none">
+            <label>Zerar o passivo em <input id="b-horiz" type="number" min="1" max="36" step="1"> meses</label>
+          </div>
+        </div>
+        <div id="bt-plano"></div>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2>Vencimento</h2>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-hd"><h3>Curva de vencimento</h3><span class="sub" id="bt-sub-curva"></span>
+          <div class="tools"><button class="tbtn" data-tab="bt-curva" aria-pressed="false">Tabela</button></div></div>
+        <div id="bt-curva"></div>
+      </div>
+      <div class="grade g-2">
+        <div class="card">
+          <div class="card-hd"><h3 id="bt-tit-polo">Passivo por gerência</h3><span class="sub" id="bt-sub-polo"></span>
+            <div class="tools"><button class="tbtn" data-tab="bt-polo" aria-pressed="false">Tabela</button></div></div>
+          <div id="bt-polo"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><h3>Idade da bateria</h3><span class="sub" id="bt-sub-idade"></span>
+            <div class="tools"><button class="tbtn" data-tab="bt-idade" aria-pressed="false">Tabela</button></div></div>
+          <div id="bt-idade"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2>Modelos</h2>
+      <div class="card">
+        <div class="card-hd"><h3>Vencimento por modelo de relé</h3><span class="sub" id="bt-sub-mod"></span>
+          <div class="tools"><button class="tbtn" data-tab="bt-mod" aria-pressed="false">Tabela</button></div></div>
+        <div id="bt-mod"></div>
+      </div>
+    </section>
+
+    <section class="secao" id="sec-bavanco">
+      <h2>Avanço</h2>
+      <div class="card">
+        <div class="card-hd"><h3>O que mudou de um arquivo para o outro</h3><span class="sub" id="bt-sub-av"></span></div>
+        <div id="bt-avanco"></div>
+      </div>
+    </section>
+
+    <section class="secao" id="sec-bcruz">
+      <h2>Cruzamento</h2>
+      <div class="card">
+        <div class="card-hd"><h3>Bateria vencida × indisponibilidade e guias</h3><span class="sub" id="bt-sub-cruz"></span></div>
+        <div id="bt-cruz"></div>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2>De-para de baterias</h2>
+      <div class="card">
+        <div class="card-hd"><h3>Qual bateria cada modelo usa</h3><span class="sub" id="bt-sub-dep"></span></div>
+        <div id="bt-depara"></div>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2>Divergências de cadastro</h2>
+      <div class="card">
+        <div class="card-hd"><h3>O que precisa de correção na base</h3><span class="sub" id="bt-sub-div"></span></div>
+        <div id="bt-div"></div>
+      </div>
+    </section>
+
+    <section class="secao" id="sec-bdetalhe">
+      <h2>Detalhe</h2>
+      <div class="card">
+        <div class="card-hd">
+          <h3 id="bt-det-tit">Todos os religadores</h3><span class="sub" id="bt-det-sub"></span>
+          <div class="abas" role="tablist">
+            <button class="aba" role="tab" data-bdet="venc" aria-selected="true">Vencidas</button>
+            <button class="aba" role="tab" data-bdet="todos" aria-selected="false">Todos</button>
+            <button class="aba" role="tab" data-bdet="sd" aria-selected="false">Sem data</button>
+            <button class="aba" role="tab" data-bdet="troc" aria-selected="false">Trocadas</button>
+          </div>
+        </div>
+        <div class="filtros-lista">
+          <div class="campo"><label>Modelo</label><div class="msel" id="bt-mod-f" data-campo="bMod" data-rot="Todos os modelos"></div></div>
+          <div class="campo"><label>Fabricante</label><div class="msel" id="bt-fab-f" data-campo="bFab" data-rot="Todos os fabricantes"></div></div>
+          <div class="campo"><label>Tipo de bateria</label><div class="msel" id="bt-tipo-f" data-campo="bTipo" data-rot="Todos os tipos"></div></div>
+          <div class="campo"><label>Gerência</label><div class="msel" id="bt-ger-f" data-campo="bGer" data-rot="Todas as gerências"></div></div>
+          <div class="campo"><label>Polo</label><div class="msel" id="bt-polo-f" data-campo="bPolo" data-rot="Todos os polos"></div></div>
+          <div class="campo"><label for="bt-busca">Série ou dispositivo</label><input id="bt-busca" type="search" placeholder="número" autocomplete="off"></div>
+          <button class="btn" id="bt-limpa-lista" type="button">Limpar lista</button>
+          <span class="conta" id="bt-conta"></span>
+        </div>
+        <div id="bt-det"></div>
+      </div>
+    </section>
+  </div>
+</div><!-- /amb-bat -->
 
   <section class="secao" id="sec-visao">
     <h2>Visão geral</h2>
@@ -5366,7 +5527,8 @@ function pintaAnotacoes() {
   $('#sec-visao').classList.toggle('vazia', !EVID.length);
   $('#sec-notas').classList.toggle('vazia', !eqs.length && !NOTA_GERAL.trim());
   $('#sec-notas').querySelector('h2').textContent =
-    AMB === 'exec' ? 'Anotações · execução' : AMB === 'med' ? 'Anotações · medidas SAP' : 'Anotações · indisponibilidade';
+    AMB === 'exec' ? 'Anotações · execução' : AMB === 'med' ? 'Anotações · medidas SAP'
+    : AMB === 'bat' ? 'Anotações · baterias' : 'Anotações · indisponibilidade';
 }
 function adicionaImagem(arq) {
   if (!arq || !/^image\//.test(arq.type)) return;
@@ -5480,7 +5642,12 @@ $('#mi-ok').addEventListener('click', () => {
    RENDER
    ============================================================ */
 let AMB = 'indisp';
-function render() { if (AMB === 'exec') renderEx(); else if (AMB === 'med') renderMed(); else renderIndisp(); }
+function render() {
+  if (AMB === 'exec') renderEx();
+  else if (AMB === 'med') renderMed();
+  else if (AMB === 'bat') renderBat();
+  else renderIndisp();
+}
 function renderIndisp() {
   const mB = fatia(st.b), mA = fatia(st.a);
   const novos = [], reg = [];
@@ -5672,13 +5839,13 @@ function leData(v) {
   if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) {
     const a = +m[1], mo = +m[2], d = +m[3];
     return (mo >= 1 && mo <= 12 && d >= 1 && d <= 31)
-      ? `${a}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}` : null;
+      ? `${String(a).padStart(4, '0')}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}` : null;
   }
   if ((m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/))) {
     const d = +m[1], mo = +m[2]; let a = +m[3];
     if (a < 100) a += 2000;
     return (mo >= 1 && mo <= 12 && d >= 1 && d <= 31)
-      ? `${a}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}` : null;
+      ? `${String(a).padStart(4, '0')}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}` : null;
   }
   if (/^\d{5}(\.\d+)?$/.test(s)) {                       /* número de série do Excel */
     const dt = new Date(Date.UTC(1899, 11, 30) + Math.round(parseFloat(s)) * 86400000);
@@ -7634,7 +7801,8 @@ function trocaAmbiente(a) {
   $('#amb-indisp').hidden = a !== 'indisp';
   $('#amb-exec').hidden = a !== 'exec';
   $('#amb-med').hidden = a !== 'med';
-  montaControles(); montaControlesEx(); montaControlesMed();
+  $('#amb-bat').hidden = a !== 'bat';
+  montaControles(); montaControlesEx(); montaControlesMed(); montaControlesBat();
   render();
   window.scrollTo({top: 0});
 }
@@ -8883,6 +9051,995 @@ $('#marq').addEventListener('change', async ev => {
   }
 });
 
+
+/* ============================================================
+   BATERIAS — base, leitura e telas
+   ============================================================ */
+const BF = 0, BSER = 1, BMOD = 2, BFAB = 3, BDISP = 4, BPOLO = 5, BDATA = 6, BVINC = 7;
+const CHAVE_BAT = 'nge-bat-v1', CHAVE_BDEP = 'nge-bat-depara-v1';
+const VIDA_BAT = 24;                    /* meses até vencer — regra fixa de 2 anos */
+
+/* conjunto do cadastro -> polo do painel (TFR → FR e assim por diante) */
+function poloDeConjunto(c) {
+  const k = chaveTexto(c).replace(/[^a-z0-9]/g, '').toUpperCase();
+  if (!k) return '—';
+  const semT = k.length > 1 && k[0] === 'T' ? k.slice(1) : k;
+  const todos = [].concat.apply([], Object.keys(MAPA_GERENCIA).map(g => MAPA_GERENCIA[g]));
+  if (todos.indexOf(semT) >= 0) return semT;
+  if (todos.indexOf(k) >= 0) return k;
+  return c || '—';
+}
+/* de-para informado pela engenharia; sup = presumido pela família, confirmar */
+const DEPARA_PADRAO = {
+  'RC-Tel-05K': {q: 1, t: '12V 26Ah'}, 'RC-Tel-05E': {q: 1, t: '12V 26Ah'}, 'RC-5_4': {q: 1, t: '12V 26Ah'},
+  'RC-10ES': {q: 1, t: '12V 26Ah'}, 'RC-01ES': {q: 1, t: '12V 26Ah'}, 'RC-10ES-CEM': {q: 1, t: '12V 26Ah'},
+  'RC-10ES-CEM-VAR1': {q: 1, t: '12V 26Ah', sup: 1},
+  'R550': {q: 1, t: '12V 26Ah'}, 'ETR-300-R': {q: 1, t: '12V 26Ah'}, 'EPR-2': {q: 1, t: '12V 26Ah'},
+  'WSDT-8000-X': {q: 1, t: '12V 26Ah'},
+  'Altere_V3_T': {q: 2, t: '12V 12Ah'}, 'Altere_V3': {q: 2, t: '12V 12Ah'}, 'Altere_V3_M': {q: 2, t: '12V 12Ah'},
+  'Altere_V2': {q: 2, t: '12V 12Ah'}, 'Altere_V3-I_M05': {q: 2, t: '12V 12Ah'},
+  'Altere': {q: 2, t: '12V 12Ah', sup: 1},
+  'AR-1000': {q: 2, t: '12V 12Ah'}, 'Form-6': {q: 2, t: '12V 12Ah'}, 'Form-5': {q: 2, t: '12V 12Ah'},
+  'Nova': {q: 2, t: '12V 12Ah'}, 'PCD-2000': {q: 6, t: '12V 12Ah'},
+  'ADVC2': {q: 2, t: '12V 7Ah'}, 'ADVC-Comp-Flex': {q: 2, t: '12V 7Ah'},
+  'PTCC-TRO NULEC': {q: 2, t: '12V 7Ah'}, 'RUA-Nobreak': {q: 3, t: '12V 7Ah'}
+};
+/* fabricante esperado de cada modelo, para apontar erro de cadastro */
+const FAB_ESPERADO = {
+  'RC-Tel-05K': 'Tavrida', 'RC-Tel-05E': 'Tavrida', 'RC-5_4': 'Tavrida',
+  'RC-10ES': 'Noja', 'RC-01ES': 'Noja', 'RC-10ES-CEM': 'Noja', 'RC-10ES-CEM-VAR1': 'Noja',
+  'Altere_V3_T': 'Lupa', 'Altere_V3': 'Lupa', 'Altere_V3_M': 'Lupa', 'Altere_V2': 'Lupa', 'Altere': 'Lupa',
+  'Altere_V3-I_M05': 'Romagnole', 'AR-1000': 'Ecil',
+  'ADVC2': 'Schneider', 'ADVC-Comp-Flex': 'Schneider', 'Accio-SD': 'Schneider',
+  'Form-6': 'Cooper', 'Form-5': 'Cooper', 'Nova': 'Cooper',
+  'R550': 'Ampera', 'PTCC-TRO NULEC': 'Nulec', 'RUA-Nobreak': 'TAP', 'PCD-2000': 'ABB',
+  'ETR-300-R': 'ENTEC', 'EPR-2': 'ENTEC', 'WSDT-8000-X': 'WASION', 'TB-R800A': 'Toshiba'
+};
+const chaveMod = m => chaveTexto(m).replace(/[^a-z0-9]/g, '');
+const IDX_DEP = {}, IDX_FAB = {};
+Object.keys(DEPARA_PADRAO).forEach(k => IDX_DEP[chaveMod(k)] = k);
+Object.keys(FAB_ESPERADO).forEach(k => IDX_FAB[chaveMod(k)] = FAB_ESPERADO[k]);
+
+let BAT = {fotos: [], modelos: [], fabs: [], polos: [], linhas: []};
+let BDEP = {};                          /* ajustes do usuário sobre o padrão */
+let ORIGEM_BAT = '';
+const bx = {b: 0, a: -1, mod: '', tipo: '', det: 'venc', horiz: 12, dBusca: '', dOrd: {col: 'dias', dir: -1}};
+
+/* o de-para em uso: padrão + o que o usuário escreveu */
+function depDe(modelo) {
+  const k = chaveMod(modelo);
+  if (BDEP[k]) return BDEP[k];
+  const p = IDX_DEP[k];
+  return p ? DEPARA_PADRAO[p] : null;
+}
+const tiposBateria = () => {
+  const s = new Set();
+  BAT.modelos.forEach(m => { const d = depDe(m); if (d && d.t) s.add(d.t); });
+  const ah = t => { const m = String(t).match(/(\d+(?:[.,]\d+)?)\s*a\s*h/i); return m ? parseFloat(m[1].replace(',', '.')) : 0; };
+  return Array.from(s).sort((a, b) => ah(b) - ah(a) || a.localeCompare(b, 'pt-BR'));
+};
+/* cada tipo de bateria é um item de compra diferente, então a cor é de identidade,
+   na ordem da capacidade para a legenda ficar estável */
+const COR_TIPO_BAT = [COR.s2, COR.s1, COR.s3, '#eb6834', '#4a3aa7', '#008300'];
+function corTipoBat(t) {
+  const i = tiposBateria().indexOf(t);
+  return i >= 0 ? COR_TIPO_BAT[i % COR_TIPO_BAT.length] : COR.t3;
+}
+/* vencida = data + 2 anos já passou; sem data legível conta como vencida */
+function venceEm(iso) { return iso ? somaMeses(iso, VIDA_BAT) : null; }
+function somaMeses(iso, n) {
+  const d = new Date(iso + 'T00:00:00');
+  if (isNaN(d)) return null;                       /* data impossível no cadastro */
+  const dia = d.getDate();
+  d.setDate(1); d.setMonth(d.getMonth() + n);
+  const ult = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(dia, ult));
+  return isNaN(d) ? null : d.toISOString().slice(0, 10);
+}
+/* sem data, ou data que o cadastro não permite ler, conta como vencida */
+function sitBat(l, ref) {
+  if (!l[BDATA]) return 'semdata';
+  const v = venceEm(l[BDATA]);
+  if (!v) return 'semdata';
+  return v <= ref ? 'vencida' : 'valida';
+}
+const ehVencida = (l, ref) => sitBat(l, ref) !== 'valida';
+
+function guardaBat() {
+  try { localStorage.setItem(CHAVE_BAT, JSON.stringify({base: BAT, origem: ORIGEM_BAT})); return true; }
+  catch (e) { return false; }
+}
+function guardaBdep() {
+  try { localStorage.setItem(CHAVE_BDEP, JSON.stringify(BDEP)); return true; } catch (e) { return false; }
+}
+function recuperaBat() {
+  try {
+    const s = localStorage.getItem(CHAVE_BAT);
+    if (s) { const o = JSON.parse(s); if (o && o.base && Array.isArray(o.base.fotos)) { BAT = o.base; ORIGEM_BAT = o.origem || ''; } }
+  } catch (e) {}
+  try { const s = localStorage.getItem(CHAVE_BDEP); if (s) BDEP = JSON.parse(s) || {}; } catch (e) {}
+  if (BAT.fotos.length) { bx.b = BAT.fotos.length - 1; bx.a = bx.b - 1; }
+}
+
+/* ---------- leitura do cadastro ---------- */
+const ALVO_BAT = {
+  ser:  ['nserie', 'numserie', 'serie', 'numerodeserie'],
+  fab:  ['fabricante'],
+  mod:  ['modelo'],
+  disp: ['dispositivo', 'equipamento'],
+  conj: ['conjunto'],
+  data: ['databaterias', 'databateria', 'datadabateria'],
+  ger:  ['gerencia'],
+  vinc: ['vinculo']
+};
+const ORDEM_BAT = ['ser', 'fab', 'mod', 'disp', 'conj', 'data', 'ger', 'vinc'];
+function mapeiaBat(cab) {
+  const norm = cab.map(c => chaveTexto(c).replace(/[^a-z0-9]+/g, ''));
+  const idx = {}, usado = new Set();
+  ORDEM_BAT.forEach(k => idx[k] = -1);
+  const tenta = (k, exato) => {
+    if (idx[k] >= 0) return;
+    for (const a of ALVO_BAT[k]) {
+      const i = norm.findIndex((c, j) => !usado.has(j) && (exato ? c === a : c.indexOf(a) === 0));
+      if (i >= 0) { idx[k] = i; usado.add(i); return; }
+    }
+  };
+  ORDEM_BAT.forEach(k => tenta(k, true));
+  ORDEM_BAT.forEach(k => tenta(k, false));
+  return idx;
+}
+function montaBat(matrizes, nome) {
+  const regs = [], vistos = new Set();
+  let ruins = 0, dup = 0, semData = 0, foraTR = 0;
+  matrizes.forEach(m => {
+    let idx = null;
+    m.forEach(linha => {
+      if (!idx) {
+        const norm = linha.map(c => chaveTexto(c).replace(/[^a-z0-9]+/g, ''));
+        if (norm.indexOf('modelo') >= 0 && (norm.indexOf('nserie') >= 0 || norm.indexOf('dispositivo') >= 0)) idx = mapeiaBat(linha);
+        return;
+      }
+      const v = k => (idx[k] >= 0 && linha[idx[k]] != null) ? String(linha[idx[k]]).trim() : '';
+      const ser = v('ser'), disp = v('disp');
+      if (!ser && !disp) { if (linha.join('').trim()) ruins++; return; }
+      /* a mesma série aparece em equipamentos diferentes, então a chave é série + dispositivo */
+      const chave = ser + '\u0001' + disp;
+      if (vistos.has(chave)) { dup++; return; }
+      vistos.add(chave);
+      const polo = poloDeConjunto(v('conj'));
+      if (gerenciaDe(polo) === SEM_GERENCIA) foraTR++;
+      const data = leData(v('data'));
+      if (!data) semData++;
+      regs.push({ser: ser || '—', fab: v('fab') || '—', mod: v('mod') || '(sem modelo)',
+                 disp, polo, data: data || '', vinc: v('vinc'), ch: chave});
+    });
+  });
+  if (!regs.length) return {erro: 'Nenhum religador reconhecido. Confira se a planilha tem as colunas Modelo e N_Serie.'};
+
+  const antigos = BAT.linhas.map(l => ({foto: BAT.fotos[l[BF]], ser: l[BSER], fab: BAT.fabs[l[BFAB]],
+    mod: BAT.modelos[l[BMOD]], disp: l[BDISP], polo: BAT.polos[l[BPOLO]], data: l[BDATA], vinc: l[BVINC]}));
+  const foto = {nome: nome, quando: hojeISO(), carimbo: Date.now()};
+  const novos = regs.map(r => Object.assign({foto}, r));
+  const todos = antigos.concat(novos);
+
+  const alfa = (a, b) => String(a).localeCompare(String(b), 'pt-BR');
+  const ordemPolo = [].concat.apply([], Object.keys(MAPA_GERENCIA).map(g => MAPA_GERENCIA[g]));
+  const fotos = BAT.fotos.concat([foto]);
+  const uni = (fn, ord) => { const s = Array.from(new Set(todos.map(fn))); return ord ? s.sort(ord) : s; };
+  const modelos = uni(x => x.mod, alfa), fabs = uni(x => x.fab, alfa);
+  const polos = uni(x => x.polo, (a, b) => {
+    const ia = ordemPolo.indexOf(a), ib = ordemPolo.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || alfa(a, b);
+  });
+  const pos = l => { const o = {}; l.forEach((v, i) => o[v] = i); return o; };
+  const iM = pos(modelos), iFa = pos(fabs), iP = pos(polos);
+  const iFoto = new Map(fotos.map((f, i) => [f.carimbo, i]));
+  const linhas = todos.map(x => [iFoto.get(x.foto.carimbo), x.ser, iM[x.mod], iFa[x.fab],
+                                 x.disp, iP[x.polo], x.data, x.vinc]);
+  return {base: {fotos, modelos, fabs, polos, linhas},
+          lidos: regs.length, ruins, dup, semData, foraTR,
+          semDepara: Array.from(new Set(regs.map(r => r.mod).filter(m => !depDe(m))))};
+}
+
+/* ---------- filtro e fatia ---------- */
+function passaBat(l) {
+  if (st.ger && gerenciaDe(BAT.polos[l[BPOLO]]) !== st.ger) return false;
+  if (st.polo && BAT.polos[l[BPOLO]] !== st.polo) return false;
+  if (bx.mod && BAT.modelos[l[BMOD]] !== bx.mod) return false;
+  if (bx.tipo) { const d = depDe(BAT.modelos[l[BMOD]]); if (!d || d.t !== bx.tipo) return false; }
+  return true;
+}
+function fatiaBat(i) {
+  const m = new Map();
+  if (i < 0 || i >= BAT.fotos.length) return m;
+  BAT.linhas.forEach(l => { if (l[BF] === i && passaBat(l)) m.set(l[BSER] + '\u0001' + l[BDISP], l); });
+  return m;
+}
+const rotFoto = f => `${f.nome} · carregado em ${dlonga(f.quando)}`;
+/* baterias necessárias para um conjunto de religadores, por tipo */
+function somaBaterias(lista) {
+  const o = {total: 0, tipo: {}, semDep: 0};
+  lista.forEach(l => {
+    const d = depDe(BAT.modelos[l[BMOD]]);
+    if (!d) { o.semDep++; return; }
+    o.tipo[d.t] = (o.tipo[d.t] || 0) + d.q;
+    o.total += d.q;
+  });
+  return o;
+}
+
+/* ---------- resumo ---------- */
+function pintaBatKPIs(mB, mA, ref) {
+  const todos = Array.from(mB.values());
+  const venc = todos.filter(l => ehVencida(l, ref));
+  const sd = todos.filter(l => sitBat(l, ref) === 'semdata');
+  const b = somaBaterias(venc);
+  const dentro = todos.filter(l => sitBat(l, ref) === 'valida' && venceEm(l[BDATA]) <= somaMeses(ref, bx.horiz));
+  const bh = somaBaterias(dentro);
+  let trocadas = 0;
+  if (mA.size) mA.forEach((la, k) => { const lb = mB.get(k); if (lb && lb[BDATA] && lb[BDATA] !== la[BDATA]) trocadas++; });
+  const tiles = [
+    {rot: 'Baterias a comprar', val: fmt(b.total + bh.total), hero: true,
+     pe: `${fmt(b.total)} do passivo + ${fmt(bh.total)} que vencem em ${fmt(bx.horiz)} meses`},
+    {rot: 'Religadores vencidos', val: fmt(venc.length),
+     pe: `${pct1(pct(venc.length, todos.length || 1))}% de ${fmt(todos.length)} · ${fmt(sd.length)} por falta de data`},
+    {rot: 'Passivo em baterias', val: fmt(b.total),
+     pe: b.semDep ? `${fmt(b.semDep)} religador(es) sem de-para ficaram de fora` : 'todos os modelos com de-para'},
+    {rot: 'Vencem em ' + fmt(bx.horiz) + ' meses', val: fmt(bh.total),
+     pe: `${fmt(dentro.length)} religador(es) entram no vencimento`},
+    {rot: 'Trocadas', val: mA.size ? fmt(trocadas) : '—',
+     pe: mA.size ? 'a data da bateria mudou entre os dois arquivos' : 'carregue um segundo arquivo para comparar'}
+  ];
+  $('#bt-kpis').innerHTML = tiles.map(t =>
+    `<div class="tile${t.hero ? ' hero' : ''}"><span class="rot">${esc(t.rot)}</span>
+      <span class="val">${t.val}</span><span class="pe">${t.pe}</span></div>`).join('');
+}
+
+/* ---------- plano de compra ---------- */
+function pintaPlano(mB, ref) {
+  const todos = Array.from(mB.values());
+  if (!todos.length) { $('#bt-plano').innerHTML = '<div class="vazio">Sem religadores no filtro atual.</div>'; return; }
+  const venc = todos.filter(l => ehVencida(l, ref));
+  const limite = somaMeses(ref, bx.horiz);
+  const futuro = todos.filter(l => sitBat(l, ref) === 'valida' && venceEm(l[BDATA]) <= limite);
+  const bp = somaBaterias(venc), bf = somaBaterias(futuro);
+  const tipos = tiposBateria().filter(t => bp.tipo[t] || bf.tipo[t]);
+  const total = bp.total + bf.total;
+  const porMes = Math.ceil(total / Math.max(1, bx.horiz));
+
+  /* colunas empilhadas: passivo + o que vence no horizonte, por tipo */
+  const W = 680, H = 320, ml = 56, mr = 20, mt = 42, mb = 62;
+  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
+  const max = escalaMax(Math.max(1, ...tipos.map(t => (bp.tipo[t] || 0) + (bf.tipo[t] || 0))) * 1.16);
+  const y = v => py1 - (v / max) * (py1 - py0);
+  let s = grade(px0, px1, marcasY(max).map(y));
+  s += marcasY(max).map(v => txt(px0 - 9, y(v) + 4, fmt(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1})).join('');
+  const banda = (px1 - px0) / tipos.length, bw = Math.min(74, banda * 0.5);
+  tipos.forEach((t, i) => {
+    const cx = px0 + banda * i + banda / 2;
+    const p = bp.tipo[t] || 0, f = bf.tipo[t] || 0;
+    const yP = y(p), yF = y(p + f);
+    s += `<rect x="${cx - bw / 2}" y="${yP}" width="${bw}" height="${Math.max(1, py1 - yP)}" fill="${corTipoBat(t)}"
+           class="hit" data-t="${esc(`<b>${fmt(p)}</b> do passivo<br><span class="l">${t}</span>`)}"/>`;
+    if (f) s += colunaSVG(cx - bw / 2, yF, bw, Math.max(1, yP - yF - 2), clareia(corTipoBat(t), 0.55),
+      `<b>${fmt(f)}</b> vencem em ${fmt(bx.horiz)} meses<br><span class="l">${t}</span>`);
+    if (py1 - yP >= 18) s += txt(cx, (yP + py1) / 2 + 5, fmt(p), {cor: tintaSobre(corTipoBat(t)), tam: 14, anc: 'middle', peso: 650});
+    s += txt(cx, yF - 10, fmt(p + f), {cor: COR.t1, tam: 19, peso: 650, anc: 'middle'});
+    s += txt(cx, py1 + 21, t, {cor: COR.t1, tam: 12.5, anc: 'middle', peso: 600});
+    s += txt(cx, py1 + 38, `${fmt(Math.ceil((p + f) / Math.max(1, bx.horiz)))}/mês`, {cor: COR.t3, tam: 11.5, anc: 'middle', tab: 1});
+  });
+  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+
+  const linhas = tipos.map(t => {
+    const p = bp.tipo[t] || 0, f = bf.tipo[t] || 0;
+    return `<tr><td>${esc(t)}</td><td>${fmt(p)}</td><td>${fmt(f)}</td><td><b>${fmt(p + f)}</b></td>
+      <td>${fmt(Math.ceil((p + f) / Math.max(1, bx.horiz)))}</td></tr>`;
+  }).join('');
+  const aviso = bp.semDep || bf.semDep
+    ? `<div class="msg erro" style="margin:12px 0 0">${fmt(bp.semDep + bf.semDep)} religador(es) ficaram de fora
+       por falta de de-para do modelo. Preencha em <b>De-para de baterias</b> para entrarem na conta.</div>` : '';
+
+  $('#bt-sub-plano').textContent = `passivo + ${fmt(bx.horiz)} meses · ${fmt(total)} baterias`;
+  $('#bt-plano').innerHTML = `<div class="gd-par"><div>${svgRoot(W, H, s)}
+      ${legenda([{cor: corTipoBat(tipos[0]), rot: 'passivo de hoje'},
+                 {cor: clareia(corTipoBat(tipos[0]), 0.55), rot: 'vence dentro do horizonte'}])}</div>
+    <div><div class="tab-wrap"><table class="dt"><thead><tr>
+      <th>Bateria</th><th>Passivo</th><th>Vence em ${fmt(bx.horiz)}m</th><th>Total</th><th>Por mês</th>
+      </tr></thead><tbody>${linhas}
+      <tr><td><b>TOTAL</b></td><td><b>${fmt(bp.total)}</b></td><td><b>${fmt(bf.total)}</b></td>
+        <td><b>${fmt(total)}</b></td><td><b>${fmt(porMes)}</b></td></tr>
+      </tbody></table></div>
+    <div class="nota">Cada religador leva de 1 a 6 baterias conforme o modelo, então o número de baterias é
+    bem maior que o de religadores. “Por mês” é o total dividido pelo horizonte, para o pedido não
+    ficar concentrado num lote só.</div></div></div>${aviso}`;
+}
+
+/* ---------- curva de vencimento ---------- */
+function gBatCurva(mB, ref) {
+  const meses = [];
+  for (let i = 0; i < 24; i++) meses.push(somaMeses(ref, i).slice(0, 7));
+  const cont = {}, acum = {};
+  meses.forEach(m => cont[m] = 0);
+  let depois = 0;
+  Array.from(mB.values()).forEach(l => {
+    if (ehVencida(l, ref)) return;
+    const v = venceEm(l[BDATA]).slice(0, 7);
+    const d = depDe(BAT.modelos[l[BMOD]]);
+    const q = d ? d.q : 0;
+    if (v in cont) cont[v] += q; else if (v > meses[meses.length - 1]) depois += q;
+  });
+  const passivo = somaBaterias(Array.from(mB.values()).filter(l => ehVencida(l, ref))).total;
+  if (!passivo && !Object.values(cont).some(Boolean)) {
+    return {svg: '<div class="vazio">Sem religadores no filtro atual.</div>', tabela: null};
+  }
+  let a = passivo;
+  meses.forEach(m => { a += cont[m]; acum[m] = a; });
+  const W = 1400, H = 380, ml = 62, mr = 26, mt = 44, mb = 62;
+  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
+  const maxB = escalaMax(Math.max(1, ...meses.map(m => cont[m])) * 1.2);
+  const y = v => py1 - (v / maxB) * (py1 - py0);
+  let s = grade(px0, px1, marcasY(maxB).map(y));
+  s += marcasY(maxB).map(v => txt(px0 - 9, y(v) + 4, fmt(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1})).join('');
+  const banda = (px1 - px0) / meses.length, bw = Math.min(30, banda * 0.58);
+  meses.forEach((m, i) => {
+    const cx = px0 + banda * i + banda / 2, v = cont[m];
+    if (v) s += colunaSVG(cx - bw / 2, y(v), bw, Math.max(1, py1 - y(v)), COR.s2,
+      `<b>${fmt(v)}</b> baterias vencem<br><span class="l">${m.split('-').reverse().join('/')} · acumulado ${fmt(acum[m])}</span>`);
+    if (v && py1 - y(v) > 14) s += txt(cx, y(v) - 7, fmt(v), {cor: COR.t1, tam: 11.5, anc: 'middle', peso: 650});
+    if (i % 2 === 0 || i === meses.length - 1) {
+      const p = m.split('-');
+      s += txt(cx, py1 + 19, p[2 - 1] + '/' + p[0].slice(2), {cor: COR.t3, tam: 11, anc: 'middle', tab: 1});
+    }
+  });
+  s += txt(px0, mt - 14, `passivo de hoje: ${fmt(passivo)} baterias — o acumulado da tabela parte daqui`,
+           {cor: COR.t1, tam: 12, peso: 650});
+  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+  return {svg: svgRoot(W, H, s),
+          pe: `<div class="nota">Só o que vence em cada mês, para o pedido não ser dimensionado duas vezes.
+               O acumulado — passivo de hoje somado ao que vai vencendo — está na tabela ao lado.
+               ${depois ? `Mais ${fmt(depois)} bateria(s) vencem depois dos 24 meses.` : ''}</div>`,
+          tabela: {cab: ['Mês', 'Vencem', 'Acumulado com o passivo'],
+                   linhas: meses.map(m => [m.split('-').reverse().join('/'), fmt(cont[m]), fmt(acum[m])])}};
+}
+
+/* ---------- passivo por polo e idade ---------- */
+function gBatPolo(mB, ref) {
+  const cats = st.ger ? BAT.polos.filter(p => gerenciaDe(p) === st.ger)
+                      : Object.keys(MAPA_GERENCIA).filter(g => BAT.polos.some(p => gerenciaDe(p) === g));
+  if (!cats.length) return {svg: '<div class="vazio">Sem religadores no filtro atual.</div>', tabela: null};
+  const dim = l => st.ger ? BAT.polos[l[BPOLO]] : gerenciaDe(BAT.polos[l[BPOLO]]);
+  const tipos = tiposBateria();
+  const mapa = {}; cats.forEach(c => { mapa[c] = {tot: 0}; tipos.forEach(t => mapa[c][t] = 0); });
+  Array.from(mB.values()).forEach(l => {
+    if (!ehVencida(l, ref)) return;
+    const c = dim(l); if (!(c in mapa)) return;
+    const d = depDe(BAT.modelos[l[BMOD]]); if (!d) return;
+    mapa[c][d.t] += d.q; mapa[c].tot += d.q;
+  });
+  const ord = cats.slice().sort((a, b) => mapa[b].tot - mapa[a].tot);
+  const W = 680, H = 320, ml = 56, mr = 20, mt = 42, mb = 58;
+  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
+  const max = escalaMax(Math.max(1, ...ord.map(c => mapa[c].tot)) * 1.16);
+  const y = v => py1 - (v / max) * (py1 - py0);
+  let s = grade(px0, px1, marcasY(max).map(y));
+  s += marcasY(max).map(v => txt(px0 - 9, y(v) + 4, fmt(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1})).join('');
+  const banda = (px1 - px0) / ord.length, bw = Math.min(40, banda * 0.52);
+  ord.forEach((c, i) => {
+    const cx = px0 + banda * i + banda / 2;
+    let acum = 0;
+    tipos.forEach(t => {
+      const v = mapa[c][t]; if (!v) return;
+      const yT = y(acum + v), yB = y(acum);
+      const alt = Math.max(1, yB - yT - (acum ? 2 : 0));
+      const ult = acum + v >= mapa[c].tot - 0.5;
+      const dica = `<b>${fmt(v)}</b> ${t}<br><span class="l">${c}</span>`;
+      s += ult ? colunaSVG(cx - bw / 2, yT, bw, alt, corTipoBat(t), dica)
+               : `<rect x="${cx - bw / 2}" y="${yT}" width="${bw}" height="${alt}" fill="${corTipoBat(t)}" class="hit" data-t="${esc(dica)}"/>`;
+      acum += v;
+    });
+    s += txt(cx, y(mapa[c].tot) - 10, fmt(mapa[c].tot), {cor: COR.t1, tam: 17, peso: 650, anc: 'middle'});
+    s += txt(cx, py1 + 20, c, {cor: COR.t1, tam: 12.5, anc: 'middle', peso: 600});
+  });
+  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+  return {svg: svgRoot(W, H, s), pe: legenda(tipos.map(t => ({cor: corTipoBat(t), rot: t}))),
+          tabela: {cab: [st.ger ? 'Polo' : 'Gerência'].concat(tipos).concat(['Total']),
+                   linhas: ord.map(c => [esc(c)].concat(tipos.map(t => fmt(mapa[c][t]))).concat([fmt(mapa[c].tot)]))}};
+}
+function gBatIdade(mB, ref) {
+  const faixas = ['sem data', 'vencida há 2+ anos', 'vencida há 1 a 2 anos', 'vencida há menos de 1 ano', 'dentro da validade'];
+  const cont = {}; faixas.forEach(f => cont[f] = 0);
+  Array.from(mB.values()).forEach(l => {
+    const st2 = sitBat(l, ref);
+    if (st2 === 'semdata') { cont['sem data']++; return; }
+    if (st2 === 'valida') { cont['dentro da validade']++; return; }
+    const d = diasEntre(venceEm(l[BDATA]), ref);
+    cont[d > 730 ? 'vencida há 2+ anos' : d > 365 ? 'vencida há 1 a 2 anos' : 'vencida há menos de 1 ano']++;
+  });
+  const cats = faixas.filter(f => cont[f]);
+  if (!cats.length) return {svg: '<div class="vazio">Sem religadores no filtro atual.</div>', tabela: null};
+  const total = mB.size || 1;
+  const cores = {'sem data': COR.t3, 'vencida há 2+ anos': '#8c1d1d', 'vencida há 1 a 2 anos': COR.ruim,
+                 'vencida há menos de 1 ano': '#eda100', 'dentro da validade': '#17996a'};
+  const W = 700, H = 34 + cats.length * 44, px0 = 228, px1 = W - 130;
+  const max = Math.max(1, ...cats.map(c => cont[c]));
+  let s = '';
+  cats.forEach((c, i) => {
+    const yc = 26 + i * 44;
+    s += txt(10, yc + 5, c, {cor: COR.t1, tam: 12.5, peso: 600});
+    s += barraSVG(px0, yc - 10, Math.max(2, (cont[c] / max) * (px1 - px0)), 20, cores[c],
+      `<b>${fmt(cont[c])}</b> religadores<br><span class="l">${c}</span>`);  /* rótulo cabe até x=220 */
+    s += txt(W - 62, yc + 5, fmt(cont[c]), {cor: COR.t1, tam: 15, peso: 650, anc: 'end', tab: 1});
+    s += txt(W - 8, yc + 5, pct1(pct(cont[c], total)) + '%', {cor: COR.t3, tam: 11.5, anc: 'end', tab: 1});
+  });
+  return {svg: svgRoot(W, H, s),
+          pe: `<div class="nota">Religador sem data legível entra como vencido, por falta de atualização
+               do cadastro — é a regra combinada, e ela infla o passivo de propósito, para não esconder risco.</div>`,
+          tabela: {cab: ['Faixa', 'Religadores', '%'],
+                   linhas: cats.map(c => [c, fmt(cont[c]), pct1(pct(cont[c], total)) + '%'])}};
+}
+
+/* ---------- modelos ---------- */
+function gBatModelo(mB, ref) {
+  const m = new Map();
+  Array.from(mB.values()).forEach(l => {
+    const k = BAT.modelos[l[BMOD]];
+    if (!m.has(k)) m.set(k, {t: 0, v: 0, sd: 0, bat: 0});
+    const o = m.get(k); o.t++;
+    const s2 = sitBat(l, ref);
+    if (s2 !== 'valida') { o.v++; const d = depDe(k); if (d) o.bat += d.q; }
+    if (s2 === 'semdata') o.sd++;
+  });
+  const cats = Array.from(m.keys()).sort((a, b) => m.get(b).bat - m.get(a).bat || m.get(b).v - m.get(a).v);
+  if (!cats.length) return {svg: '<div class="vazio">Sem religadores no filtro atual.</div>', tabela: null};
+  const teto = 16, mostra = cats.slice(0, teto);
+  const W = 820, ml = 250, mr = 150, mt = 26, rh = 30;
+  const H = mt + mostra.length * rh + 18;
+  const px0 = ml, px1 = W - mr;
+  const max = Math.max(1, ...mostra.map(c => m.get(c).t));
+  let s = '';
+  mostra.forEach((c, i) => {
+    const o = m.get(c), yc = mt + i * rh + rh / 2, h = 15, y0 = yc - h / 2;
+    const d = depDe(c);
+    s += txt(10, yc + 4, String(i + 1), {cor: COR.t3, tam: 12, peso: 700, tab: 1});
+    s += txt(30, yc + 4, corta(c, 22), {cor: COR.t1, tam: 12, peso: 600});
+    s += txt(px0 - 10, yc + 4, d ? `${d.q}× ${d.t.replace('12V ', '')}` : 'sem de-para',
+             {cor: d ? COR.t3 : COR.ruim, tam: 10.5, anc: 'end'});
+    const lv = (o.v / max) * (px1 - px0), lt = (o.t / max) * (px1 - px0);
+    const dica = `<b>${fmt(o.v)}</b> de ${fmt(o.t)} vencidos (${pct1(pct(o.v, o.t))}%)<br><span class="l">${c} · ${fmt(o.bat)} baterias</span>`;
+    if (lt - lv > 0.5) s += barraSVG(px0, y0, lt, h, '#dfe7e2', dica);
+    if (lv > 0.5) s += `<rect x="${px0}" y="${y0}" width="${lv}" height="${h}" rx="3" fill="${COR.ruim}" class="hit" data-t="${esc(dica)}"/>`;
+    s += txt(W - 76, yc + 4, pct1(pct(o.v, o.t)) + '%', {cor: COR.t1, tam: 14, peso: 650, anc: 'end', tab: 1});
+    s += txt(W - 8, yc + 4, fmt(o.bat) + ' bat.', {cor: COR.t3, tam: 11, anc: 'end', tab: 1});
+  });
+  return {svg: svgRoot(W, H, s),
+          pe: legenda([{cor: COR.ruim, rot: 'vencidos (inclui sem data)'}, {cor: '#dfe7e2', rot: 'dentro da validade'}]) +
+              (cats.length > teto ? `<div class="nota">Mostrando os ${teto} maiores de ${fmt(cats.length)}; a tabela traz todos.</div>` : ''),
+          tabela: {cab: ['Modelo', 'Bateria', 'Religadores', 'Vencidos', '% vencido', 'Sem data', 'Baterias'],
+                   linhas: cats.map(c => { const o = m.get(c), d = depDe(c);
+                     return [esc(c), d ? `${d.q}× ${d.t}` : '—', fmt(o.t), fmt(o.v),
+                             pct1(pct(o.v, o.t)) + '%', fmt(o.sd), fmt(o.bat)]; })}};
+}
+
+/* ---------- avanço entre dois arquivos ---------- */
+function pintaAvanco(mA, mB, refB, refA) {
+  const cx = $('#bt-avanco');
+  if (!mA.size) {
+    $('#bt-sub-av').textContent = '';
+    cx.innerHTML = '<div class="vazio">Carregue um segundo arquivo e selecione-o em <b>Comparar com</b> para ver o avanço.</div>';
+    return;
+  }
+  const trocadas = [], novasVenc = [], sairam = [], entraram = [], corrigidas = [];
+  mA.forEach((la, k) => {
+    const lb = mB.get(k);
+    if (!lb) { sairam.push(la); return; }
+    const antesV = ehVencida(la, refA), agoraV = ehVencida(lb, refB);
+    if (lb[BDATA] && la[BDATA] !== lb[BDATA]) trocadas.push(lb);
+    else if (!la[BDATA] && lb[BDATA]) corrigidas.push(lb);
+    if (!antesV && agoraV) novasVenc.push(lb);
+  });
+  mB.forEach((lb, k) => { if (!mA.has(k)) entraram.push(lb); });
+  const bA = somaBaterias(Array.from(mA.values()).filter(l => ehVencida(l, refA)));
+  const bB = somaBaterias(Array.from(mB.values()).filter(l => ehVencida(l, refB)));
+  const dv = bB.total - bA.total;
+  const trocB = somaBaterias(trocadas);
+
+  const linhas = trocadas.slice(0, 40).map(l => {
+    const la = mA.get(l[BSER] + '\u0001' + l[BDISP]);
+    return `<tr><td>${esc(l[BSER])}</td><td>${esc(l[BDISP] || '—')}</td><td>${esc(BAT.modelos[l[BMOD]])}</td>
+      <td>${esc(BAT.polos[l[BPOLO]])}</td><td>${la && la[BDATA] ? dlonga(la[BDATA]) : 'sem data'}</td>
+      <td>${dlonga(l[BDATA])}</td>
+      <td>${ehVencida(l, refB) ? '<span class="chip c-ruim">ainda vencida</span>' : '<span class="chip c-bom">regularizada</span>'}</td></tr>`;
+  }).join('');
+
+  $('#bt-sub-av').textContent = `${rotFoto(BAT.fotos[bx.a])} → ${rotFoto(BAT.fotos[bx.b])}`;
+  cx.innerHTML =
+    `<div class="explica">O avanço é medido pelo <b>número de série</b> do religador: mesma série com
+     data de bateria diferente significa troca. Mudança de passivo sem troca quer dizer que o cadastro
+     mudou, não o campo.</div>
+     <div class="kpis" style="grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:14px">
+      <div class="tile"><span class="rot">Baterias trocadas</span><span class="val" style="color:#006300">${fmt(trocadas.length)}</span>
+        <span class="pe">${fmt(trocB.total)} unidades de bateria</span></div>
+      <div class="tile"><span class="rot">Venceram no intervalo</span><span class="val" style="color:${COR.ruim}">${fmt(novasVenc.length)}</span>
+        <span class="pe">estavam válidas no arquivo anterior</span></div>
+      <div class="tile"><span class="rot">Data preenchida</span><span class="val">${fmt(corrigidas.length)}</span>
+        <span class="pe">estavam sem data e agora têm</span></div>
+      <div class="tile"><span class="rot">Passivo em baterias</span><span class="val">${fmt(bB.total)}</span>
+        <span class="pe">${seta(dv)} ${sinal(dv)} × ${fmt(bA.total)} do arquivo anterior</span></div>
+      <div class="tile"><span class="rot">Entraram / saíram</span><span class="val">${fmt(entraram.length)} / ${fmt(sairam.length)}</span>
+        <span class="pe">religadores novos no cadastro e que sumiram dele</span></div>
+     </div>` +
+    (trocadas.length
+      ? `<h4 class="sub-tit">Trocas identificadas</h4><div class="tab-wrap"><table class="dt"><thead><tr>
+         <th>Série</th><th>Dispositivo</th><th>Modelo</th><th>Polo</th><th>Data anterior</th><th>Data atual</th><th>Situação</th>
+         </tr></thead><tbody>${linhas}</tbody></table></div>` +
+        (trocadas.length > 40 ? `<div class="nota">Mostrando as 40 primeiras de ${fmt(trocadas.length)}.</div>` : '')
+      : `<div class="nota">Nenhuma data de bateria mudou entre os dois arquivos.</div>`);
+}
+
+/* ---------- cruzamento com indisponibilidade e guias ---------- */
+function pintaBatCruz(mB, ref) {
+  const cx = $('#bt-cruz');
+  const temInd = SEMANAS.length && !/demonstra/i.test(ORIGEM);
+  const temGuia = EX.semanas.length && !/exemplo/i.test(ORIGEM_EX);
+  if (!temInd && !temGuia) {
+    $('#bt-sub-cruz').textContent = '';
+    cx.innerHTML = '<div class="vazio">Depende da planilha de indisponibilidade ou das guias carregadas nas outras abas.</div>';
+    return;
+  }
+  const indisp = new Set(), diasInd = new Map();
+  if (temInd) fatia(st.b).forEach((l, e) => { indisp.add(String(e)); diasInd.set(String(e), l[D]); });
+  const guias = new Map(), guiaBat = new Set();
+  if (temGuia) {
+    const wi = EX.semanas.length - 1;
+    PORSEM_EX[sx.b < EX.semanas.length ? sx.b : wi].forEach(l => {
+      const d = String(l[XDISP] || ''); if (!d) return;
+      if (!guias.has(d)) guias.set(d, []);
+      guias.get(d).push(l);
+      if (ehTipoInd(EX.tipos[l[XTIPO]])) guiaBat.add(d);
+    });
+  }
+  const venc = Array.from(mB.values()).filter(l => ehVencida(l, ref) && l[BDISP]);
+  const comInd = venc.filter(l => indisp.has(String(l[BDISP])));
+  const comGuia = venc.filter(l => guias.has(String(l[BDISP])));
+  const comGuiaBat = venc.filter(l => guiaBat.has(String(l[BDISP])));
+  const nada = venc.filter(l => !indisp.has(String(l[BDISP])) && !guias.has(String(l[BDISP])));
+
+  const lin = comInd.slice(0, 40).map(l => {
+    const d = String(l[BDISP]);
+    return `<tr><td>${esc(d)}</td><td>${esc(l[BSER])}</td><td>${esc(BAT.modelos[l[BMOD]])}</td>
+      <td>${esc(BAT.polos[l[BPOLO]])}</td><td>${l[BDATA] ? dlonga(l[BDATA]) : 'sem data'}</td>
+      <td>${fmt(diasInd.get(d) || 0)}</td>
+      <td>${guias.has(d) ? '<span class="chip c-bom">tem guia</span>' : '<span class="chip c-ruim">sem guia</span>'}</td></tr>`;
+  }).join('');
+
+  $('#bt-sub-cruz').textContent = [temInd ? 'indisponíveis de ' + dlonga(SEMANAS[st.b]) : null,
+                                   temGuia ? 'guias de ' + dlonga(EX.semanas[sx.b]) : null].filter(Boolean).join(' × ');
+  cx.innerHTML =
+    `<div class="explica">Cruzamento pelo número do <b>dispositivo</b>. Mostra se a bateria vencida já está
+     sendo tratada por alguém — como indisponível no SCADA ou com guia aberta — ou se está fora de qualquer
+     controle.</div>
+     <div class="kpis" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:14px">
+      <div class="tile hero"><span class="rot">Bateria vencida</span><span class="val">${fmt(venc.length)}</span>
+        <span class="pe">religadores com dispositivo cadastrado</span></div>
+      <div class="tile"><span class="rot">Também indisponível</span><span class="val" style="color:${COR.ruim}">${temInd ? fmt(comInd.length) : '—'}</span>
+        <span class="pe">${temInd ? pct1(pct(comInd.length, venc.length || 1)) + '% · já está fora no SCADA' : 'carregue a indisponibilidade'}</span></div>
+      <div class="tile"><span class="rot">Com guia aberta</span><span class="val">${temGuia ? fmt(comGuia.length) : '—'}</span>
+        <span class="pe">${temGuia ? fmt(comGuiaBat.length) + ' com guia do tipo Indisponível' : 'carregue as guias'}</span></div>
+      <div class="tile"><span class="rot">Sem tratamento</span><span class="val">${fmt(nada.length)}</span>
+        <span class="pe">nem indisponível nem com guia — só a bateria vencida</span></div>
+     </div>` +
+    (comInd.length
+      ? `<h4 class="sub-tit">Bateria vencida em equipamento indisponível</h4>
+         <div class="tab-wrap"><table class="dt"><thead><tr>
+         <th>Dispositivo</th><th>Série</th><th>Modelo</th><th>Polo</th><th>Data da bateria</th><th>Dias indisponível</th><th>Guia</th>
+         </tr></thead><tbody>${lin}</tbody></table></div>` +
+        (comInd.length > 40 ? `<div class="nota">Mostrando os 40 primeiros de ${fmt(comInd.length)}.</div>` : '')
+      : (temInd ? `<div class="nota">Nenhuma bateria vencida está em equipamento hoje indisponível.</div>` : ''));
+}
+
+/* ---------- de-para editável ---------- */
+function pintaDepara(mB, ref) {
+  const cont = new Map();
+  Array.from(mB.values()).forEach(l => {
+    const k = BAT.modelos[l[BMOD]];
+    if (!cont.has(k)) cont.set(k, {t: 0, v: 0});
+    cont.get(k).t++; if (ehVencida(l, ref)) cont.get(k).v++;
+  });
+  const lista = Array.from(cont.keys()).sort((a, b) => cont.get(b).v - cont.get(a).v || cont.get(b).t - cont.get(a).t);
+  const sem = lista.filter(m => !depDe(m));
+  const presum = lista.filter(m => { const d = depDe(m); return d && d.sup; });
+  $('#bt-sub-dep').textContent = `${fmt(lista.length - sem.length)} de ${fmt(lista.length)} modelos mapeados`;
+  $('#bt-depara').innerHTML =
+    `<div class="explica">Quantas baterias cada modelo leva e de que tipo. Já vem preenchido com o que a
+     engenharia informou; o que você escrever aqui vale por cima e fica salvo neste navegador. Modelo sem
+     de-para <b>não entra na conta de compra</b> — por isso ele aparece em vermelho.</div>` +
+    (sem.length ? `<div class="msg erro" style="margin:0 0 12px"><b>${fmt(sem.length)} modelo(s) sem de-para:</b>
+       ${esc(sem.join(', '))}</div>` : '') +
+    (presum.length ? `<div class="nota" style="margin:0 0 12px">Presumido pela família, confirme:
+       ${esc(presum.join(', '))}.</div>` : '') +
+    `<div class="tab-wrap"><table class="dt"><thead><tr>
+       <th>Modelo</th><th>Religadores</th><th>Vencidos</th><th>Qtd. por religador</th><th class="cel-rot">Tipo de bateria</th>
+     </tr></thead><tbody>` +
+    lista.map(m => {
+      const d = depDe(m), o = cont.get(m);
+      return `<tr${d ? '' : ' class="tsub"'}><td><code>${esc(m)}</code>${d && d.sup ? ' <span class="vinc-chip">presumido</span>' : ''}</td>
+        <td>${fmt(o.t)}</td><td>${fmt(o.v)}</td>
+        <td><input class="dep-in" type="number" min="0" max="12" step="1" data-campo="q" data-chave="${esc(m)}"
+          value="${d ? d.q : ''}" placeholder="—" style="width:62px"></td>
+        <td class="cel-rot"><input class="dep-in" data-campo="t" data-chave="${esc(m)}"
+          value="${d ? esc(d.t) : ''}" placeholder="ex: 12V 26Ah" autocomplete="off"></td></tr>`;
+    }).join('') + `</tbody></table></div>`;
+}
+
+/* ---------- divergências de cadastro ---------- */
+function pintaDiv(mB, ref) {
+  const todos = Array.from(mB.values());
+  const hoje = hojeISO();
+  const fabErr = [], futuro = [], antigo = [], semDisp = [], dispDup = [], fora = [], semData = [], ilegivel = [];
+  const porDisp = new Map();
+  todos.forEach(l => {
+    const m = BAT.modelos[l[BMOD]], fab = BAT.fabs[l[BFAB]];
+    const esperado = IDX_FAB[chaveMod(m)];
+    if (esperado && chaveTexto(fab).indexOf(chaveTexto(esperado)) < 0) fabErr.push([l, esperado]);
+    if (!l[BDATA]) semData.push(l);
+    else {
+      if (l[BDATA] > hoje) futuro.push(l);
+      if (l[BDATA] < '2010-01-01') antigo.push(l);
+    }
+    if (l[BDATA] && !venceEm(l[BDATA])) ilegivel.push(l);
+    if (!l[BDISP]) semDisp.push(l);
+    else { if (!porDisp.has(l[BDISP])) porDisp.set(l[BDISP], []); porDisp.get(l[BDISP]).push(l); }
+    if (gerenciaDe(BAT.polos[l[BPOLO]]) === SEM_GERENCIA) fora.push(l);
+  });
+  porDisp.forEach(v => { if (v.length > 1) dispDup.push(v); });
+  const grupos = [
+    {r: 'Sem data de bateria', n: semData.length, q: 'contam como vencidas, por falta de atualização', l: semData},
+    {r: 'Fabricante fora do esperado', n: fabErr.length, q: 'o modelo indica outro fabricante', l: fabErr.map(x => x[0]), ex: fabErr},
+    {r: 'Dispositivo repetido', n: dispDup.reduce((a, v) => a + v.length, 0), q: 'mais de uma linha para o mesmo dispositivo', l: [].concat.apply([], dispDup)},
+    {r: 'Data no futuro', n: futuro.length, q: 'data de bateria posterior a hoje', l: futuro},
+    {r: 'Data anterior a 2010', n: antigo.length, q: 'provável erro de digitação — ano com menos de 4 dígitos, por exemplo', l: antigo},
+    {r: 'Data que o sistema não consegue ler', n: ilegivel.length, q: 'entra como vencida até o cadastro ser corrigido', l: ilegivel},
+    {r: 'Sem número de dispositivo', n: semDisp.length, q: 'não dá para cruzar com as outras abas', l: semDisp},
+    {r: 'Fora do Triângulo', n: fora.length, q: 'conjunto que não pertence a nenhuma gerência TR', l: fora}
+  ].filter(g => g.n);
+  $('#bt-sub-div').textContent = grupos.length ? `${fmt(grupos.reduce((a, g) => a + g.n, 0))} linha(s) com algo a corrigir` : 'nada a corrigir';
+  if (!grupos.length) { $('#bt-div').innerHTML = '<div class="vazio">Nenhuma divergência encontrada nesta base.</div>'; return; }
+  const det = grupos.map(g => {
+    const linhas = (g.ex || g.l.map(l => [l, null])).slice(0, 12).map(([l, esp]) =>
+      `<tr><td>${esc(l[BSER])}</td><td>${esc(l[BDISP] || '—')}</td><td>${esc(BAT.modelos[l[BMOD]])}</td>
+       <td>${esc(BAT.fabs[l[BFAB]])}${esp ? ` <span class="vinc-chip">esperado ${esc(esp)}</span>` : ''}</td>
+       <td>${esc(BAT.polos[l[BPOLO]])}</td><td>${l[BDATA] ? dlonga(l[BDATA]) : '—'}</td></tr>`).join('');
+    return `<h4 class="sub-tit">${esc(g.r)} · ${fmt(g.n)}</h4>
+      <div class="explica">${esc(g.q)}</div>
+      <div class="tab-wrap"><table class="dt"><thead><tr>
+        <th>Série</th><th>Dispositivo</th><th>Modelo</th><th>Fabricante</th><th>Polo</th><th>Data da bateria</th>
+      </tr></thead><tbody>${linhas}</tbody></table></div>` +
+      (g.n > 12 ? `<div class="nota">Mostrando 12 de ${fmt(g.n)}; a lista completa está no Detalhe.</div>` : '');
+  }).join('');
+  $('#bt-div').innerHTML =
+    `<div class="tab-wrap" style="margin-bottom:6px"><table class="dt"><thead><tr>
+      <th>Divergência</th><th>Linhas</th><th>% da base</th></tr></thead><tbody>` +
+    grupos.map(g => `<tr><td>${esc(g.r)}</td><td>${fmt(g.n)}</td><td>${pct1(pct(g.n, todos.length || 1))}%</td></tr>`).join('') +
+    `</tbody></table></div>` + det;
+}
+
+/* ---------- detalhe ---------- */
+const VAL_BAT = {
+  mod:  x => BAT.modelos[x.l[BMOD]],
+  fab:  x => BAT.fabs[x.l[BFAB]],
+  tipo: x => { const d = depDe(BAT.modelos[x.l[BMOD]]); return d ? d.t : '(sem de-para)'; },
+  ger:  x => gerenciaDe(BAT.polos[x.l[BPOLO]]),
+  polo: x => BAT.polos[x.l[BPOLO]]
+};
+function pintaBatDetalhe(mA, mB, ref, refA) {
+  const tit = {venc: 'Religadores com bateria vencida', todos: 'Todos os religadores',
+               sd: 'Religadores sem data de bateria', troc: 'Baterias trocadas entre os arquivos'};
+  $('#bt-det-tit').textContent = tit[bx.det];
+  let itens;
+  if (bx.det === 'venc') itens = Array.from(mB.values()).filter(l => ehVencida(l, ref)).map(l => ({l}));
+  else if (bx.det === 'sd') itens = Array.from(mB.values()).filter(l => !l[BDATA]).map(l => ({l}));
+  else if (bx.det === 'troc') itens = Array.from(mB.values())
+    .filter(l => { const la = mA.get(l[BSER] + '\u0001' + l[BDISP]); return la && l[BDATA] && la[BDATA] !== l[BDATA]; })
+    .map(l => ({l, antes: (mA.get(l[BSER] + '\u0001' + l[BDISP]) || [])[BDATA] || ''}));
+  else itens = Array.from(mB.values()).map(l => ({l}));
+
+  const busca = bx.dBusca.trim().toLowerCase();
+  const sel = c => st[c] || [];
+  const ok = (c, v) => !sel(c).length || sel(c).indexOf(v) >= 0;
+  const passaDet = (x, exceto) =>
+    (exceto === 'mod'  || ok('bMod',  VAL_BAT.mod(x))) &&
+    (exceto === 'fab'  || ok('bFab',  VAL_BAT.fab(x))) &&
+    (exceto === 'tipo' || ok('bTipo', VAL_BAT.tipo(x))) &&
+    (exceto === 'ger'  || ok('bGer',  VAL_BAT.ger(x))) &&
+    (exceto === 'polo' || ok('bPolo', VAL_BAT.polo(x))) &&
+    (!busca || String(x.l[BSER]).toLowerCase().indexOf(busca) >= 0 ||
+      String(x.l[BDISP]).toLowerCase().indexOf(busca) >= 0);
+  const unicos = campo => Array.from(new Set(itens.filter(x => passaDet(x, campo)).map(VAL_BAT[campo])))
+    .sort((a, b) => String(a).localeCompare(String(b), 'pt-BR'));
+  const conta = campo => { const o = {};
+    itens.filter(x => passaDet(x, campo)).forEach(x => { const v = VAL_BAT[campo](x); o[v] = (o[v] || 0) + 1; });
+    return o; };
+  montaMsel('bt-mod-f', unicos('mod'), conta('mod'));
+  montaMsel('bt-fab-f', unicos('fab'), conta('fab'));
+  montaMsel('bt-tipo-f', unicos('tipo'), conta('tipo'));
+  montaMsel('bt-ger-f', unicos('ger'), conta('ger'));
+  montaMsel('bt-polo-f', unicos('polo'), conta('polo'));
+
+  const linhas = itens.filter(x => passaDet(x));
+  const dias = l => l[BDATA] ? diasEntre(l[BDATA], ref) : 99999;
+  const dir = bx.dOrd.dir, col = bx.dOrd.col;
+  const valor = x => col === 'dias' ? dias(x.l)
+    : col === 'serie' ? String(x.l[BSER]) : col === 'disp' ? String(x.l[BDISP])
+    : col === 'mod' ? VAL_BAT.mod(x) : col === 'fab' ? VAL_BAT.fab(x)
+    : col === 'tipo' ? VAL_BAT.tipo(x) : col === 'polo' ? VAL_BAT.polo(x)
+    : col === 'venc' ? (x.l[BDATA] ? venceEm(x.l[BDATA]) : '9999') : dias(x.l);
+  linhas.sort((a, b) => {
+    const va = valor(a), vb = valor(b);
+    const c = typeof va === 'number' ? va - vb : String(va).localeCompare(String(vb), 'pt-BR');
+    return c * dir || String(a.l[BSER]).localeCompare(String(b.l[BSER]));
+  });
+  const bsel = somaBaterias(linhas.filter(x => ehVencida(x.l, ref)).map(x => x.l));
+  $('#bt-conta').textContent = `${fmt(linhas.length)} de ${fmt(itens.length)} religadores · ${fmt(bsel.total)} baterias vencidas na lista`;
+  $('#bt-det-sub').textContent = BAT.fotos.length ? rotFoto(BAT.fotos[bx.b]) : '';
+
+  const cols = [['serie', 'Série'], ['disp', 'Dispositivo'], ['mod', 'Modelo'], ['fab', 'Fabricante'],
+                ['polo', 'Polo'], ['tipo', 'Bateria'], ['dias', 'Idade (dias)'], ['venc', 'Vence em']];
+  const cab = cols.map(([k, r]) =>
+    `<th scope="col" class="ord" data-bord="${k}">${esc(r)}${col === k ? (dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')
+    + (bx.det === 'troc' ? '<th>Data anterior</th>' : '');
+  const corpo = linhas.slice(0, 900).map(x => {
+    const l = x.l, d = depDe(BAT.modelos[l[BMOD]]);
+    const s2 = sitBat(l, ref);
+    const ruim = l[BDATA] && (l[BDATA] < '2000-01-01' || l[BDATA] > somaDias(ref, 400));
+    const chip = s2 === 'semdata' ? '<span class="chip c-ruim">sem data</span>'
+      : ruim ? `<span class="chip c-ruim" title="${esc(dlonga(l[BDATA]))}">data inválida</span>`
+      : s2 === 'vencida' ? `<span class="chip c-ruim">${dlonga(venceEm(l[BDATA]))}</span>`
+      : `<span class="chip c-bom">${dlonga(venceEm(l[BDATA]))}</span>`;
+    return `<tr><td>${esc(l[BSER])}</td><td>${esc(l[BDISP] || '—')}</td><td>${esc(BAT.modelos[l[BMOD]])}</td>
+      <td>${esc(BAT.fabs[l[BFAB]])}</td><td>${esc(BAT.polos[l[BPOLO]])}</td>
+      <td>${d ? `${d.q}× ${esc(d.t)}` : '<span class="chip c-ruim">sem de-para</span>'}</td>
+      <td>${l[BDATA] && !ruim ? fmt(diasEntre(l[BDATA], ref)) : '—'}</td><td>${chip}</td>` +
+      (bx.det === 'troc' ? `<td>${x.antes ? dlonga(x.antes) : 'sem data'}</td>` : '') + `</tr>`;
+  }).join('');
+  $('#bt-det').innerHTML = `<div class="tab-wrap alta"><table class="dt"><thead><tr>${cab}</tr></thead>
+    <tbody>${corpo}</tbody></table></div>` +
+    (linhas.length > 900 ? `<div class="nota">Mostrando os 900 primeiros de ${fmt(linhas.length)}. Use os filtros.</div>` : '');
+}
+
+/* ---------- render ---------- */
+function renderBat() {
+  const vazio = !BAT.fotos.length;
+  $('#b-vazio').hidden = !vazio;
+  $('#b-corpo').hidden = vazio;
+  if (vazio) {
+    $('#pill-ant').innerHTML = 'Baterias <b>sem dados</b>';
+    $('#pill-atu').innerHTML = 'Carregue o <b>cadastro de religadores</b>';
+    $('#pill-escopo').innerHTML = '';
+    $('#rodape').innerHTML = `<b>Painel versão ${VERSAO}</b> · módulo de baterias sem base carregada.`;
+    pintaAnotacoes();
+    return;
+  }
+  if (bx.b >= BAT.fotos.length) { bx.b = BAT.fotos.length - 1; bx.a = bx.b - 1; }
+  const mB = fatiaBat(bx.b), mA = fatiaBat(bx.a);
+  /* a referência de vencimento é a data em que o arquivo foi carregado */
+  const refB = BAT.fotos[bx.b].quando, refA = bx.a >= 0 ? BAT.fotos[bx.a].quando : refB;
+  const escopo = [st.ger || 'TR · todas as polos', st.polo ? 'Polo ' + st.polo : null,
+                  bx.mod || null, bx.tipo || null].filter(Boolean).join(' · ');
+  $('#pill-ant').innerHTML = bx.a < 0 ? 'Comparação <b>arquivo único</b>' : `Comparação <b>${esc(BAT.fotos[bx.a].nome)}</b>`;
+  $('#pill-atu').innerHTML = `Arquivo <b>${esc(BAT.fotos[bx.b].nome)}</b>`;
+  $('#pill-escopo').innerHTML = `Escopo <b>${esc(escopo)}</b>`;
+  $('#bt-sub-curva').textContent = `próximos 24 meses a partir de ${dlonga(refB)}`;
+  $('#bt-tit-polo').textContent = st.ger ? 'Passivo por polo' : 'Passivo por gerência';
+  $('#bt-sub-polo').textContent = 'baterias vencidas, por tipo';
+  $('#bt-sub-idade').textContent = `${fmt(mB.size)} religadores na tela`;
+  $('#bt-sub-mod').textContent = 'ordenado pelo volume de baterias do passivo';
+  $('#b-horiz').value = bx.horiz;
+
+  pintaBatKPIs(mB, mA, refB);
+  pintaPlano(mB, refB);
+  pinta('bt-curva', gBatCurva(mB, refB));
+  pinta('bt-polo', gBatPolo(mB, refB));
+  pinta('bt-idade', gBatIdade(mB, refB));
+  pinta('bt-mod', gBatModelo(mB, refB));
+  pintaAvanco(mA, mB, refB, refA);
+  pintaBatCruz(mB, refB);
+  pintaDepara(mB, refB);
+  pintaDiv(mB, refB);
+  pintaBatDetalhe(mA, mB, refB, refA);
+  pintaAnotacoes();
+
+  const agora = new Date();
+  $('#imp-cab').textContent = `Baterias · ${BAT.fotos[bx.b].nome} · ` +
+    `comparação ${bx.a < 0 ? '—' : BAT.fotos[bx.a].nome} · escopo ${escopo} · ` +
+    `emitido em ${agora.toLocaleDateString('pt-BR')} ${agora.toLocaleTimeString('pt-BR').slice(0, 5)}`;
+  $('#rodape').innerHTML = `<b>Painel versão ${VERSAO}</b> · ` +
+    `Baterias ${esc(ORIGEM_BAT || 'sem origem')}: ${fmt(BAT.linhas.length)} registros em ` +
+    `${fmt(BAT.fotos.length)} arquivo(s) · vida útil considerada: ${VIDA_BAT} meses.`;
+}
+
+/* ---------- controles ---------- */
+function montaControlesBat() {
+  const fotos = BAT.fotos.map((f, i) => ({v: String(i), r: rotFoto(f)}));
+  opcoes($('#b-foto'), fotos.length ? fotos : [{v: '0', r: '—'}], String(bx.b));
+  opcoes($('#b-comp'), [{v: '-1', r: 'sem comparação'}].concat(fotos), String(bx.a));
+  const gers = Object.keys(MAPA_GERENCIA).filter(g => BAT.polos.some(p => gerenciaDe(p) === g));
+  opcoes($('#b-ger'), [{v: '', r: 'TR · Superintendência'}].concat((gers.length ? gers : Object.keys(MAPA_GERENCIA)).map(g => ({v: g, r: g}))), st.ger);
+  const polos = st.ger ? BAT.polos.filter(p => gerenciaDe(p) === st.ger) : BAT.polos;
+  if (st.polo && polos.indexOf(st.polo) < 0) st.polo = '';
+  opcoes($('#b-polo'), [{v: '', r: 'Todos os polos'}].concat(polos.map(p => ({v: p, r: 'Polo ' + p}))), st.polo);
+  opcoes($('#b-fmod'), [{v: '', r: 'Todos os modelos'}].concat(BAT.modelos.map(m => ({v: m, r: m}))), bx.mod);
+  opcoes($('#b-ftipo'), [{v: '', r: 'Todos os tipos'}].concat(tiposBateria().map(t => ({v: t, r: t}))), bx.tipo);
+  $('#b-fotos').innerHTML = BAT.fotos.length
+    ? 'Arquivos carregados: ' + BAT.fotos.map((f, i) =>
+        `<span class="sem-item">${esc(f.nome)} · ${dlonga(f.quando)} · ${fmt(BAT.linhas.filter(l => l[BF] === i).length)} religadores` +
+        `<button type="button" data-rm-bfoto="${i}" title="remover este arquivo">×</button></span>`).join('')
+    : 'Nenhum arquivo carregado.';
+}
+function avisoBat(html, erro) { $('#bmsg').innerHTML = `<div class="msg ${erro ? 'erro' : 'ok'}">${html}</div>`; }
+
+/* ---------- eventos do ambiente de baterias ---------- */
+$('#b-foto').addEventListener('change', e => { bx.b = +e.target.value; bx.a = bx.b - 1; montaControlesBat(); render(); });
+$('#b-comp').addEventListener('change', e => { bx.a = +e.target.value; render(); });
+$('#b-ger').addEventListener('change', e => { st.ger = e.target.value; st.polo = ''; montaPolos(); montaControlesBat(); render(); });
+$('#b-polo').addEventListener('change', e => { st.polo = e.target.value; montaPolos(); render(); });
+$('#b-fmod').addEventListener('change', e => { bx.mod = e.target.value; render(); });
+$('#b-ftipo').addEventListener('change', e => { bx.tipo = e.target.value; render(); });
+$('#b-horiz').addEventListener('change', e => {
+  bx.horiz = Math.max(1, Math.min(36, +e.target.value || 12));
+  e.target.value = bx.horiz; render();
+});
+$('#b-limpa').addEventListener('click', () => {
+  st.ger = st.polo = ''; bx.mod = bx.tipo = '';
+  bx.b = Math.max(0, BAT.fotos.length - 1); bx.a = bx.b - 1;
+  montaPolos(); montaControlesBat(); render();
+});
+$('#bt-bdados').addEventListener('click', () => {
+  const p = $('#bpainel'), abrir = p.hidden;
+  p.hidden = !abrir;
+  $('#bt-bdados').setAttribute('aria-expanded', String(abrir));
+});
+$('#bt-bfechar').addEventListener('click', () => {
+  $('#bpainel').hidden = true; $('#bt-bdados').setAttribute('aria-expanded', 'false');
+});
+$$('[data-bdet]').forEach(b => b.addEventListener('click', () => {
+  bx.det = b.dataset.bdet;
+  $$('[data-bdet]').forEach(o => o.setAttribute('aria-selected', String(o === b)));
+  render();
+}));
+['bt-mod-f', 'bt-fab-f', 'bt-tipo-f', 'bt-ger-f', 'bt-polo-f'].forEach(ligaMsel);
+$('#bt-busca').addEventListener('input', e => { bx.dBusca = e.target.value; render(); });
+$('#bt-limpa-lista').addEventListener('click', () => {
+  st.bMod = []; st.bFab = []; st.bTipo = []; st.bGer = []; st.bPolo = [];
+  bx.dBusca = ''; $('#bt-busca').value = ''; render();
+});
+$('#bt-det').addEventListener('click', ev => {
+  const th = ev.target.closest('[data-bord]');
+  if (!th) return;
+  const c = th.dataset.bord;
+  bx.dOrd = {col: c, dir: bx.dOrd.col === c ? -bx.dOrd.dir : (c === 'dias' ? -1 : 1)};
+  render();
+});
+/* de-para: grava ao sair do campo e recalcula o plano de compra */
+$('#bt-depara').addEventListener('change', ev => {
+  const inp = ev.target.closest('.dep-in');
+  if (!inp) return;
+  const k = chaveMod(inp.dataset.chave);
+  const atual = depDe(inp.dataset.chave) || {q: 0, t: ''};
+  const novo = {q: atual.q, t: atual.t};
+  if (inp.dataset.campo === 'q') novo.q = Math.max(0, Math.min(12, parseInt(inp.value, 10) || 0));
+  else novo.t = inp.value.trim();
+  if (!novo.q || !novo.t) { delete BDEP[k]; if (novo.q || novo.t) BDEP[k] = novo; }
+  else BDEP[k] = novo;
+  guardaBdep();
+  render();
+});
+$('#b-fotos').addEventListener('click', ev => {
+  const bt = ev.target.closest('[data-rm-bfoto]');
+  if (!bt) return;
+  const i = +bt.dataset.rmBfoto;
+  const restam = BAT.linhas.filter(l => l[BF] !== i);
+  if (!restam.length) { apagaBat(); avisoBat('Base de baterias apagada.', false); return; }
+  BAT.fotos = BAT.fotos.filter((f, j) => j !== i);
+  BAT.linhas = restam.map(l => [l[BF] > i ? l[BF] - 1 : l[BF], l[BSER], l[BMOD], l[BFAB], l[BDISP], l[BPOLO], l[BDATA], l[BVINC]]);
+  guardaBat();
+  bx.b = Math.max(0, BAT.fotos.length - 1); bx.a = bx.b - 1;
+  montaControlesBat(); render();
+  avisoBat('Arquivo removido.', false);
+});
+function apagaBat() {
+  BAT = {fotos: [], modelos: [], fabs: [], polos: [], linhas: []};
+  ORIGEM_BAT = '';
+  try { localStorage.removeItem(CHAVE_BAT); } catch (e) {}
+  bx.b = 0; bx.a = -1;
+  montaControlesBat(); render();
+}
+$('#bt-bapaga').addEventListener('click', () => {
+  apagaBat();
+  avisoBat('Base de baterias apagada. O de-para que você ajustou continua guardado.', false);
+});
+$('#bt-bexemplo').addEventListener('click', () => {
+  BAT = baseExemploBat(); ORIGEM_BAT = 'de exemplo';
+  bx.b = BAT.fotos.length - 1; bx.a = bx.b - 1;
+  guardaBat(); montaControlesBat(); render();
+  avisoBat('Base de <b>exemplo</b> carregada, com 2 arquivos. Use “Apagar base de baterias” antes de subir o cadastro real.', false);
+});
+function baseExemploBat() {
+  const modelos = ['RC-Tel-05K', 'Altere_V3_T', 'RC-10ES', 'Altere_V3-I_M05', 'RC-Tel-05E', 'RC-5_4',
+                   'AR-1000', 'ADVC2', 'Form-6', 'R550'];
+  const fabs = {'RC-Tel-05K': 'Tavrida', 'Altere_V3_T': 'Lupa_Tavrida', 'RC-10ES': 'Noja',
+    'Altere_V3-I_M05': 'Romagnole', 'RC-Tel-05E': 'Tavrida', 'RC-5_4': 'Tavrida',
+    'AR-1000': 'Ecil_Tavrida', 'ADVC2': 'Schneider', 'Form-6': 'Cooper Power Systems', 'R550': 'Ampera'};
+  const polos = ['PM', 'PO', 'BD', 'UR', 'AX', 'FR', 'UL', 'AG', 'TB'];
+  let seed = 23;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const pesa = a => a[Math.floor(rnd() * rnd() * a.length)];
+  const hoje = hojeISO();
+  const f1 = {nome: 'cadastro-anterior.xls', quando: somaDias(hoje, -60), carimbo: 1},
+        f2 = {nome: 'cadastro-atual.xls', quando: hoje, carimbo: 2};
+  const base = [];
+  for (let i = 0; i < 420; i++) {
+    const m = pesa(modelos);
+    base.push({ser: 'S' + (100000 + i), mod: m, fab: fabs[m], disp: String(100000 + Math.floor(rnd() * 400000)),
+      polo: pesa(polos), data: rnd() < 0.07 ? '' : somaDias(hoje, -Math.floor(rnd() * 1800) - 30), vinc: ''});
+  }
+  const linhasRaw = [];
+  base.forEach(b => linhasRaw.push(Object.assign({foto: f1}, b, {data: b.data})));
+  base.forEach(b => {
+    const trocou = b.data && diasEntre(b.data, hoje) > 730 && rnd() < 0.18;
+    linhasRaw.push(Object.assign({foto: f2}, b, {data: trocou ? somaDias(hoje, -Math.floor(rnd() * 50)) : b.data}));
+  });
+  const alfa = (a, b) => String(a).localeCompare(String(b), 'pt-BR');
+  const uM = Array.from(new Set(linhasRaw.map(x => x.mod))).sort(alfa);
+  const uF = Array.from(new Set(linhasRaw.map(x => x.fab))).sort(alfa);
+  const ordemPolo = [].concat.apply([], Object.keys(MAPA_GERENCIA).map(g => MAPA_GERENCIA[g]));
+  const uP = Array.from(new Set(linhasRaw.map(x => x.polo)))
+    .sort((a, b) => ordemPolo.indexOf(a) - ordemPolo.indexOf(b));
+  const pos = l => { const o = {}; l.forEach((v, i) => o[v] = i); return o; };
+  const iM = pos(uM), iF = pos(uF), iP = pos(uP), iFo = {1: 0, 2: 1};
+  return {fotos: [f1, f2], modelos: uM, fabs: uF, polos: uP,
+          linhas: linhasRaw.map(x => [iFo[x.foto.carimbo], x.ser, iM[x.mod], iF[x.fab], x.disp, iP[x.polo], x.data, x.vinc])};
+}
+$('#barq').addEventListener('change', async ev => {
+  const arqs = Array.from(ev.target.files || []);
+  ev.target.value = '';
+  if (!arqs.length) return;
+  avisoBat('Lendo o cadastro…', false);
+  try {
+    let ultimo = null;
+    for (const a of arqs) {
+      const mats = [];
+      if (/\.(xlsx|xlsm)$/i.test(a.name)) {
+        const buf = await a.arrayBuffer(), zip = abreZip(buf);
+        const sst = await extraiZip(zip, 'xl/sharedStrings.xml');
+        const textos = sst ? porNome(xmlDoc(sst), 'si').map(si => textoDe(si, 't')) : [];
+        const abas = Array.from(zip.itens.keys()).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n)).sort();
+        for (const ab of abas) { const x = await extraiZip(zip, ab); if (x) mats.push(matrizDaAba(x, textos)); }
+      } else {
+        const m = await leArquivoExec(a);
+        if (m) mats.push(m);
+      }
+      const r = montaBat(mats.filter(Boolean), a.name);
+      if (r.erro) { avisoBat(`<b>Não foi possível carregar ${esc(a.name)}.</b><br>${esc(r.erro)}`, true); return; }
+      BAT = r.base; ultimo = r;
+    }
+    ORIGEM_BAT = 'do arquivo ' + arqs.map(a => a.name).join(', ');
+    bx.b = BAT.fotos.length - 1; bx.a = bx.b - 1;
+    const coube = guardaBat();
+    montaControlesBat(); render();
+    const obs = [];
+    obs.push(`${fmt(ultimo.semData)} linha(s) sem data de bateria legível — contam como vencidas`);
+    if (ultimo.dup) obs.push(`${fmt(ultimo.dup)} série(s) repetida(s) ignorada(s)`);
+    if (ultimo.ruins) obs.push(`${fmt(ultimo.ruins)} linha(s) ignoradas por não ter série nem dispositivo`);
+    if (ultimo.foraTR) obs.push(`${fmt(ultimo.foraTR)} linha(s) com conjunto fora das gerências do Triângulo`);
+    if (ultimo.semDepara.length) obs.push('modelos sem de-para: ' + ultimo.semDepara.join(', '));
+    if (!coube) obs.push('não coube no navegador: esta base vale só nesta sessão');
+    avisoBat(`<b>${fmt(ultimo.lidos)} religadores carregados</b> · ${fmt(BAT.fotos.length)} arquivo(s) na base · ` +
+             `${fmt(BAT.modelos.length)} modelos.<ul>${obs.map(o => `<li>${esc(o)}</li>`).join('')}</ul>`, false);
+  } catch (e) {
+    avisoBat(`<b>Erro na leitura.</b><br>${esc(String(e && e.message || e))}`, true);
+  }
+});
+
 /* ============================================================
    INÍCIO
    ============================================================ */
@@ -8894,6 +10051,7 @@ recuperaAnotacoes();
 recuperaEx();
 recuperaGd();
 recuperaMed();
+recuperaBat();
 const guardada = baseGuardada();
 aplicaBase(guardada || baseDemo(), guardada ? 'da planilha (guardada neste navegador)' : 'demonstração');
 if (EX.semanas.length) { sx.b = EX.semanas.length - 1; sx.a = sx.b - 1; }
@@ -8901,6 +10059,7 @@ if (MED.semanas.length) { mx.b = MED.semanas.length - 1; mx.a = mx.b - 1; }
 montaControles();
 montaControlesEx();
 montaControlesMed();
+montaControlesBat();
 render();
 </script>
 </body>
