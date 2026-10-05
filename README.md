@@ -117,31 +117,43 @@ diz que a fila não zera em vez de inventar uma data.
 Na lista de detalhe, selecione as guias e atribua **equipe e semana prevista** em lote. O filtro
 **Vínculo** isola as guias de equipamento indisponível, para programá-las primeiro.
 
-Isso alimenta duas telas:
-
-- **Serviços previstos por equipe** — uma grade de 8 semanas com `programadas / capacidade` em cada
-  célula (capacidade = serviços por dia × 5 dias × dedicação; vermelho acima dela). Clicando numa
-  célula, abaixo aparece **a lista dos serviços previstos** daquela equipe naquela semana: guia,
-  tipo, polo, município, idade, equipamento e se ele está indisponível.
-- **Projeção da fila** — parte do total de hoje e, a cada semana, subtrai o que sai e soma o que
-  entra. Três linhas: pelo programado, pela capacidade teórica e uma referência cinza de não
-  executar nada. Quando uma delas chega a zero dentro do horizonte, o gráfico marca a semana.
+Isso alimenta a tela de **Serviços previstos por equipe** — uma grade de 8 semanas com
+`programadas / capacidade` em cada célula (capacidade = serviços por dia × 5 dias × dedicação;
+vermelho acima dela). Clicando numa célula, abaixo aparece **a lista dos serviços previstos**
+daquela equipe naquela semana: guia, tipo, polo, município, idade, equipamento e se ele está
+indisponível.
 
 A programação é local, feita à mão, e não vai para o G-DIS OP.
 
-### Executado na semana · G-DIS OP
+### Executado na semana · Inspeções SGE × G-DIS OP
 
-O terceiro arquivo é a lista do que as equipes **de fato executaram em campo**. É lido pelas colunas
-**D** (nº do serviço), **F** (data e hora), **G** (veículo), **K** (polo executora) e **M**
-(equipamento) — se o cabeçalho trouxer esses nomes, ele é reconhecido; senão vale a posição da
-letra. Na carga, o painel mostra as primeiras linhas lidas para conferência.
+O terceiro arquivo é a lista do que as equipes **de fato executaram em campo**. São lidas as colunas
+**C** (tipo), **D** (nº do serviço), **E** (data designação), **F** (**data término**, que é a data
+de execução), **G** (veículo = **equipe**), **H** (situação), **I** (bairro), **K** (região = polo),
+**L** (alimentador), **M** (equipamento) e **N** (**observação de fechamento**). O cabeçalho é
+reconhecido pelo nome e, quando não bate, vale a posição da letra. Na carga, o painel mostra as
+primeiras linhas lidas para conferência.
+
+**Período ajustável.** As duas bases têm naturezas diferentes — as guias são uma foto numa data, os
+executados são eventos ao longo de um intervalo. Por padrão o período dos executados acompanha as
+duas fotos de guias; os campos **de / até** no alto da seção permitem fixar outro, e um botão
+devolve o padrão.
+
+**Serviços por dia útil** abre em quatro recortes — **por dia**, **por semana**, **por equipe** e
+**por polo**. Equipe é o veículo da exportação. O denominador é sempre o número de dias úteis do
+período, para que semanas de tamanhos diferentes se comparem.
+
+**A observação de fechamento** aparece na lista de serviços, resumida na linha e inteira na lupa.
+A busca da lista varre serviço, equipamento, equipe e o texto da observação.
 
 Aqui a data já vem na própria linha (coluna F), então pode ser **um arquivo único acumulado**: cada
 serviço entra pela sua data de execução e recarregar o mesmo arquivo não duplica (serviço + data +
 equipamento repetidos são ignorados). O painel guarda tudo e o cruzamento usa a janela entre a foto
 de guias comparada e a foto selecionada — sem foto anterior, os sete dias antes dela.
 
-O cruzamento usa o **equipamento** e responde o que o planejamento sozinho não responde:
+O cruzamento usa o **equipamento** e responde o que o planejamento sozinho não responde. Vale
+registrar o limite: **não existe campo que ligue um serviço do G-DIS à guia que o originou**, então
+serviço em equipamento com guia aberta é indício forte, não prova — e o painel diz isso na tela.
 
 - quantos serviços foram executados em equipamento **com guia de inspeção** e quantos **sem guia
   nenhuma** — estes últimos são execução fora do controle;
@@ -166,22 +178,7 @@ Sem equipe cadastrada não há esperado, e o painel avisa em vez de inventar um.
 
 A comparação do que foi encerrado exige duas fotos de guias; com uma só, o painel avisa.
 
-### Cruzamento com a indisponibilidade
-
-A regra: **equipamento indisponível sob `Regional - Automação` deve ter guia**; nas demais
-responsabilidades, não. O painel confere isso pelo número do equipamento (nunca pelo tipo de
-serviço) e mostra a cobertura, a lista de quem está sem guia — com uma **tolerância em dias**
-configurável, para não cobrar guia de equipamento que ficou indisponível ontem — e a lista de quem
-já tem, com os dias de indisponibilidade ao lado da idade da guia.
-
-O foco do painel é saber **quais indisponíveis têm guia e se essa guia está programada**: além da
-cobertura, há o indicador *com guia, sem programação* e a coluna de programação na lista. O bloco
-**Prioridade na programação** compara as guias ligadas à indisponibilidade com as demais — quantas
-estão programadas, o percentual, quantas caem na próxima semana e a semana média — que é a
-evidência de que elas estão mesmo na frente.
-
-A projeção também estima a redução de indisponíveis, mas por uma **taxa de conversão** editável:
-atender a guia não garante o equipamento voltar a ficar disponível, e o painel diz isso.
+### Tipo de serviço e ligação com indisponibilidade
 
 Na seção de tipo de serviço, uma **rosca** mostra a participação de cada tipo no total, **um tipo
 por fatia**, com o percentual escrito na fatia e a legenda trazendo nome, quantidade e percentual

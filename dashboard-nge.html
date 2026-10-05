@@ -140,6 +140,14 @@
     background:var(--papel);color:var(--tinta);width:100%;min-width:0}
   .dep-in:focus{outline:2px solid var(--verde-forte);outline-offset:-1px}
   table.dt th.cel-rot,table.dt td.cel-rot{min-width:220px;text-align:left}
+  table.dt th.cel-obs,table.dt td.cel-obs{text-align:left;max-width:380px}
+  .obs-bt{border:1px solid var(--linha);background:var(--papel);border-radius:6px;cursor:pointer;
+    font-size:12px;line-height:1;padding:3px 5px;margin-right:6px;vertical-align:middle}
+  .obs-bt:hover{border-color:var(--verde-forte)}
+  .obs-txt{display:inline-block;max-width:300px;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;vertical-align:middle;color:var(--tinta-2);font-size:12px}
+  .gd-periodo{margin:0 0 12px}
+  #lupa .leg b{color:#fff}
   .rot-in{width:100%;min-width:180px;border:1px solid var(--linha);border-radius:6px;
     padding:3px 7px;font:inherit;font-size:12.5px;background:var(--papel);color:var(--tinta)}
   .rot-in:focus{outline:2px solid var(--verde-forte);outline-offset:-1px}
@@ -6369,7 +6377,8 @@ function semanasFuturas(iso, n) {
 const sx = {
   b: 0, a: -1, tipo: '', estagio: '', modo: 'tr', det: 'todos',
   dTipo: '', dEst: '', dGer: '', dPolo: '', dEquipe: '', dBusca: '',
-  dOrd: {col: 'idade', dir: -1}, dAssin: '', sel: new Set(), semProg: '', dVinc: ''
+  dOrd: {col: 'idade', dir: -1}, dAssin: '', sel: new Set(), semProg: '', dVinc: '',
+  gdDe: '', gdAte: '', gdModo: 'dia', gdBusca: ''
 };
 function corGer(g) {
   if (COR.ger && COR.ger[g]) return COR.ger[g];
@@ -7232,16 +7241,26 @@ function renderEx() {
    ============================================================ */
 /* Cada linha guarda a própria data de execução: é um registro de eventos,
    não uma foto semanal. Assim um arquivo acumulado entra de uma vez. */
-const GDATA = 0, GHORA = 1, GSERV = 2, GVEIC = 3, GPOLO = 4, GEQ = 5;
-const COL_GDIS = {serv: 3, data: 5, veic: 6, polo: 10, eq: 12};   /* D, F, G, K, M */
+const GDATA = 0, GHORA = 1, GSERV = 2, GVEIC = 3, GPOLO = 4, GEQ = 5,
+      GDESIG = 6, GTIPO = 7, GSIT = 8, GBAIR = 9, GALIM = 10, GOBS = 11;
+/* posições da exportação do G-DIS, usadas quando o cabeçalho não for reconhecido */
+const COL_GDIS = {serv: 3, desig: 4, data: 5, veic: 6, sit: 7, bairro: 8,
+                  polo: 10, alim: 11, eq: 12, obs: 13, tipo: 2};
 /* pedaços procurados no cabeçalho, do mais específico para o mais genérico.
-   "equip" ficaria de fora de propósito: casaria com a coluna Equipe. */
+   "data" sozinho fica por último em 'data' para não casar com Data Designação,
+   e "equip" fica de fora de propósito: casaria com a coluna Equipe. */
 const NOME_GDIS = {
-  serv: ['servico g-dis', 'servico gdis', 'servico g dis', 'numero do servico', 'servico'],
-  data: ['data e hora', 'data de execucao', 'data execucao', 'data'],
-  veic: ['veiculo'],
-  polo: ['polo executora', 'polo execut', 'polo'],
-  eq:   ['equipamento']
+  serv:   ['servico g-dis', 'servico gdis', 'servico g dis', 'numero do servico', 'servico'],
+  data:   ['data termino', 'data de termino', 'data fim', 'data e hora', 'data de execucao', 'data execucao'],
+  desig:  ['data designacao', 'data de designacao', 'designacao'],
+  veic:   ['veiculo', 'equipe'],
+  polo:   ['polo executora', 'polo execut', 'regiao', 'polo'],
+  eq:     ['equipamento'],
+  tipo:   ['tipo'],
+  sit:    ['situacao'],
+  bairro: ['bairro'],
+  alim:   ['alimentador'],
+  obs:    ['observacao', 'observacoes', 'obs']
 };
 let GD = {veiculos: [], polos: [], linhas: []};
 let ORIGEM_GD = '';
@@ -7291,7 +7310,13 @@ function mapeiaGdis(linha) {
     if (idx[k] >= 0) achou++;
   });
   if (achou < 3) return null;
-  Object.keys(COL_GDIS).forEach(k => { if (idx[k] < 0) idx[k] = COL_GDIS[k]; });
+  /* 'data' continua valendo mesmo sem o termo exato: aí sim aceita qualquer coluna "data"
+     que não seja a de designação */
+  if (idx.data < 0) {
+    const j = norm.findIndex((c, i) => c && c.indexOf('data') >= 0 && i !== idx.desig);
+    if (j >= 0) idx.data = j;
+  }
+  Object.keys(COL_GDIS).forEach(k => { if (idx[k] == null || idx[k] < 0) idx[k] = COL_GDIS[k]; });
   return idx;
 }
 function montaGdis(matrizes, dataPadrao) {
@@ -7312,16 +7337,21 @@ function montaGdis(matrizes, dataPadrao) {
       cabPassou = true;
       const dh = leDataHora(v('data'));
       if (!dh.iso) semData++;
+      const dg = leDataHora(v('desig'));
       const polo = v('polo');
       regs.push({iso: dh.iso || dataPadrao, hora: dh.hora, serv, veic: v('veic') || '—',
-                 polo: CONJ_POLO[chaveTexto(polo)] || (polo || '—'), eq});
+                 polo: CONJ_POLO[chaveTexto(polo)] || (polo || '—'), eq,
+                 desig: dg.iso ? dg.iso + (dg.hora ? ' ' + dg.hora : '') : '',
+                 tipo: v('tipo'), sit: v('sit'), bairro: v('bairro'), alim: v('alim'), obs: v('obs')});
     });
   });
   if (!regs.length) return {erro: 'Nenhum serviço reconhecido. Confira se as colunas D, F, G, K e M são as indicadas.'};
 
   /* junta com o que já existe, sem repetir o mesmo serviço no mesmo equipamento e dia */
   const antigos = GD.linhas.map(l => ({iso: l[GDATA], hora: l[GHORA], serv: l[GSERV],
-    veic: GD.veiculos[l[GVEIC]], polo: GD.polos[l[GPOLO]], eq: l[GEQ]}));
+    veic: GD.veiculos[l[GVEIC]], polo: GD.polos[l[GPOLO]], eq: l[GEQ],
+    desig: l[GDESIG] || '', tipo: l[GTIPO] || '', sit: l[GSIT] || '',
+    bairro: l[GBAIR] || '', alim: l[GALIM] || '', obs: l[GOBS] || ''}));
   const vistos = new Set(), todos = [];
   let dup = 0;
   antigos.concat(regs).forEach(r => {
@@ -7339,10 +7369,12 @@ function montaGdis(matrizes, dataPadrao) {
   });
   const pos = l => { const o = {}; l.forEach((v, i) => o[v] = i); return o; };
   const iV = pos(veiculos), iP = pos(polos);
-  const linhas = todos.map(x => [x.iso, x.hora, x.serv, iV[x.veic], iP[x.polo], x.eq]);
+  const linhas = todos.map(x => [x.iso, x.hora, x.serv, iV[x.veic], iP[x.polo], x.eq,
+    x.desig || '', x.tipo || '', x.sit || '', x.bairro || '', x.alim || '', x.obs || '']);
   const datas = Array.from(new Set(regs.map(r => r.iso))).sort();
   return {base: {veiculos, polos, linhas}, novos, lidos: regs.length, dup, ruins, semData,
           modo: porNome ? 'cabeçalho' : 'letras das colunas',
+          comObs: regs.filter(r => r.obs).length, comDesig: regs.filter(r => r.desig).length,
           de: datas[0], ate: datas[datas.length - 1],
           amostra: regs.slice(0, 5)};
 }
@@ -7436,23 +7468,42 @@ function gdRitmo(linhas) {
 let semData = 0;                     /* linhas sem data na última carga de executados */
 function pintaGdis(mA, mB) {
   const cx = $('#gd-corpo');
-  if (!EX.semanas.length) { cx.innerHTML = '<div class="vazio">Carregue primeiro as guias.</div>'; $('#gd-sub').textContent = ''; return; }
+  if (!EX.semanas.length) { cx.innerHTML = '<div class="vazio">Carregue primeiro as guias de inspeção.</div>'; $('#gd-sub').textContent = ''; return; }
   const alvo = EX.semanas[sx.b];
   if (!GD.linhas.length) {
     cx.innerHTML = '<div class="vazio">Nenhum arquivo de executados carregado. Use <b>Carregar dados → Executados G-DIS OP</b>.</div>';
     $('#gd-sub').textContent = '';
     return;
   }
-  /* período: entre a foto comparada e a foto atual; sem comparação, os 7 dias anteriores */
-  const ini = sx.a >= 0 ? EX.semanas[sx.a] : somaDias(alvo, -7);
+  /* período: por padrão acompanha as fotos de guias; o usuário pode fixar outro */
+  const padraoIni = sx.a >= 0 ? EX.semanas[sx.a] : somaDias(alvo, -7);
+  const auto = !sx.gdDe && !sx.gdAte;
+  const ini = auto ? padraoIni : somaDias(sx.gdDe || periodoGd().de, -1);
+  const fim = auto ? alvo : (sx.gdAte || periodoGd().ate);
   const escopo = l => (!st.ger || gerenciaDe(GD.polos[l[GPOLO]]) === st.ger) &&
                       (!st.polo || GD.polos[l[GPOLO]] === st.polo);
-  const serv = gdisNoPeriodo(ini, alvo).filter(escopo);
-  $('#gd-sub').textContent = `executados de ${dlonga(somaDias(ini, 1))} a ${dlonga(alvo)} × guias de ${dlonga(alvo)}`;
+  const serv = gdisNoPeriodo(ini, fim).filter(escopo);
+  const de1 = somaDias(ini, 1);
+  $('#gd-sub').textContent = `executados de ${dlonga(de1)} a ${dlonga(fim)} × guias de ${dlonga(alvo)}` +
+    (auto ? '' : ' · período fixado à mão');
+
+  /* controle de período: as duas bases têm naturezas diferentes e nem sempre
+     o intervalo das fotos de guias é o que se quer olhar nos executados */
+  const pg = periodoGd();
+  const ctrl = `<div class="param-linha gd-periodo">
+    <label>Executados de <input type="date" id="gd-de" value="${esc(auto ? de1 : (sx.gdDe || pg.de))}"></label>
+    <label>até <input type="date" id="gd-ate" value="${esc(auto ? fim : (sx.gdAte || pg.ate))}"></label>
+    <button class="btn" id="gd-auto" type="button"${auto ? ' disabled' : ''}>Acompanhar as fotos de guias</button>
+    <span class="nota">${auto
+      ? 'o período segue a comparação entre as duas fotos de guias'
+      : 'período fixado: as guias continuam na foto de ' + dlonga(alvo)}
+      · base de executados de ${pg ? dlonga(pg.de) + ' a ' + dlonga(pg.ate) : '—'}</span>
+  </div>`;
+
   if (!serv.length) {
-    const p = periodoGd();
-    cx.innerHTML = `<div class="vazio">Nenhum serviço executado nesse período. ` +
-      (p ? `A base de executados vai de ${dlonga(p.de)} a ${dlonga(p.ate)}.` : '') + `</div>`;
+    cx.innerHTML = ctrl + `<div class="vazio">Nenhum serviço executado nesse período. ` +
+      (pg ? `A base de executados vai de ${dlonga(pg.de)} a ${dlonga(pg.ate)}.` : '') + `</div>`;
+    ligaCtrlGdis();
     return;
   }
 
@@ -7461,17 +7512,17 @@ function pintaGdis(mA, mB) {
   mB.forEach(l => { const d = String(l[XDISP] || ''); if (!abertaAgora.has(d)) abertaAgora.set(d, []); abertaAgora.get(d).push(l); });
   mA.forEach(l => { const d = String(l[XDISP] || ''); if (!abertaAntes.has(d)) abertaAntes.set(d, []); abertaAntes.get(d).push(l); });
   const indisp = (CRUZ && CRUZ.todosInd) || new Set();
-  const semProgramada = new Set();      /* guias programadas para o período executado */
+  const semProgramada = new Set();
   mB.forEach((l, sol) => {
     const p = PROG.prog[sol];
-    if (p && p.sem && p.sem > ini && p.sem <= somaDias(alvo, 6)) semProgramada.add(String(l[XDISP] || ''));
+    if (p && p.sem && p.sem > ini && p.sem <= somaDias(fim, 6)) semProgramada.add(String(l[XDISP] || ''));
   });
 
   const cls = l => {
     const d = String(l[GEQ] || '');
-    if (abertaAgora.has(d)) return 'aberta';                       /* executado e a guia continua aberta */
-    if (abertaAntes.has(d)) return 'encerrada';                    /* tinha guia e ela saiu */
-    return 'sem';                                                  /* nunca teve guia nas duas fotos */
+    if (abertaAgora.has(d)) return 'aberta';
+    if (abertaAntes.has(d)) return 'encerrada';
+    return 'sem';
   };
   const cont = {aberta: 0, encerrada: 0, sem: 0};
   serv.forEach(l => cont[cls(l)]++);
@@ -7481,138 +7532,225 @@ function pintaGdis(mA, mB) {
   const emIndisp = serv.filter(l => indisp.has(String(l[GEQ] || ''))).length;
   const programados = serv.filter(l => semProgramada.has(String(l[GEQ] || ''))).length;
   const progTotal = semProgramada.size;
+  const du = Math.max(1, diasUteis(ini, fim));
+  const equipes = new Set(serv.map(l => GD.veiculos[l[GVEIC]]));
 
+  /* os dois números que o módulo existe para mostrar, lado a lado */
   const tiles = `<div class="kpis" style="grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:14px">
-    <div class="tile"><span class="rot">Serviços executados</span><span class="val" style="color:var(--verde-forte)">${fmt(total)}</span>
-      <span class="pe">${fmt(eqs.size)} equipamentos · ${dlonga(somaDias(ini, 1))} a ${dlonga(alvo)}</span></div>
-    <div class="tile"><span class="rot">Com guia de inspeção</span><span class="val" style="color:#006300">${fmt(comGuia)}</span>
-      <span class="pe">${pct1(pct(comGuia, total || 1))}% · ${fmt(cont.encerrada)} com a guia encerrada na semana</span></div>
-    <div class="tile"><span class="rot">Sem guia</span><span class="val" style="color:${COR.ruim}">${fmt(cont.sem)}</span>
-      <span class="pe">executado fora do controle de guias</span></div>
-    <div class="tile"><span class="rot">Feito, guia em aberto</span><span class="val">${fmt(cont.aberta)}</span>
-      <span class="pe">executado e a guia segue na carteira — pode ser outra guia do mesmo equipamento ou falta de encerramento</span></div>
-    <div class="tile"><span class="rot">Em equipamento indisponível</span><span class="val">${fmt(emIndisp)}</span>
-      <span class="pe">${pct1(pct(emIndisp, total || 1))}% dos serviços da semana</span></div>
-  </div>`;
+    <div class="tile hero"><span class="rot">Guias de inspeção</span><span class="val">${fmt(mB.size)}</span>
+      <span class="pe">na carteira em ${dlonga(alvo)} — Inspeções SGE</span></div>
+    <div class="tile hero"><span class="rot">Serviços executados</span><span class="val" style="color:var(--verde-forte)">${fmt(total)}</span>
+      <span class="pe">${fmt(eqs.size)} equipamentos · ${fmt(equipes.size)} equipe(s) · ${fmt(du)} dia(s) úteis</span></div>
+    <div class="tile"><span class="rot">Em equipamento com guia</span><span class="val" style="color:#006300">${fmt(comGuia)}</span>
+      <span class="pe">${pct1(pct(comGuia, total))}% dos executados · ${fmt(cont.encerrada)} com a guia encerrada no período</span></div>
+    <div class="tile"><span class="rot">Sem guia no equipamento</span><span class="val" style="color:${COR.ruim}">${fmt(cont.sem)}</span>
+      <span class="pe">${pct1(pct(cont.sem, total))}% — execução fora do controle de guias</span></div>
+    <div class="tile"><span class="rot">Por dia útil, por equipe</span><span class="val">${pct1(total / du / Math.max(1, equipes.size))}</span>
+      <span class="pe">${pct1(total / du)} serviços por dia útil no total</span></div>
+  </div>
+  <div class="nota" style="margin:-6px 0 14px">A ligação entre serviço e guia é feita <b>pelo número do equipamento</b>:
+  não existe campo oficial que ligue um serviço do G-DIS à guia que o originou. Serviço em equipamento com guia
+  aberta é forte indício de que veio dela, não prova.</div>`;
 
   const ader = progTotal
     ? `<h4 class="sub-tit">Aderência à programação</h4>
-       <div class="explica">Das guias que você programou para esta semana, quantas tiveram serviço
-       executado no equipamento. É a comparação direta entre o que foi planejado e o que foi feito.</div>
        <div class="tab-wrap"><table class="dt"><tbody>
-         <tr><td>Guias programadas para a semana</td><td>${fmt(progTotal)}</td><td>—</td></tr>
+         <tr><td>Guias programadas para o período</td><td>${fmt(progTotal)}</td><td>—</td></tr>
          <tr><td>Com execução no equipamento</td><td>${fmt(programados)}</td><td>${pct1(pct(programados, progTotal))}%</td></tr>
          <tr><td>Programadas e não executadas</td><td>${fmt(progTotal - programados)}</td><td>${pct1(pct(progTotal - programados, progTotal))}%</td></tr>
          <tr><td>Executados que não estavam programados</td><td>${fmt(total - programados)}</td><td>${pct1(pct(total - programados, total || 1))}%</td></tr>
        </tbody></table></div>`
-    : `<div class="nota">Nenhuma guia programada para esta semana, então não há o que comparar com o planejado.</div>`;
+    : '';
 
-  /* quem executou: agrupa por gerência, polo e veículo */
+  /* ranking por gerência e polo — o de veículo virou o gráfico de ritmo */
   const agrupa = chave => {
     const m = new Map();
     serv.forEach(l => {
       const k = chave(l);
-      if (!m.has(k)) m.set(k, {t: 0, g: 0, i: 0, polos: new Map()});
+      if (!m.has(k)) m.set(k, {t: 0, g: 0, i: 0});
       const o = m.get(k); o.t++;
       if (cls(l) !== 'sem') o.g++;
       if (indisp.has(String(l[GEQ] || ''))) o.i++;
-      const pl = GD.polos[l[GPOLO]];
-      o.polos.set(pl, (o.polos.get(pl) || 0) + 1);
     });
     return Array.from(m.entries()).sort((a, b) => b[1].t - a[1].t || String(a[0]).localeCompare(String(b[0]), 'pt-BR'));
   };
   const gerDoPolo = pl => gerenciaDe(pl) || '—';
   const porGerL = agrupa(l => gerDoPolo(GD.polos[l[GPOLO]]));
   const porPoloL = agrupa(l => GD.polos[l[GPOLO]]);
-  const porVeicL = agrupa(l => GD.veiculos[l[GVEIC]]);
-  /* a cor do veículo é a da gerência onde ele mais rodou */
-  const gerDoVeic = o => {
-    let melhor = '', n = -1;
-    o.polos.forEach((v, pl) => { if (v > n) { n = v; melhor = pl; } });
-    return {ger: gerDoPolo(melhor), polo: melhor, todos: o.polos.size};
-  };
-
-  const tabGrupo = (linhas, rot, col, extra) =>
+  const tabGrupo = (linhas, col, extra) =>
     `<div class="tab-wrap"><table class="dt"><thead><tr>
       <th>${esc(col)}</th>${extra ? '<th>Gerência</th>' : ''}<th>Executados</th><th>Com guia</th><th>% com guia</th><th>Em indisponível</th>
       </tr></thead><tbody>` + linhas.map(([k, o]) => `<tr><td>${esc(k)}</td>` +
-      (extra ? `<td>${esc(extra(k, o))}</td>` : '') +
+      (extra ? `<td>${esc(extra(k))}</td>` : '') +
       `<td>${fmt(o.t)}</td><td>${fmt(o.g)}</td><td>${pct1(pct(o.g, o.t))}%</td><td>${fmt(o.i)}</td></tr>`).join('') +
       `</tbody></table></div>`;
-
-  const rankGer = porGerL.map(([k, o]) => ({k, t: o.t, g: o.g, cor: corGer(k),
-    sub: fmt(o.polos.size) + (o.polos.size === 1 ? ' polo' : ' polos')}));
-  const rankPolo = porPoloL.map(([k, o]) => ({k: 'Polo ' + k, t: o.t, g: o.g, cor: corGer(gerDoPolo(k)), sub: gerDoPolo(k)}));
-  const rankVeic = porVeicL.map(([k, o]) => { const v = gerDoVeic(o);
-    return {k, t: o.t, g: o.g, cor: corGer(v.ger), sub: v.todos > 1 ? v.polo + ' +' + (v.todos - 1) : v.polo}; });
+  const rank = linhas => linhas.map(([k, o]) => ({k, t: o.t, g: o.g, cor: corGer(gerDoPolo(k) === '—' ? k : gerDoPolo(k))}));
   const gersNoPeriodo = porGerL.map(([k]) => k);
   const legGer = legenda(gersNoPeriodo.map(g => ({cor: corGer(g), rot: g}))
-    .concat([{cor: clareia(corGer(gersNoPeriodo[0] || ""), 0.62), rot: 'parte sem guia de inspeção'}]));
-
+    .concat([{cor: clareia(corGer(gersNoPeriodo[0] || ''), 0.62), rot: 'parte sem guia no equipamento'}]));
   const maiores = `<h4 class="sub-tit">Quem mais executou</h4>
-    <div class="explica">O comprimento da barra é o total de serviços; a parte cheia é o que tinha guia
-    de inspeção e a parte clara é o que foi executado sem guia. A cor é sempre a da gerência, então a
-    posição mostra o ranking e a cor mostra de quem é o volume.</div>
-    ${legGer}
+    <div class="explica">A barra é o total de serviços; a parte cheia é o que foi feito em equipamento
+    com guia de inspeção aberta e a parte clara é o resto.</div>${legGer}
     <h5 class="mini-tit">Por gerência</h5>
-    <div class="gd-par"><div>${gdRank(rankGer)}</div><div>${tabGrupo(porGerL, 'Por gerência', 'Gerência')}</div></div>
+    <div class="gd-par"><div>${gdRank(rank(porGerL))}</div><div>${tabGrupo(porGerL, 'Gerência')}</div></div>
     <h5 class="mini-tit">Por polo</h5>
-    <div class="gd-par"><div>${gdRank(rankPolo)}</div><div>${tabGrupo(porPoloL, 'Por polo', 'Polo', k => gerDoPolo(k))}</div></div>
-    <h5 class="mini-tit">Por veículo</h5>
-    <div class="gd-par"><div>${gdRank(rankVeic, {teto: 12})}</div>
-      <div class="rolagem">${tabGrupo(porVeicL, 'Por veículo', 'Veículo', (k, o) => gerDoVeic(o).ger)}</div></div>`;
+    <div class="gd-par"><div>${gdRank(rank(porPoloL).map(r => Object.assign(r, {k: 'Polo ' + r.k})))}</div>
+      <div>${tabGrupo(porPoloL, 'Polo', k => gerDoPolo(k))}</div></div>`;
 
-  /* ritmo: média por dia útil × esperado pela capacidade cadastrada */
-  const du = Math.max(1, diasUteis(ini, alvo));
-  const par = paramsSemana(alvo);
-  const espGer = g => { const c = capacidade(g, alvo); return c.equipes * (c.ded / 100) * par.dia; };
-  const semEquipe = gersNoPeriodo.every(g => equipesDe(g).length === 0);
-  const ritmoGer = porGerL.map(([k, o]) => ({k, med: o.t / du, esp: espGer(k), cor: corGer(k),
-    sub: fmt(equipesDe(k).length) + (equipesDe(k).length === 1 ? ' equipe' : ' equipes')}));
-  const ritmoPolo = porPoloL.map(([k, o]) => {
-    const g = gerDoPolo(k), np = Math.max(1, polosDeGer(g).length);
-    return {k: 'Polo ' + k, med: o.t / du, esp: espGer(g) / np, cor: corGer(g), sub: g};
-  });
-  const ritmo = `<h4 class="sub-tit">Ritmo: serviços por dia útil</h4>
-    <div class="explica">Média diária do período (${fmt(du)} dia${du === 1 ? '' : 's'} úteis) contra o
-    esperado pela capacidade cadastrada — ${fmt(par.dia)} serviço(s) por equipe/dia. A marca preta é o
-    esperado; a barra é o realizado. O esperado de cada polo é o da gerência rateado igualmente entre
-    os polos dela, porque as equipes são cadastradas por gerência e não por polo.</div>
-    ${semEquipe ? '<div class="nota">Nenhuma equipe cadastrada, então não há esperado para comparar. Cadastre as equipes no bloco de capacidade.</div>' : ''}
-    <div class="gd-rank">
-      <div><h5 class="mini-tit">Por gerência</h5>${gdRitmo(ritmoGer)}</div>
-      <div><h5 class="mini-tit">Por polo</h5>${gdRitmo(ritmoPolo)}</div>
-    </div>`;
-
-  const rot = {aberta: '<span class="chip c-zero">guia segue aberta</span>',
-               encerrada: '<span class="chip c-bom">guia encerrada na semana</span>',
-               sem: '<span class="chip c-ruim">sem guia</span>'};
-  const lista = `<h4 class="sub-tit">Serviços executados</h4><div class="tab-wrap alta"><table class="dt"><thead><tr>
-      <th>Serviço</th><th>Data</th><th>Hora</th><th>Veículo</th><th>Polo</th><th>Equipamento</th>
-      <th>Guia</th><th>Programado</th><th>Indisponível</th></tr></thead><tbody>` +
-    serv.slice().sort((a, b) => String(a[GDATA]).localeCompare(String(b[GDATA])) ||
-                                String(a[GSERV]).localeCompare(String(b[GSERV])))
-      .map(l => {
-        const d = String(l[GEQ] || '');
-        return `<tr><td>${esc(String(l[GSERV]))}</td><td>${l[GDATA] ? dlonga(l[GDATA]) : '—'}</td>
-          <td>${esc(l[GHORA] || '—')}</td><td>${esc(GD.veiculos[l[GVEIC]])}</td>
-          <td>${esc(GD.polos[l[GPOLO]])}</td><td>${esc(d)}</td>
-          <td>${rot[cls(l)]}</td>
-          <td>${semProgramada.has(d) ? '<span class="prog-chip">sim</span>' : '—'}</td>
-          <td>${indisp.has(d) ? '<span class="vinc-chip">indisp.</span>' : '—'}</td></tr>`;
-      }).join('') + `</tbody></table></div>`;
+  const lista = listaGdis(serv, cls, semProgramada, indisp);
 
   const avisos = [];
-  if (sx.a < 0) avisos.push('Sem foto de guias anterior à selecionada, o período considerado são os 7 dias anteriores e não dá para saber quais guias foram encerradas; a coluna “guia encerrada” aparece quando há uma foto anterior.');
-  if (semData) avisos.push(`${fmt(semData)} serviço(s) sem data de execução legível ficaram com a data informada na carga.`);
+  if (sx.a < 0 && auto) avisos.push('Sem foto de guias anterior à selecionada, o período considerado são os 7 dias anteriores; a coluna “guia encerrada” aparece quando há uma foto anterior.');
+  if (semData) avisos.push(`${fmt(semData)} serviço(s) sem data de término legível ficaram com a data informada na carga.`);
   const aviso = avisos.length ? `<div class="msg erro" style="margin:0 0 14px">${avisos.map(esc).join('<br>')}</div>` : '';
 
-  cx.innerHTML = aviso + tiles + ader + maiores + ritmo + lista;
+  cx.innerHTML = ctrl + aviso + tiles + ritmoGdis(serv, ini, fim) + maiores + ader + lista;
+  ligaCtrlGdis();
+}
+/* liga os controles que são recriados a cada pintura */
+document.addEventListener('click', ev => {
+  const aba = ev.target.closest('[data-gdmodo]');
+  if (aba) { sx.gdModo = aba.dataset.gdmodo; render(); return; }
+  const lupa = ev.target.closest('.obs-bt');
+  if (lupa) {
+    $('#lupa-img').hidden = true;
+    $('#lupa-leg').innerHTML = `<b>Serviço ${esc(lupa.dataset.serv)}</b><br>${esc(lupa.dataset.obs)}`;
+    $('#lupa').hidden = false;
+  }
+});
+document.addEventListener('input', ev => {
+  const b = ev.target.closest('#gd-busca');
+  if (!b) return;
+  sx.gdBusca = b.value;
+  clearTimeout(window.__gdT);
+  window.__gdT = setTimeout(() => { render(); const n = $('#gd-busca'); if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); } }, 250);
+});
+function ligaCtrlGdis() {
+  const de = $('#gd-de'), ate = $('#gd-ate'), bt = $('#gd-auto');
+  if (de) de.addEventListener('change', e => { sx.gdDe = e.target.value; if (!sx.gdAte) sx.gdAte = $('#gd-ate').value; render(); });
+  if (ate) ate.addEventListener('change', e => { sx.gdAte = e.target.value; if (!sx.gdDe) sx.gdDe = $('#gd-de').value; render(); });
+  if (bt) bt.addEventListener('click', () => { sx.gdDe = sx.gdAte = ''; render(); });
 }
 
-/* ============================================================
-   EXECUÇÃO — controles
-   ============================================================ */
+/* ---------- serviços por dia útil: dia, semana, equipe ou polo ---------- */
+function ritmoGdis(serv, ini, fim) {
+  const modo = sx.gdModo || 'dia';
+  const du = Math.max(1, diasUteis(ini, fim));
+  const ehUtil = iso => { const w = new Date(iso + 'T00:00:00').getDay(); return w >= 1 && w <= 5; };
+
+  let cats = [], valor, rotulo, sufixo = '', dica;
+  if (modo === 'dia' || modo === 'semana') {
+    const chave = modo === 'dia' ? (l => l[GDATA]) : (l => segunda(l[GDATA]));
+    const m = new Map();
+    serv.forEach(l => { const k = chave(l); m.set(k, (m.get(k) || 0) + 1); });
+    if (modo === 'dia') {
+      for (let d = somaDias(ini, 1); d <= fim; d = somaDias(d, 1)) if (ehUtil(d) || m.has(d)) cats.push(d);
+    } else {
+      cats = Array.from(m.keys()).sort();
+    }
+    valor = k => m.get(k) || 0;
+    rotulo = k => modo === 'dia' ? dcurta(k) : 'sem ' + dcurta(k);
+    dica = k => `<b>${fmt(valor(k))}</b> serviços<br><span class="l">${dlonga(k)}${modo === 'semana' ? ' — semana' : ''}</span>`;
+  } else {
+    const chave = modo === 'equipe' ? (l => GD.veiculos[l[GVEIC]]) : (l => GD.polos[l[GPOLO]]);
+    const m = new Map(), dias = new Map();
+    serv.forEach(l => {
+      const k = chave(l);
+      m.set(k, (m.get(k) || 0) + 1);
+      if (!dias.has(k)) dias.set(k, new Set());
+      if (ehUtil(l[GDATA])) dias.get(k).add(l[GDATA]);
+    });
+    cats = Array.from(m.keys()).sort((a, b) => m.get(b) - m.get(a) || String(a).localeCompare(String(b), 'pt-BR'));
+    valor = k => m.get(k) / du;
+    rotulo = k => modo === 'equipe' ? k : 'Polo ' + k;
+    sufixo = ' /dia útil';
+    dica = k => `<b>${pct1(m.get(k) / du)}</b> por dia útil<br><span class="l">${rotulo(k)} · ${fmt(m.get(k))} serviços em ${fmt(dias.get(k).size)} dia(s) com execução</span>`;
+  }
+  if (!cats.length) return '';
+
+  const W = 1400, H = 330, ml = 58, mr = 24, mt = 44, mb = 62;
+  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
+  const topo = Math.max(...cats.map(valor));
+  const frac = modo === 'equipe' || modo === 'polo';
+  const max = frac ? Math.max(1, Math.ceil(topo * 1.2)) : escalaMax(Math.max(1, topo) * 1.16);
+  const y = v => py1 - (v / max) * (py1 - py0);
+  let s = grade(px0, px1, marcasY(max).map(y));
+  s += marcasY(max).map(v => txt(px0 - 9, y(v) + 4, frac ? pct1(v) : fmt(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1})).join('');
+  const banda = (px1 - px0) / cats.length, bw = Math.min(54, banda * 0.52);
+  const tam = cats.length > 14 ? 10.5 : 12;
+  cats.forEach((k, i) => {
+    const cx2 = px0 + banda * i + banda / 2, v = valor(k);
+    const cor = modo === 'polo' ? corGer(gerenciaDe(k)) : modo === 'equipe' ? COR.s2 : (ehUtil(k) || modo === 'semana' ? COR.s2 : COR.t3);
+    if (v > 0) s += colunaSVG(cx2 - bw / 2, y(v), bw, Math.max(2, py1 - y(v)), cor, dica(k));
+    s += txt(cx2, y(v) - 9, frac ? pct1(v) : fmt(v), {cor: COR.t1, tam: cats.length > 14 ? 12 : 15, peso: 650, anc: 'middle'});
+    s += txt(cx2, py1 + 19, rotulo(k), {cor: COR.t1, tam, anc: 'middle', peso: 600});
+    if (modo === 'dia' && !ehUtil(k)) s += txt(cx2, py1 + 33, 'fim de semana', {cor: COR.t3, tam: 9.5, anc: 'middle'});
+  });
+  /* média por dia útil, como referência */
+  if (modo === 'dia') {
+    const med = serv.filter(l => ehUtil(l[GDATA])).length / du;
+    s += `<line x1="${px0}" y1="${y(med)}" x2="${px1}" y2="${y(med)}" stroke="${COR.s3}" stroke-width="2" stroke-dasharray="6 4"/>`;
+    /* o rótulo vai acima do topo do desenho, para nunca cobrir o valor de uma coluna */
+    s += txt(px1, mt - 14, `média ${pct1(med)} por dia útil`, {cor: COR.s3, tam: 11.5, anc: 'end', peso: 650});
+  }
+  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+
+  const abas = [['dia', 'Por dia'], ['semana', 'Por semana'], ['equipe', 'Por equipe'], ['polo', 'Por polo']]
+    .map(([v, r]) => `<button class="aba" type="button" role="tab" data-gdmodo="${v}" aria-selected="${modo === v}">${r}</button>`).join('');
+  return `<h4 class="sub-tit">Serviços por dia útil</h4>
+    <div class="card-hd" style="padding:0;margin:0 0 8px">
+      <span class="sub">${modo === 'dia' ? 'cada dia do período' : modo === 'semana' ? 'total de cada semana'
+        : modo === 'equipe' ? 'média por dia útil de cada equipe (veículo)' : 'média por dia útil de cada polo'}</span>
+      <div class="abas" role="tablist" style="margin-left:auto">${abas}</div>
+    </div>
+    <div class="explica">A <b>equipe é o veículo</b> da exportação do G-DIS. O denominador é sempre o número de
+    dias úteis do período (${fmt(du)}), para que semanas de tamanhos diferentes possam ser comparadas.</div>
+    ${svgRoot(W, H, s)}`;
+}
+
+/* ---------- lista dos serviços, com a observação de fechamento ---------- */
+function listaGdis(serv, cls, semProgramada, indisp) {
+  const rot = {aberta: '<span class="chip c-zero">guia segue aberta</span>',
+               encerrada: '<span class="chip c-bom">guia encerrada no período</span>',
+               sem: '<span class="chip c-ruim">sem guia</span>'};
+  const busca = (sx.gdBusca || '').trim().toLowerCase();
+  const filtrados = serv.filter(l => !busca ||
+    String(l[GSERV]).toLowerCase().indexOf(busca) >= 0 ||
+    String(l[GEQ]).toLowerCase().indexOf(busca) >= 0 ||
+    String(l[GOBS] || '').toLowerCase().indexOf(busca) >= 0 ||
+    String(GD.veiculos[l[GVEIC]]).toLowerCase().indexOf(busca) >= 0);
+  const temObs = serv.some(l => l[GOBS]);
+  const linhas = filtrados.slice().sort((a, b) =>
+      String(b[GDATA]).localeCompare(String(a[GDATA])) || String(a[GHORA]).localeCompare(String(b[GHORA])))
+    .slice(0, 600).map(l => {
+      const d = String(l[GEQ] || '');
+      const obs = l[GOBS] || '';
+      return `<tr><td>${esc(String(l[GSERV]))}</td><td>${l[GDATA] ? dlonga(l[GDATA]) : '—'}</td>
+        <td>${esc(l[GHORA] || '—')}</td><td>${esc(GD.veiculos[l[GVEIC]])}</td>
+        <td>${esc(GD.polos[l[GPOLO]])}</td><td>${esc(d)}</td>
+        <td>${esc(l[GALIM] || '—')}</td>
+        <td>${rot[cls(l)]}</td>
+        <td>${semProgramada.has(d) ? '<span class="prog-chip">sim</span>' : '—'}</td>
+        <td>${indisp.has(d) ? '<span class="vinc-chip">indisp.</span>' : '—'}</td>` +
+        (temObs ? `<td class="cel-obs">${obs
+          ? `<button class="obs-bt" type="button" data-obs="${esc(obs)}" data-serv="${esc(String(l[GSERV]))}"
+               title="ler a observação de fechamento">🔍</button><span class="obs-txt">${esc(obs)}</span>`
+          : '—'}</td>` : '') + `</tr>`;
+    }).join('');
+  return `<h4 class="sub-tit">Serviços executados</h4>
+    <div class="filtros-lista" style="padding-top:0">
+      <div class="campo"><label for="gd-busca">Serviço, equipamento, equipe ou observação</label>
+        <input id="gd-busca" type="search" placeholder="buscar" autocomplete="off" value="${esc(sx.gdBusca || '')}"></div>
+      <span class="conta">${fmt(filtrados.length)} de ${fmt(serv.length)} serviços</span>
+    </div>
+    <div class="tab-wrap alta"><table class="dt"><thead><tr>
+      <th>Serviço</th><th>Data</th><th>Hora</th><th>Equipe</th><th>Polo</th><th>Equipamento</th>
+      <th>Alimentador</th><th>Guia</th><th>Programado</th><th>Indisponível</th>${temObs ? '<th class="cel-obs">Observação de fechamento</th>' : ''}
+    </tr></thead><tbody>${linhas}</tbody></table></div>` +
+    (filtrados.length > 600 ? `<div class="nota">Mostrando os 600 primeiros de ${fmt(filtrados.length)}.</div>` : '') +
+    (temObs ? '' : '<div class="nota">Esta exportação não trouxe a coluna de observação (N).</div>');
+}
+
 function montaControlesEx() {
   const sems = EX.semanas.map((w, i) => ({v: String(i), r: dlonga(w)}));
   opcoes($('#e-semana'), sems.length ? sems : [{v: '0', r: '—'}], String(sx.b));
