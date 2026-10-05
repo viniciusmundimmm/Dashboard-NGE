@@ -10299,21 +10299,72 @@ const ehCabecalhoPsv = linha => {
   return norm.some(c => c.indexOf('compensacao') === 0 || c === 'pi') &&
          norm.some(c => c.indexOf('cliente') === 0 || c.indexOf('cidade') === 0 || c.indexOf('polo') === 0);
 };
+/* dinheiro como o Excel entrega: número puro, "R$ 1.234,56", "1,234.56",
+   negativo entre parênteses, espaço fino, espaço não separável */
 function valorPsv(t) {
-  const n = leNumero(String(t).replace(/r\$/i, '').replace(/[^\d.,-]/g, ''));
-  return isFinite(n) ? n : NaN;
+  let s = String(t == null ? '' : t).replace(/[\u00a0\u202f\s]/g, '');
+  if (!s) return NaN;
+  const neg = /^\(.*\)$/.test(s) || /-/.test(s);
+  s = s.replace(/r\$/i, '').replace(/[()]/g, '').replace(/[^\d.,]/g, '');
+  if (!s || !/\d/.test(s)) return NaN;
+  const ultV = s.lastIndexOf(','), ultP = s.lastIndexOf('.');
+  let num;
+  if (ultV >= 0 && ultP >= 0) {
+    /* o separador decimal é o que vier por último */
+    num = ultV > ultP ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+  } else if (ultV >= 0) {
+    /* só vírgula: decimal quando sobram 1 ou 2 casas, senão é milhar */
+    num = (s.length - ultV - 1) <= 2 && s.split(',').length === 2
+      ? s.replace(',', '.') : s.replace(/,/g, '');
+  } else if (ultP >= 0) {
+    num = (s.length - ultP - 1) <= 2 && s.split('.').length === 2
+      ? s : s.replace(/\./g, '');
+  } else num = s;
+  const v = parseFloat(num);
+  return isFinite(v) ? (neg ? -Math.abs(v) : v) : NaN;
+}
+/* quando a coluna mapeada vem zerada, procura a que realmente tem dinheiro:
+   a de maior soma entre as que são numéricas na maioria das linhas */
+function acheColunaValor(linhas, evitar) {
+  const larg = Math.max(...linhas.map(l => l.length));
+  let melhor = -1, melhorSoma = 0;
+  for (let c = 0; c < larg; c++) {
+    if (evitar.indexOf(c) >= 0) continue;
+    let ok = 0, soma = 0, viu = 0;
+    linhas.forEach(l => {
+      const t = l[c];
+      if (t == null || String(t).trim() === '') return;
+      viu++;
+      const v = valorPsv(t);
+      if (isFinite(v) && v !== 0) { ok++; soma += Math.abs(v); }
+    });
+    if (viu >= 3 && ok / viu >= 0.7 && soma > melhorSoma) { melhorSoma = soma; melhor = c; }
+  }
+  return melhor;
 }
 function montaPsv(matrizes, dataISO) {
   const regs = [], vistos = new Set();
   let ruins = 0, dup = 0, comColuna = 0, semValor = 0;
+  const diag = {cab: null, idx: null, valAuto: -1};
   matrizes.forEach(m => {
-    let idx = null;
+    let idx = null, corpo = null;
     m.forEach(linha => {
       if (!idx) {
-        if (ehCabecalhoPsv(linha)) idx = mapeiaPsv(linha);
-        else if (linha.filter(c => String(c).trim()).length >= 6 && valorPsv(linha[5]) > 0) idx = Object.assign({sem: -1}, COL_PSV);
-        if (idx) return;
-        return;
+        let eraCab = false;
+        if (ehCabecalhoPsv(linha)) { idx = mapeiaPsv(linha); diag.cab = linha.slice(); eraCab = true; }
+        else if (linha.filter(c => String(c).trim()).length >= 6 && isFinite(valorPsv(linha[5]))) idx = Object.assign({sem: -1}, COL_PSV);
+        if (!idx) return;
+        diag.idx = idx;
+        /* se a coluna de valor não foi encontrada ou só traz zero, procura a certa */
+        corpo = m.slice(m.indexOf(linha) + (eraCab ? 1 : 0)).filter(l => l.join('').trim());
+        const soma = idx.val >= 0 ? corpo.reduce((a, l) => { const v = valorPsv(l[idx.val]); return a + (isFinite(v) ? Math.abs(v) : 0); }, 0) : 0;
+        if (!soma) {
+          const evitar = Object.keys(idx).filter(k => k !== 'val').map(k => idx[k]).filter(i => i >= 0);
+          const c = acheColunaValor(corpo, evitar);
+          if (c >= 0) { idx.val = c; diag.valAuto = c; }
+        }
+        /* sem cabeçalho, esta linha já é dado e precisa ser lida */
+        if (eraCab) return;
       }
       const v = k => (idx[k] >= 0 && linha[idx[k]] != null) ? String(linha[idx[k]]).trim() : '';
       const pi = v('pi');
@@ -10358,9 +10409,16 @@ function montaPsv(matrizes, dataISO) {
   const iS = pos(semanas), iP = pos(polos), iC = pos(cidades), iA = pos(acoes), iR = pos(resps);
   const linhas = todos.map(x => [iS[x.sem], iP[x.polo], iC[x.cid], x.pi, x.cli, x.val,
                                  iA[x.acao], iR[x.resp], x.prev || '', x.obs || '']);
+  const letra = i => { let s = '', k = i + 1; while (k > 0) { const r = (k - 1) % 26; s = String.fromCharCode(65 + r) + s; k = Math.floor((k - 1) / 26); } return s; };
+  const nomeCol = i => (i < 0 ? '—' : letra(i) + (diag.cab && diag.cab[i] ? ' · ' + String(diag.cab[i]).trim() : ''));
+  const mapa = diag.idx ? {polo: nomeCol(diag.idx.polo), cidade: nomeCol(diag.idx.cid), PI: nomeCol(diag.idx.pi),
+    cliente: nomeCol(diag.idx.cli), compensação: nomeCol(diag.idx.val), ação: nomeCol(diag.idx.acao),
+    responsável: nomeCol(diag.idx.resp), previsão: nomeCol(diag.idx.prev), observação: nomeCol(diag.idx.obs),
+    data: nomeCol(diag.idx.sem)} : null;
   return {base: {semanas, polos, cidades, acoes, resps, linhas},
           novas: regs.length, ruins, dup, comColuna, semValor,
-          refeitas: Array.from(substituidas).sort(),
+          refeitas: Array.from(substituidas).sort(), mapa, valAuto: diag.valAuto >= 0 ? letra(diag.valAuto) : '',
+          soma: regs.reduce((a, r) => a + r.val, 0), semCab: !diag.cab,
           datas: Array.from(noArquivo).sort(), data: dataISO};
 }
 
@@ -10892,10 +10950,18 @@ $('#qarq').addEventListener('change', async ev => {
     const fora = PSV.polos.filter(p => gerenciaDe(p) === SEM_GERENCIA);
     if (fora.length) obs.push('polos fora do mapa de gerências: ' + fora.join(', '));
     if (!coube) obs.push('não coube no navegador: esta base vale só nesta sessão');
+    if (r.mapa) obs.push('colunas lidas: ' + Object.keys(r.mapa).map(k => `${k} = ${r.mapa[k]}`).join(' · '));
+    if (r.semCab) obs.push('o painel não achou uma linha de cabeçalho e usou a posição das colunas (B a J)');
+    if (r.valAuto) obs.push(`a compensação foi encontrada sozinha na coluna ${r.valAuto}, porque a coluna esperada vinha zerada`);
     const mB = fatiaPsv(qx.b);
+    const aviso0 = r.soma ? '' :
+      `<div class="msg erro" style="margin:10px 0 0"><b>Nenhum valor de compensação foi lido</b> —
+       todos ficaram em R$ 0. O painel procurou um valor em todas as colunas e não achou número em
+       nenhuma. Confira a coluna de compensação da planilha e, se puder, me mande o arquivo.</div>`;
     avisoPsv(`<b>${fmt(r.novas)} PI carregados</b> em ${fmt(r.datas.length)} data(s) · ` +
              `${fmt(PSV.semanas.length)} foto(s) na base · TOP ${fmt(qx.topN)} soma ` +
-             `<b>${brl(somaDe(topoDe(mB, qx.topN)))}</b>.<ul>${obs.map(o => `<li>${esc(o)}</li>`).join('')}</ul>`, false);
+             `<b>${brl(somaDe(topoDe(mB, qx.topN)))}</b> · total lido <b>${brl(r.soma)}</b>.` +
+             `<ul>${obs.map(o => `<li>${esc(o)}</li>`).join('')}</ul>${aviso0}`, false);
   } catch (e) {
     avisoPsv(`<b>Erro na leitura.</b><br>${esc(String(e && e.message || e))}`, true);
   }

@@ -313,6 +313,12 @@ As telas:
 - **Detalhe** — todos os PI, com filtros de múltipla escolha e abas para o TOP, os que entraram, os
   que saíram e os sem previsão.
 
+**O valor é lido em qualquer formato**: número puro com formatação de moeda, `R$ 1.234,56`,
+`1,234.56`, negativo entre parênteses. Se a coluna mapeada vier vazia ou zerada, o painel **procura
+sozinho** a coluna que realmente tem dinheiro e avisa qual usou. A mensagem de carga lista de que
+coluna veio cada campo, e se nenhum valor for lido ela diz isso em vermelho em vez de mostrar
+R$ 0 calado.
+
 **O tamanho do TOP é editável** no alto da página (1 a 200, padrão 20), e todo o módulo recalcula —
 inclusive a série histórica. Os filtros de gerência, polo, cidade, responsável e ação **recompõem o
 TOP dentro da seleção**: o TOP 20 de um polo é o dos 20 maiores daquele polo, não um recorte do TOP
