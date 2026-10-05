@@ -12,6 +12,7 @@ São dois ambientes, escolhidos pelas abas do topo:
   exportações de medidas do SAP (`Gestão Campo` e `Gestão Equipamento`).
 - **Baterias** — o passivo de baterias vencidas dos religadores e quantas comprar, a partir do
   cadastro de religadores.
+- **PSVT** — a compensação em R$ concentrada nos maiores PI, a partir da planilha de PSVT.
 
 O escopo (gerência e polo) acompanha a troca de ambiente. Cada ambiente tem sua semana, seus
 filtros e suas anotações; as imagens da Visão geral e o relatório em PDF são comuns aos dois.
@@ -287,6 +288,41 @@ As telas:
 - **Detalhe** — todos os religadores, com filtros de múltipla escolha e abas para vencidas, sem data
   e trocadas.
 
+## Ambiente PSVT
+
+Cada linha é um **PI** com um valor de **compensação em R$**. A pergunta é quanto dinheiro está
+concentrado nos maiores casos e se esse número sobe ou desce de uma semana para a outra.
+
+Colunas lidas: **B** (polo), **C** (cidade), **D** (PI), **E** (cliente), **F** (compensação em R$),
+**G** (ações propostas), **H** (responsável), **I** (previsão) e **J** (observação). Com uma coluna
+**Semana** ou **Data** no início, a data vale linha a linha e um arquivo acumulado entra de uma vez;
+sem ela, vale a data carimbada no painel. Cada data presente no arquivo substitui a foto daquele dia,
+e a chave de um registro é **data + PI**.
+
+As telas:
+
+- **Resumo** — o TOP em compensação e a variação contra a foto anterior, o total da tela, o peso do
+  TOP no total, o maior PI e quantos estão sem previsão.
+- **Evolução do TOP** — uma coluna por foto com o valor do TOP e a variação escrita embaixo de cada
+  uma. É o acompanhamento semanal: de R$ 1,5 mi para R$ 1,7 mi é +R$ 222 mil, e aparece assim.
+  Aumento sai em vermelho, porque aqui subir é ruim.
+- **TOP** — os maiores PI em barras, coloridos pela gerência, com a variação de cada um contra a
+  foto anterior e a marca **novo** para quem entrou. Abaixo, a tabela de tratativa.
+- **Composição** — compensação somada por **polo**, **responsável**, **cidade** ou **ação proposta**,
+  com a variação de cada recorte.
+- **Detalhe** — todos os PI, com filtros de múltipla escolha e abas para o TOP, os que entraram, os
+  que saíram e os sem previsão.
+
+**O tamanho do TOP é editável** no alto da página (1 a 200, padrão 20), e todo o módulo recalcula —
+inclusive a série histórica. Os filtros de gerência, polo, cidade, responsável e ação **recompõem o
+TOP dentro da seleção**: o TOP 20 de um polo é o dos 20 maiores daquele polo, não um recorte do TOP
+geral.
+
+**Previsão e Observação são editáveis** na tabela do TOP e no detalhe. O que você escreve vale por
+cima do que veio na planilha, fica preso ao **número do PI**, sobrevive às próximas cargas e ao
+**Apagar base PSVT**, e a célula editada ganha uma marca verde à esquerda. Apagar o conteúdo devolve
+o valor original da planilha.
+
 ## Regras de negócio embutidas
 
 | Estrutura | Definição |
@@ -305,6 +341,8 @@ As telas:
 | Vida útil da bateria | 24 meses a partir de `Data baterias` |
 | Bateria sem data | conta como vencida, por falta de atualização do cadastro |
 | Chave de um religador | série + dispositivo |
+| Chave de um PI (PSVT) | data da foto + número do PI |
+| TOP do PSVT | os N maiores valores de compensação dentro dos filtros em uso |
 
 ## Rotina semanal
 
@@ -318,6 +356,7 @@ escolha o recorte uma vez e ele acompanha a troca de aba.
 | 3 | **Execução** · executados | arquivo único acumulado do G-DIS OP | acrescenta, ignorando repetidos | janela entre as duas fotos de guias |
 | 4 | **Medidas SAP** | Gestão Campo + Gestão Equipamento, data na coluna A | repõe os pares **data + processo** | foto atual × foto anterior |
 | 5 | **Baterias** | cadastro de religadores | cada carga vira um arquivo novo | dois arquivos escolhidos nos seletores |
+| 6 | **PSVT** | a planilha de PSVT, data na coluna A | substitui as datas presentes no arquivo | foto atual × foto anterior |
 
 Regras que valem para as quatro:
 

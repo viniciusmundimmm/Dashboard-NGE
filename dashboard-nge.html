@@ -147,6 +147,16 @@
   .obs-txt{display:inline-block;max-width:300px;overflow:hidden;text-overflow:ellipsis;
     white-space:nowrap;vertical-align:middle;color:var(--tinta-2);font-size:12px}
   .gd-periodo{margin:0 0 12px}
+  .psv-in{border:1px solid var(--linha);border-radius:6px;padding:3px 7px;font:inherit;font-size:12.5px;
+    background:var(--papel);color:var(--tinta);width:100%;min-width:120px}
+  .psv-in:focus{outline:2px solid var(--verde-forte);outline-offset:-1px}
+  td.ed-feito{box-shadow:inset 3px 0 0 var(--verde-forte)}
+  /* valores em reais são longos: o número cabe numa linha só */
+  #qs-kpis .val{font-size:30px}
+  #qs-kpis .tile.hero .val{font-size:40px}
+  @media (max-width:1366px){ #qs-kpis .val{font-size:26px} #qs-kpis .tile.hero .val{font-size:34px} }
+  #qs-top .plot{max-width:1040px}
+  #qs-comp .plot{max-width:1000px}
   #lupa .leg b{color:#fff}
   .rot-in{width:100%;min-width:180px;border:1px solid var(--linha);border-radius:6px;
     padding:3px 7px;font:inherit;font-size:12.5px;background:var(--papel);color:var(--tinta)}
@@ -516,6 +526,9 @@
     .plot{max-height:57mm}
     #rcol .plot{max-height:74mm}
     /* rankings e ritmo são listas: a altura acompanha o número de linhas */
+    #qs-top .plot,#qs-comp .plot{max-height:none}
+    #sec-qdetalhe .card{break-inside:auto;page-break-inside:auto}
+    .psv-in{border:none;background:#fff;padding:0}
     #gd-corpo .plot,#md-cod .plot,#md-ns .plot,#md-prazo .plot,
     #bt-mod .plot,#bt-idade .plot,#bt-curva .plot{max-height:none}
     #sec-bdetalhe .card,#sec-bavanco .card,#sec-bcruz .card{break-inside:auto;page-break-inside:auto}
@@ -585,6 +598,7 @@
       <button class="amb" role="tab" data-amb="exec" aria-selected="false">Execução</button>
       <button class="amb" role="tab" data-amb="med" aria-selected="false">Medidas SAP</button>
       <button class="amb" role="tab" data-amb="bat" aria-selected="false">Baterias</button>
+      <button class="amb" role="tab" data-amb="psv" aria-selected="false">PSVT</button>
     </nav>
     <div class="periodo">
       <span class="pill" id="pill-ant">—</span>
@@ -1310,6 +1324,126 @@
     </section>
   </div>
 </div><!-- /amb-bat -->
+
+<div class="ambiente" id="amb-psv" hidden>
+
+  <div class="filtros">
+    <div class="filtros-in">
+      <div class="campo"><label for="q-semana">Semana</label><select id="q-semana"></select></div>
+      <div class="campo"><label for="q-comp">Comparar com</label><select id="q-comp"></select></div>
+      <div class="campo"><label for="q-ger">Gerência</label><select id="q-ger"></select></div>
+      <div class="campo"><label for="q-polo">Polo</label><select id="q-polo"></select></div>
+      <div class="campo" style="min-width:170px"><label for="q-cid">Cidade</label><select id="q-cid"></select></div>
+      <div class="campo" style="min-width:180px"><label for="q-resp">Responsável</label><select id="q-resp"></select></div>
+      <div class="campo" style="min-width:200px"><label for="q-acao">Ação proposta</label><select id="q-acao"></select></div>
+      <div class="campo" style="max-width:104px"><label for="q-top">TOP</label><input id="q-top" type="number" min="1" max="200" step="1"></div>
+      <button class="btn" id="q-limpa" type="button">Limpar filtros</button>
+      <button class="btn" id="bt-qdados" type="button" aria-expanded="false">Carregar dados</button>
+    </div>
+  </div>
+
+  <div class="painel card" id="qpainel" hidden>
+    <p class="ph">
+      Selecione a planilha de PSVT como ela sai do sistema. São lidas as colunas <b>B</b> (polo),
+      <b>C</b> (cidade), <b>D</b> (PI), <b>E</b> (cliente), <b>F</b> (compensação em R$),
+      <b>G</b> (ações propostas), <b>H</b> (responsável), <b>I</b> (previsão) e <b>J</b> (observação).
+      Se a planilha tiver uma coluna <b>Semana</b> ou <b>Data</b> no início com a data da coleta, ela
+      vale linha a linha e um arquivo acumulado entra de uma vez; sem ela, vale a data carimbada
+      abaixo. Cada data presente no arquivo substitui inteira a foto daquele dia.
+      <b>Previsão e Observação são editáveis no painel</b>: o que você escrever vale por cima do que
+      veio na planilha, fica preso ao número do <b>PI</b> e sobrevive às próximas cargas.
+    </p>
+    <div class="painel-acoes" style="align-items:flex-end">
+      <div class="campo"><label for="q-data">Data da coleta</label><input type="date" id="q-data"
+          title="usada apenas quando o arquivo não traz coluna de data"></div>
+      <div class="carga">
+        <span class="carga-rot">PSVT</span>
+        <label class="btn forte" for="qarq">Selecionar arquivo</label>
+        <input type="file" id="qarq" accept=".xls,.xlsx,.htm,.html,.csv,.txt" multiple hidden>
+      </div>
+      <button class="btn" id="bt-qexemplo" type="button">Carregar exemplo</button>
+      <button class="btn" id="bt-qapaga" type="button">Apagar base PSVT</button>
+      <button class="btn" id="bt-qfechar" type="button" style="margin-left:auto">Fechar</button>
+    </div>
+    <div id="qmsg"></div>
+    <div id="q-semanas" class="lista-semanas"></div>
+  </div>
+
+  <div class="vazio-mod" id="q-vazio" hidden>
+    <b>Nenhuma base PSVT carregada.</b>
+    Clique em <b>Carregar dados</b>, no alto da página, e selecione a planilha.
+    Para conhecer as telas antes de ter o arquivo real, use <b>Carregar exemplo</b>.
+  </div>
+
+  <div id="q-corpo">
+    <section class="secao">
+      <h2>Resumo</h2>
+      <div class="kpis" id="qs-kpis"></div>
+    </section>
+
+    <section class="secao">
+      <h2>Evolução do TOP</h2>
+      <div class="card">
+        <div class="card-hd"><h3 id="qs-tit-evo">Compensação do TOP 20, semana a semana</h3>
+          <span class="sub" id="qs-sub-evo"></span>
+          <div class="tools"><button class="tbtn" data-tab="qs-evo" aria-pressed="false">Tabela</button></div></div>
+        <div id="qs-evo"></div>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2>TOP</h2>
+      <div class="card">
+        <div class="card-hd"><h3 id="qs-tit-top">Os 20 maiores</h3><span class="sub" id="qs-sub-top"></span>
+          <div class="tools"><button class="tbtn" data-tab="qs-top" aria-pressed="false">Tabela</button></div></div>
+        <div id="qs-top"></div>
+        <div id="qs-top-tab"></div>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2>Composição</h2>
+      <div class="card">
+        <div class="card-hd"><h3>Compensação por recorte</h3><span class="sub" id="qs-sub-comp"></span>
+          <div class="abas" role="tablist" aria-label="abrir por">
+            <button class="aba" role="tab" data-qmodo="polo" aria-selected="true">Polo</button>
+            <button class="aba" role="tab" data-qmodo="resp" aria-selected="false">Responsável</button>
+            <button class="aba" role="tab" data-qmodo="cid" aria-selected="false">Cidade</button>
+            <button class="aba" role="tab" data-qmodo="acao" aria-selected="false">Ação proposta</button>
+          </div>
+          <div class="tools"><button class="tbtn" data-tab="qs-comp" aria-pressed="false">Tabela</button></div>
+        </div>
+        <div id="qs-comp"></div>
+      </div>
+    </section>
+
+    <section class="secao" id="sec-qdetalhe">
+      <h2>Detalhe</h2>
+      <div class="card">
+        <div class="card-hd">
+          <h3 id="qs-det-tit">Todos os PI</h3><span class="sub" id="qs-det-sub"></span>
+          <div class="abas" role="tablist">
+            <button class="aba" role="tab" data-qdet="todos" aria-selected="true">Todos</button>
+            <button class="aba" role="tab" data-qdet="top" aria-selected="false">Só o TOP</button>
+            <button class="aba" role="tab" data-qdet="novos" aria-selected="false">Entraram</button>
+            <button class="aba" role="tab" data-qdet="sai" aria-selected="false">Saíram</button>
+            <button class="aba" role="tab" data-qdet="semprev" aria-selected="false">Sem previsão</button>
+          </div>
+        </div>
+        <div class="filtros-lista">
+          <div class="campo"><label>Polo</label><div class="msel" id="qs-polo-f" data-campo="qPolo" data-rot="Todos os polos"></div></div>
+          <div class="campo"><label>Cidade</label><div class="msel" id="qs-cid-f" data-campo="qCid" data-rot="Todas as cidades"></div></div>
+          <div class="campo"><label>Responsável</label><div class="msel" id="qs-resp-f" data-campo="qResp" data-rot="Todos os responsáveis"></div></div>
+          <div class="campo"><label>Ação proposta</label><div class="msel" id="qs-acao-f" data-campo="qAcao" data-rot="Todas as ações"></div></div>
+          <div class="campo"><label for="qs-busca">PI, cliente ou observação</label><input id="qs-busca" type="search" placeholder="buscar" autocomplete="off"></div>
+          <button class="btn" id="qs-limpa-lista" type="button">Limpar lista</button>
+          <span class="conta" id="qs-conta"></span>
+        </div>
+        <div id="qs-det"></div>
+      </div>
+    </section>
+  </div>
+</div><!-- /amb-psv -->
 
   <section class="secao" id="sec-visao">
     <h2>Visão geral</h2>
@@ -5508,7 +5642,7 @@ function pintaAnotacoes() {
   $('#sec-notas').classList.toggle('vazia', !eqs.length && !NOTA_GERAL.trim());
   $('#sec-notas').querySelector('h2').textContent =
     AMB === 'exec' ? 'Anotações · execução' : AMB === 'med' ? 'Anotações · medidas SAP'
-    : AMB === 'bat' ? 'Anotações · baterias' : 'Anotações · indisponibilidade';
+    : AMB === 'bat' ? 'Anotações · baterias' : AMB === 'psv' ? 'Anotações · PSVT' : 'Anotações · indisponibilidade';
 }
 function adicionaImagem(arq) {
   if (!arq || !/^image\//.test(arq.type)) return;
@@ -5626,6 +5760,7 @@ function render() {
   if (AMB === 'exec') renderEx();
   else if (AMB === 'med') renderMed();
   else if (AMB === 'bat') renderBat();
+  else if (AMB === 'psv') renderPsv();
   else renderIndisp();
 }
 function renderIndisp() {
@@ -6177,7 +6312,7 @@ let PORSEM_EX = [], ORIGEM_EX = '';
 let PROG = {equipes: [], prog: {}, sem: {}, cfg: {ent: null, conv: 70, tol: 5}};
 
 const CHAVE_EX = 'nge-exec-v1', CHAVE_PROG = 'nge-prog-v1';
-const VERSAO = '27/09/2026';                       /* confere se o arquivo aberto é o mais recente */
+const VERSAO = '05/10/2026';                       /* confere se o arquivo aberto é o mais recente */
 
 function diasEntre(isoA, isoB) {                    /* isoB - isoA, em dias */
   const a = new Date(isoA + 'T00:00:00'), b = new Date(isoB + 'T00:00:00');
@@ -7352,14 +7487,19 @@ function montaGdis(matrizes, dataPadrao) {
     veic: GD.veiculos[l[GVEIC]], polo: GD.polos[l[GPOLO]], eq: l[GEQ],
     desig: l[GDESIG] || '', tipo: l[GTIPO] || '', sit: l[GSIT] || '',
     bairro: l[GBAIR] || '', alim: l[GALIM] || '', obs: l[GOBS] || ''}));
-  const vistos = new Set(), todos = [];
-  let dup = 0;
-  antigos.concat(regs).forEach(r => {
-    const ch = r.iso + '|' + r.serv + '|' + r.eq;
-    if (vistos.has(ch)) { dup++; return; }
-    vistos.add(ch); todos.push(r);
-  });
-  const novos = todos.length - antigos.length;
+  /* o registro do arquivo recém-lido vence o que já estava na base: é a versão mais
+     recente do mesmo serviço, e pode trazer campos que a carga antiga não tinha */
+  const onde = new Map(), todos = [];
+  let dup = 0, atualizados = 0;
+  const chaveDe = r => r.iso + '|' + r.serv + '|' + r.eq;
+  antigos.forEach(r => { const ch = chaveDe(r);
+    if (onde.has(ch)) { dup++; return; }
+    onde.set(ch, todos.length); todos.push(r); });
+  const antes = todos.length;
+  regs.forEach(r => { const ch = chaveDe(r);
+    if (onde.has(ch)) { todos[onde.get(ch)] = r; dup++; atualizados++; return; }
+    onde.set(ch, todos.length); todos.push(r); });
+  const novos = todos.length - antes;
   const alfa = (a, b) => String(a).localeCompare(String(b), 'pt-BR');
   const veiculos = Array.from(new Set(todos.map(x => x.veic))).sort(alfa);
   const ordemPolo = [].concat.apply([], Object.keys(MAPA_GERENCIA).map(g => MAPA_GERENCIA[g]));
@@ -7375,6 +7515,7 @@ function montaGdis(matrizes, dataPadrao) {
   return {base: {veiculos, polos, linhas}, novos, lidos: regs.length, dup, ruins, semData,
           modo: porNome ? 'cabeçalho' : 'letras das colunas',
           comObs: regs.filter(r => r.obs).length, comDesig: regs.filter(r => r.desig).length,
+          atualizados,
           de: datas[0], ate: datas[datas.length - 1],
           amostra: regs.slice(0, 5)};
 }
@@ -7748,7 +7889,9 @@ function listaGdis(serv, cls, semProgramada, indisp) {
       <th>Alimentador</th><th>Guia</th><th>Programado</th><th>Indisponível</th>${temObs ? '<th class="cel-obs">Observação de fechamento</th>' : ''}
     </tr></thead><tbody>${linhas}</tbody></table></div>` +
     (filtrados.length > 600 ? `<div class="nota">Mostrando os 600 primeiros de ${fmt(filtrados.length)}.</div>` : '') +
-    (temObs ? '' : '<div class="nota">Esta exportação não trouxe a coluna de observação (N).</div>');
+    (temObs ? '' : `<div class="nota">Nenhum destes serviços tem observação de fechamento. Se a sua
+      exportação tem a coluna <b>N · Observação</b>, a base guardada é de antes de o painel passar a
+      lê-la: é só <b>carregar o arquivo de novo</b> que as observações entram.</div>`);
 }
 
 function montaControlesEx() {
@@ -7781,7 +7924,8 @@ function trocaAmbiente(a) {
   $('#amb-exec').hidden = a !== 'exec';
   $('#amb-med').hidden = a !== 'med';
   $('#amb-bat').hidden = a !== 'bat';
-  montaControles(); montaControlesEx(); montaControlesMed(); montaControlesBat();
+  $('#amb-psv').hidden = a !== 'psv';
+  montaControles(); montaControlesEx(); montaControlesMed(); montaControlesBat(); montaControlesPsv();
   render();
   window.scrollTo({top: 0});
 }
@@ -8071,11 +8215,14 @@ $('#garq').addEventListener('change', async ev => {
     const amostra = r.amostra.map(x =>
       `<li>serviço <b>${esc(x.serv)}</b> · ${esc(x.iso ? dlonga(x.iso) : '—')} ${esc(x.hora)} · ` +
       `veículo ${esc(x.veic)} · polo ${esc(x.polo)} · equipamento <b>${esc(x.eq)}</b></li>`).join('');
+    const obsG = [];
+    if (r.comObs) obsG.push(`${fmt(r.comObs)} com observação de fechamento`);
+    if (r.atualizados) obsG.push(`${fmt(r.atualizados)} já estavam na base e foram atualizados com o arquivo`);
+    if (r.ruins) obsG.push(`${fmt(r.ruins)} linha(s) sem equipamento`);
+    if (r.semData) obsG.push(`${fmt(r.semData)} sem data de término legível`);
     avisoEx(`<b>${fmt(r.lidos)} serviços lidos</b>, ${fmt(r.novos)} novos na base · ` +
             `datas de ${dlonga(r.de)} a ${dlonga(r.ate)} · lido pelo ${esc(r.modo)}` +
-            (r.dup ? ` · ${fmt(r.dup)} repetido(s) ignorado(s)` : '') +
-            (r.ruins ? ` · ${fmt(r.ruins)} linha(s) sem equipamento` : '') +
-            (r.semData ? ` · ${fmt(r.semData)} sem data legível` : '') +
+            (obsG.length ? ` · ${obsG.join(' · ')}` : '') +
             `<br>Confira as primeiras linhas lidas:<ul>${amostra}</ul>`, false);
   } catch (e) {
     avisoEx(`<b>Erro na leitura dos executados.</b><br>${esc(String(e && e.message || e))}`, true);
@@ -10075,6 +10222,685 @@ $('#barq').addEventListener('change', async ev => {
   }
 });
 
+
+/* ============================================================
+   PSVT — base, leitura e telas
+   ============================================================ */
+const QS = 0, QPOLO = 1, QCID = 2, QPI = 3, QCLI = 4, QVAL = 5, QACAO = 6, QRESP = 7, QPREV = 8, QOBS = 9;
+const CHAVE_PSV = 'nge-psvt-v1', CHAVE_PSED = 'nge-psvt-edit-v1';
+
+let PSV = {semanas: [], polos: [], cidades: [], acoes: [], resps: [], linhas: []};
+let PSED = {};                 /* edições do usuário, presas ao número do PI */
+let ORIGEM_PSV = '';
+const qx = {b: 0, a: -1, topN: 20, cid: '', resp: '', acao: '',
+            modo: 'polo', det: 'todos', dBusca: '', dOrd: {col: 'val', dir: -1}};
+
+const brl = v => 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR');
+const brlCurto = v => {
+  const a = Math.abs(v || 0);
+  if (a >= 1e6) return 'R$ ' + (v / 1e6).toFixed(a >= 1e7 ? 0 : 1).replace('.', ',') + ' mi';
+  if (a >= 1e3) return 'R$ ' + Math.round(v / 1e3).toLocaleString('pt-BR') + ' mil';
+  return 'R$ ' + Math.round(v);
+};
+const sinalBrl = v => (v > 0 ? '+' : v < 0 ? '−' : '') + brlCurto(Math.abs(v));
+/* o que vale na tela: a edição do usuário por cima do que veio na planilha */
+const prevDe = l => (PSED[l[QPI]] && PSED[l[QPI]].prev != null) ? PSED[l[QPI]].prev : (l[QPREV] || '');
+const obsDe  = l => (PSED[l[QPI]] && PSED[l[QPI]].obs  != null) ? PSED[l[QPI]].obs  : (l[QOBS] || '');
+
+function guardaPsv() {
+  try { localStorage.setItem(CHAVE_PSV, JSON.stringify({base: PSV, origem: ORIGEM_PSV})); return true; }
+  catch (e) { return false; }
+}
+function guardaPsed() {
+  try { localStorage.setItem(CHAVE_PSED, JSON.stringify(PSED)); return true; } catch (e) { return false; }
+}
+function recuperaPsv() {
+  try {
+    const s = localStorage.getItem(CHAVE_PSV);
+    if (s) { const o = JSON.parse(s); if (o && o.base && Array.isArray(o.base.semanas)) { PSV = o.base; ORIGEM_PSV = o.origem || ''; } }
+  } catch (e) {}
+  try { const s = localStorage.getItem(CHAVE_PSED); if (s) PSED = JSON.parse(s) || {}; } catch (e) {}
+  if (PSV.semanas.length) { qx.b = PSV.semanas.length - 1; qx.a = qx.b - 1; }
+}
+
+/* ---------- leitura ---------- */
+const ALVO_PSV = {
+  sem:  ['semana', 'datadacoleta', 'datacoleta', 'datadecoleta', 'data'],
+  polo: ['polo'],
+  cid:  ['cidade', 'municipio'],
+  pi:   ['pi', 'numeropi', 'npi', 'processo'],
+  cli:  ['cliente'],
+  val:  ['compensacaoemrs', 'compensacaoem', 'compensacao', 'valor', 'rs'],
+  acao: ['acoespropostas', 'acaoproposta', 'acoes', 'acao'],
+  resp: ['responsavel'],
+  prev: ['previsao', 'dataprevisao', 'previsaodata'],
+  obs:  ['observacao', 'observacoes', 'obs']
+};
+/* 'prev' antes de 'sem' e 'val' antes de 'cid': evita que "data" ou "cidade" roubem a coluna */
+const ORDEM_PSV = ['prev', 'sem', 'polo', 'cid', 'pi', 'cli', 'val', 'acao', 'resp', 'obs'];
+const COL_PSV = {polo: 1, cid: 2, pi: 3, cli: 4, val: 5, acao: 6, resp: 7, prev: 8, obs: 9};
+function mapeiaPsv(cab) {
+  const norm = cab.map(c => chaveTexto(c).replace(/[^a-z0-9]+/g, ''));
+  const idx = {}, usado = new Set();
+  ORDEM_PSV.forEach(k => idx[k] = -1);
+  const tenta = (k, exato) => {
+    if (idx[k] >= 0) return;
+    for (const a of ALVO_PSV[k]) {
+      const i = norm.findIndex((c, j) => !usado.has(j) && (exato ? c === a : c.indexOf(a) === 0));
+      if (i >= 0) { idx[k] = i; usado.add(i); return; }
+    }
+  };
+  ORDEM_PSV.forEach(k => tenta(k, true));
+  ORDEM_PSV.forEach(k => tenta(k, false));
+  return idx;
+}
+const ehCabecalhoPsv = linha => {
+  const norm = linha.map(c => chaveTexto(c).replace(/[^a-z0-9]+/g, ''));
+  return norm.some(c => c.indexOf('compensacao') === 0 || c === 'pi') &&
+         norm.some(c => c.indexOf('cliente') === 0 || c.indexOf('cidade') === 0 || c.indexOf('polo') === 0);
+};
+function valorPsv(t) {
+  const n = leNumero(String(t).replace(/r\$/i, '').replace(/[^\d.,-]/g, ''));
+  return isFinite(n) ? n : NaN;
+}
+function montaPsv(matrizes, dataISO) {
+  const regs = [], vistos = new Set();
+  let ruins = 0, dup = 0, comColuna = 0, semValor = 0;
+  matrizes.forEach(m => {
+    let idx = null;
+    m.forEach(linha => {
+      if (!idx) {
+        if (ehCabecalhoPsv(linha)) idx = mapeiaPsv(linha);
+        else if (linha.filter(c => String(c).trim()).length >= 6 && valorPsv(linha[5]) > 0) idx = Object.assign({sem: -1}, COL_PSV);
+        if (idx) return;
+        return;
+      }
+      const v = k => (idx[k] >= 0 && linha[idx[k]] != null) ? String(linha[idx[k]]).trim() : '';
+      const pi = v('pi');
+      const val = valorPsv(v('val'));
+      if (!pi && !isFinite(val)) { if (linha.join('').trim()) ruins++; return; }
+      if (!isFinite(val)) semValor++;
+      const semLinha = leData(v('sem'));
+      const sem = semLinha || dataISO;
+      if (semLinha) comColuna++;
+      const ch = sem + '\u0001' + (pi || ('L' + regs.length));
+      if (vistos.has(ch)) { dup++; return; }
+      vistos.add(ch);
+      regs.push({sem, polo: v('polo') || '—', cid: v('cid') || '—', pi: pi || '—',
+                 cli: v('cli'), val: isFinite(val) ? val : 0, acao: v('acao') || '—',
+                 resp: v('resp') || '—', prev: leData(v('prev')) || '', obs: v('obs')});
+    });
+  });
+  if (!regs.length) {
+    return {erro: 'Nenhum PI reconhecido. Confira se a planilha tem as colunas PI e Compensação em R$.'};
+  }
+  const noArquivo = new Set(regs.map(r => r.sem));
+  const substituidas = new Set();
+  const antigos = PSV.linhas.filter(l => {
+      const sem = PSV.semanas[l[QS]];
+      if (noArquivo.has(sem)) { substituidas.add(sem); return false; }
+      return true;
+    }).map(l => ({sem: PSV.semanas[l[QS]], polo: PSV.polos[l[QPOLO]], cid: PSV.cidades[l[QCID]],
+      pi: l[QPI], cli: l[QCLI], val: l[QVAL], acao: PSV.acoes[l[QACAO]], resp: PSV.resps[l[QRESP]],
+      prev: l[QPREV] || '', obs: l[QOBS] || ''}));
+  const todos = antigos.concat(regs);
+
+  const alfa = (a, b) => String(a).localeCompare(String(b), 'pt-BR');
+  const ordemPolo = [].concat.apply([], Object.keys(MAPA_GERENCIA).map(g => MAPA_GERENCIA[g]));
+  const uni = (fn, ord) => { const s = Array.from(new Set(todos.map(fn))); return ord ? s.sort(ord) : s; };
+  const semanas = uni(x => x.sem, (a, b) => a < b ? -1 : a > b ? 1 : 0);
+  const polos = uni(x => x.polo, (a, b) => {
+    const ia = ordemPolo.indexOf(a), ib = ordemPolo.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || alfa(a, b);
+  });
+  const cidades = uni(x => x.cid, alfa), acoes = uni(x => x.acao, alfa), resps = uni(x => x.resp, alfa);
+  const pos = l => { const o = {}; l.forEach((v, i) => o[v] = i); return o; };
+  const iS = pos(semanas), iP = pos(polos), iC = pos(cidades), iA = pos(acoes), iR = pos(resps);
+  const linhas = todos.map(x => [iS[x.sem], iP[x.polo], iC[x.cid], x.pi, x.cli, x.val,
+                                 iA[x.acao], iR[x.resp], x.prev || '', x.obs || '']);
+  return {base: {semanas, polos, cidades, acoes, resps, linhas},
+          novas: regs.length, ruins, dup, comColuna, semValor,
+          refeitas: Array.from(substituidas).sort(),
+          datas: Array.from(noArquivo).sort(), data: dataISO};
+}
+
+/* ---------- filtro e fatia ---------- */
+function passaPsv(l) {
+  const polo = PSV.polos[l[QPOLO]];
+  if (st.ger && gerenciaDe(polo) !== st.ger) return false;
+  if (st.polo && polo !== st.polo) return false;
+  if (qx.cid && PSV.cidades[l[QCID]] !== qx.cid) return false;
+  if (qx.resp && PSV.resps[l[QRESP]] !== qx.resp) return false;
+  if (qx.acao && PSV.acoes[l[QACAO]] !== qx.acao) return false;
+  return true;
+}
+function fatiaPsv(i) {
+  const m = new Map();
+  if (i < 0 || i >= PSV.semanas.length) return m;
+  PSV.linhas.forEach(l => { if (l[QS] === i && passaPsv(l)) m.set(l[QPI], l); });
+  return m;
+}
+/* os N maiores valores da fatia, em ordem decrescente */
+const topoDe = (mapa, n) => Array.from(mapa.values()).sort((a, b) => b[QVAL] - a[QVAL]).slice(0, n);
+const somaDe = lista => lista.reduce((a, l) => a + (l[QVAL] || 0), 0);
+
+/* ---------- resumo ---------- */
+function pintaPsvKPIs(mB, mA) {
+  const n = qx.topN;
+  const topB = topoDe(mB, n), topA = topoDe(mA, n);
+  const sB = somaDe(topB), sA = somaDe(topA);
+  const totB = somaDe(Array.from(mB.values())), totA = somaDe(Array.from(mA.values()));
+  const semComp = qx.a < 0 || !mA.size;
+  const d = sB - sA, dTot = totB - totA;
+  const semPrev = Array.from(mB.values()).filter(l => !prevDe(l)).length;
+  const tiles = [
+    {rot: `TOP ${fmt(n)} em compensação`, val: brlCurto(sB), hero: true,
+     pe: semComp ? `${brl(sB)} · ${pct1(pct(sB, totB || 1))}% do total da tela`
+                 : `${seta(d)} ${sinalBrl(d)} × ${brlCurto(sA)} da foto anterior`},
+    {rot: 'Total na tela', val: brlCurto(totB),
+     pe: semComp ? `${fmt(mB.size)} PI` : `${seta(dTot)} ${sinalBrl(dTot)} × a foto anterior · ${fmt(mB.size)} PI`},
+    {rot: `Peso do TOP ${fmt(n)}`, val: pct1(pct(sB, totB || 1)) + '%',
+     pe: `${fmt(topB.length)} de ${fmt(mB.size)} PI concentram esse valor`},
+    {rot: 'Maior PI', val: topB.length ? brlCurto(topB[0][QVAL]) : '—',
+     pe: topB.length ? `PI ${esc(topB[0][QPI])} · ${esc(PSV.cidades[topB[0][QCID]])}` : 'sem PI na tela'},
+    {rot: 'Sem previsão', val: fmt(semPrev),
+     pe: semPrev ? `${pct1(pct(semPrev, mB.size || 1))}% dos PI em tela` : 'todos têm previsão'}
+  ];
+  $('#qs-kpis').innerHTML = tiles.map(t =>
+    `<div class="tile${t.hero ? ' hero' : ''}"><span class="rot">${esc(t.rot)}</span>
+      <span class="val">${t.val}</span><span class="pe">${t.pe}</span></div>`).join('');
+}
+
+/* ---------- evolução do TOP semana a semana ---------- */
+function gPsvEvo() {
+  const n = qx.topN;
+  const pts = PSV.semanas.map((w, i) => {
+    const m = new Map();
+    PSV.linhas.forEach(l => { if (l[QS] === i && passaPsv(l)) m.set(l[QPI], l); });
+    return {w, v: somaDe(topoDe(m, n)), tot: somaDe(Array.from(m.values())), pi: m.size};
+  });
+  if (!pts.length) return {svg: '<div class="vazio">Sem base carregada.</div>', tabela: null};
+  if (pts.length < 2) {
+    return {svg: '<div class="vazio">A evolução aparece a partir da segunda foto. ' +
+                 `Hoje o TOP ${fmt(n)} soma <b>${brl(pts[0].v)}</b>.</div>`, tabela: null};
+  }
+  const W = 1400, H = 360, ml = 92, mr = 28, mt = 52, mb = 64;
+  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
+  const max = escalaMax(Math.max(1, ...pts.map(p => p.v)) * 1.18);
+  const y = v => py1 - (v / max) * (py1 - py0);
+  let s = grade(px0, px1, marcasY(max).map(y));
+  s += marcasY(max).map(v => txt(px0 - 9, y(v) + 4, brlCurto(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1})).join('');
+  const banda = (px1 - px0) / pts.length, bw = Math.min(70, banda * 0.5);
+  pts.forEach((p, i) => {
+    const cx = px0 + banda * i + banda / 2;
+    const dv = i ? p.v - pts[i - 1].v : null;
+    s += colunaSVG(cx - bw / 2, y(p.v), bw, Math.max(2, py1 - y(p.v)), COR.s2,
+      `<b>${brl(p.v)}</b><br><span class="l">TOP ${fmt(n)} em ${dlonga(p.w)} · total ${brl(p.tot)}</span>`);
+    s += txt(cx, y(p.v) - 10, brlCurto(p.v), {cor: COR.t1, tam: 15, peso: 650, anc: 'middle'});
+    s += txt(cx, py1 + 20, dcurta(p.w), {cor: COR.t1, tam: 12, anc: 'middle', peso: 600, tab: 1});
+    if (dv != null) s += txt(cx, py1 + 37, `${seta(dv)} ${sinalBrl(dv)}`,
+      {cor: dv === 0 ? COR.t3 : (dv > 0 ? COR.ruim : '#006300'), tam: 11.5, anc: 'middle', peso: 650});
+  });
+  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+  const prim = pts[0].v, ult = pts[pts.length - 1].v;
+  s += txt(px0, mt - 22, `de ${brlCurto(prim)} a ${brlCurto(ult)} — ${sinalBrl(ult - prim)} no período`,
+           {cor: COR.t1, tam: 12.5, peso: 650});
+  return {svg: svgRoot(W, H, s),
+          pe: `<div class="nota">Compensação acumulada nos ${fmt(n)} maiores PI de cada foto, dentro dos
+               filtros em uso. Subir é ruim, por isso o aumento aparece em vermelho.</div>`,
+          tabela: {cab: ['Semana', `TOP ${fmt(n)}`, 'Variação', 'Total da foto', 'PI'],
+                   linhas: pts.map((p, i) => [dlonga(p.w), brl(p.v),
+                     i ? sinalBrl(p.v - pts[i - 1].v) : '—', brl(p.tot), fmt(p.pi)])}};
+}
+
+/* ---------- o TOP em barras ---------- */
+function gPsvTop(mB, mA) {
+  const n = qx.topN;
+  const top = topoDe(mB, n);
+  if (!top.length) return {svg: '<div class="vazio">Sem PI no filtro atual.</div>', tabela: null};
+  const antes = new Map(Array.from(mA.values()).map(l => [l[QPI], l[QVAL]]));
+  const teto = Math.min(top.length, 20);
+  const mostra = top.slice(0, teto);
+  const W = 1040, ml = 352, mr = 190, mt = 26, rh = 30;
+  const H = mt + mostra.length * rh + 18;
+  const px0 = ml, px1 = W - mr;
+  const max = Math.max(1, mostra[0][QVAL]);
+  let s = '';
+  mostra.forEach((l, i) => {
+    const yc = mt + i * rh + rh / 2, h = 15;
+    const polo = PSV.polos[l[QPOLO]];
+    s += txt(10, yc + 4, String(i + 1), {cor: COR.t3, tam: 12, peso: 700, tab: 1});
+    s += txt(30, yc + 4, corta('PI ' + l[QPI] + ' · ' + (l[QCLI] || PSV.cidades[l[QCID]]), 24),
+             {cor: COR.t1, tam: 12, peso: 600});
+    s += txt(px0 - 10, yc + 4, polo + ' · ' + corta(PSV.cidades[l[QCID]], 13), {cor: COR.t3, tam: 10.5, anc: 'end'});
+    const dica = `<b>${brl(l[QVAL])}</b><br><span class="l">PI ${l[QPI]} · ${PSV.cidades[l[QCID]]} · ${PSV.resps[l[QRESP]]}</span>`;
+    s += barraSVG(px0, yc - h / 2, Math.max(2, (l[QVAL] / max) * (px1 - px0)), h, corGer(gerenciaDe(polo)), dica);
+    s += txt(W - 92, yc + 4, brlCurto(l[QVAL]), {cor: COR.t1, tam: 14, peso: 650, anc: 'end', tab: 1});
+    const a = antes.get(l[QPI]);
+    const dv = a == null ? null : l[QVAL] - a;
+    s += txt(W - 8, yc + 4, a == null ? (mA.size ? 'novo' : '') : (dv ? sinalBrl(dv) : '='),
+             {cor: a == null ? (mA.size ? COR.ruim : COR.t3) : (dv > 0 ? COR.ruim : dv < 0 ? '#006300' : COR.t3),
+              tam: 11, anc: 'end', peso: 650, tab: 1});
+  });
+  const gers = Array.from(new Set(mostra.map(l => gerenciaDe(PSV.polos[l[QPOLO]]))));
+  return {svg: svgRoot(W, H, s),
+          pe: legenda(gers.map(g => ({cor: corGer(g), rot: g}))) +
+              (top.length > teto ? `<div class="nota">Mostrando os 20 maiores dos ${fmt(top.length)} do TOP; a tabela abaixo traz todos.</div>` : ''),
+          tabela: {cab: ['#', 'PI', 'Cliente', 'Polo', 'Cidade', 'Responsável', 'Compensação', 'Foto anterior'],
+                   linhas: top.map((l, i) => [String(i + 1), esc(l[QPI]), esc(l[QCLI] || '—'),
+                     esc(PSV.polos[l[QPOLO]]), esc(PSV.cidades[l[QCID]]), esc(PSV.resps[l[QRESP]]),
+                     brl(l[QVAL]), antes.has(l[QPI]) ? brl(antes.get(l[QPI])) : '—'])}};
+}
+/* a tabela do TOP, com previsão e observação editáveis */
+function pintaTopTabela(mB) {
+  const top = topoDe(mB, qx.topN);
+  if (!top.length) { $('#qs-top-tab').innerHTML = ''; return; }
+  $('#qs-top-tab').innerHTML =
+    `<h4 class="sub-tit">Tratativa de cada PI do TOP</h4>
+     <div class="explica"><b>Previsão</b> e <b>Observação</b> são editáveis: o que você escrever vale por
+     cima do que veio na planilha, fica preso ao número do PI e sobrevive às próximas cargas.</div>
+     <div class="tab-wrap"><table class="dt"><thead><tr>
+       <th>#</th><th>PI</th><th>Cliente</th><th>Polo</th><th>Cidade</th><th>Compensação</th>
+       <th>Ação proposta</th><th>Responsável</th><th>Previsão</th><th class="cel-rot">Observação</th>
+     </tr></thead><tbody>` +
+    top.map((l, i) => linhaPsvEditavel(l, i + 1)).join('') + `</tbody></table></div>`;
+}
+function linhaPsvEditavel(l, pos) {
+  const ed = PSED[l[QPI]] || {};
+  const marca = c => c ? ' class="ed-feito" title="editado no painel"' : '';
+  return `<tr>${pos ? `<td>${fmt(pos)}</td>` : ''}<td><b>${esc(l[QPI])}</b></td><td>${esc(l[QCLI] || '—')}</td>
+    <td>${esc(PSV.polos[l[QPOLO]])}</td><td>${esc(PSV.cidades[l[QCID]])}</td>
+    <td><b>${brl(l[QVAL])}</b></td><td>${esc(PSV.acoes[l[QACAO]])}</td><td>${esc(PSV.resps[l[QRESP]])}</td>
+    <td${marca(ed.prev != null)}><input class="psv-in" type="date" data-campo="prev" data-pi="${esc(l[QPI])}"
+      value="${esc(prevDe(l))}"></td>
+    <td class="cel-rot"${marca(ed.obs != null)}><input class="psv-in" data-campo="obs" data-pi="${esc(l[QPI])}"
+      value="${esc(obsDe(l))}" placeholder="observação" autocomplete="off"></td></tr>`;
+}
+
+/* ---------- composição por recorte ---------- */
+function gPsvComp(mB, mA) {
+  const modo = qx.modo;
+  const campo = {polo: l => PSV.polos[l[QPOLO]], resp: l => PSV.resps[l[QRESP]],
+                 cid: l => PSV.cidades[l[QCID]], acao: l => PSV.acoes[l[QACAO]]}[modo];
+  const somaB = new Map(), somaA = new Map(), cnt = new Map();
+  Array.from(mB.values()).forEach(l => { const k = campo(l);
+    somaB.set(k, (somaB.get(k) || 0) + l[QVAL]); cnt.set(k, (cnt.get(k) || 0) + 1); });
+  Array.from(mA.values()).forEach(l => { const k = campo(l); somaA.set(k, (somaA.get(k) || 0) + l[QVAL]); });
+  let cats = Array.from(somaB.keys()).sort((a, b) => somaB.get(b) - somaB.get(a));
+  if (!cats.length) return {svg: '<div class="vazio">Sem PI no filtro atual.</div>', tabela: null};
+  const teto = 14, mostra = cats.slice(0, teto);
+  const total = somaDe(Array.from(mB.values())) || 1;
+  const W = 1000, ml = 250, mr = 200, mt = 26, rh = 30;
+  const H = mt + mostra.length * rh + 18;
+  const px0 = ml, px1 = W - mr;
+  const max = Math.max(1, somaB.get(mostra[0]));
+  let s = '';
+  mostra.forEach((k, i) => {
+    const yc = mt + i * rh + rh / 2, v = somaB.get(k);
+    const cor = modo === 'polo' ? corGer(gerenciaDe(k))
+      : modo === 'cid' ? COR.s2 : COR_PIZZA[i % COR_PIZZA.length];
+    s += txt(10, yc + 4, corta(String(k), 28), {cor: COR.t1, tam: 12.5, peso: 600});
+    s += txt(px0 - 10, yc + 4, fmt(cnt.get(k)) + ' PI', {cor: COR.t3, tam: 10.5, anc: 'end', tab: 1});
+    s += barraSVG(px0, yc - 7.5, Math.max(2, (v / max) * (px1 - px0)), 15, cor,
+      `<b>${brl(v)}</b><br><span class="l">${k} · ${fmt(cnt.get(k))} PI · ${pct1(pct(v, total))}% do total</span>`);
+    s += txt(W - 92, yc + 4, brlCurto(v), {cor: COR.t1, tam: 14, peso: 650, anc: 'end', tab: 1});
+    const dv = somaA.size ? v - (somaA.get(k) || 0) : null;
+    s += txt(W - 8, yc + 4, dv == null ? pct1(pct(v, total)) + '%' : sinalBrl(dv),
+             {cor: dv == null ? COR.t3 : (dv > 0 ? COR.ruim : dv < 0 ? '#006300' : COR.t3),
+              tam: 11, anc: 'end', peso: 650, tab: 1});
+  });
+  const rot = {polo: 'Polo', resp: 'Responsável', cid: 'Cidade', acao: 'Ação proposta'}[modo];
+  return {svg: svgRoot(W, H, s),
+          pe: cats.length > teto ? `<div class="nota">Mostrando os ${teto} maiores de ${fmt(cats.length)}; a tabela traz todos.</div>` : '',
+          tabela: {cab: [rot, 'PI', 'Compensação', '% do total', 'Foto anterior'],
+                   linhas: cats.map(k => [esc(String(k)), fmt(cnt.get(k)), brl(somaB.get(k)),
+                     pct1(pct(somaB.get(k), total)) + '%', somaA.size ? brl(somaA.get(k) || 0) : '—'])}};
+}
+
+/* ---------- detalhe ---------- */
+const VAL_PSV = {
+  polo: x => PSV.polos[x.l[QPOLO]], cid: x => PSV.cidades[x.l[QCID]],
+  resp: x => PSV.resps[x.l[QRESP]], acao: x => PSV.acoes[x.l[QACAO]]
+};
+function pintaPsvDetalhe(mB, mA) {
+  const tit = {todos: 'Todos os PI', top: `Só o TOP ${fmt(qx.topN)}`, novos: 'PI que entraram',
+               sai: 'PI que saíram', semprev: 'PI sem previsão'};
+  $('#qs-det-tit').textContent = tit[qx.det];
+  const noTop = new Set(topoDe(mB, qx.topN).map(l => l[QPI]));
+  let itens;
+  if (qx.det === 'top') itens = topoDe(mB, qx.topN).map(l => ({l}));
+  else if (qx.det === 'novos') itens = Array.from(mB.values()).filter(l => !mA.has(l[QPI])).map(l => ({l}));
+  else if (qx.det === 'sai') itens = Array.from(mA.values()).filter(l => !mB.has(l[QPI])).map(l => ({l, fora: true}));
+  else if (qx.det === 'semprev') itens = Array.from(mB.values()).filter(l => !prevDe(l)).map(l => ({l}));
+  else itens = Array.from(mB.values()).map(l => ({l}));
+
+  const busca = qx.dBusca.trim().toLowerCase();
+  const sel = c => st[c] || [];
+  const ok = (c, v) => !sel(c).length || sel(c).indexOf(v) >= 0;
+  const passaDet = (x, exceto) =>
+    (exceto === 'polo' || ok('qPolo', VAL_PSV.polo(x))) &&
+    (exceto === 'cid'  || ok('qCid',  VAL_PSV.cid(x))) &&
+    (exceto === 'resp' || ok('qResp', VAL_PSV.resp(x))) &&
+    (exceto === 'acao' || ok('qAcao', VAL_PSV.acao(x))) &&
+    (!busca || String(x.l[QPI]).toLowerCase().indexOf(busca) >= 0 ||
+      String(x.l[QCLI] || '').toLowerCase().indexOf(busca) >= 0 ||
+      obsDe(x.l).toLowerCase().indexOf(busca) >= 0);
+  const unicos = campo => Array.from(new Set(itens.filter(x => passaDet(x, campo)).map(VAL_PSV[campo])))
+    .sort((a, b) => String(a).localeCompare(String(b), 'pt-BR'));
+  const conta = campo => { const o = {};
+    itens.filter(x => passaDet(x, campo)).forEach(x => { const v = VAL_PSV[campo](x); o[v] = (o[v] || 0) + 1; });
+    return o; };
+  montaMsel('qs-polo-f', unicos('polo'), conta('polo'));
+  montaMsel('qs-cid-f', unicos('cid'), conta('cid'));
+  montaMsel('qs-resp-f', unicos('resp'), conta('resp'));
+  montaMsel('qs-acao-f', unicos('acao'), conta('acao'));
+
+  const linhas = itens.filter(x => passaDet(x));
+  const dir = qx.dOrd.dir, col = qx.dOrd.col;
+  const valor = x => col === 'val' ? x.l[QVAL] : col === 'pi' ? String(x.l[QPI])
+    : col === 'prev' ? (prevDe(x.l) || '9999') : col === 'cli' ? String(x.l[QCLI] || '')
+    : VAL_PSV[col] ? VAL_PSV[col](x) : x.l[QVAL];
+  linhas.sort((a, b) => {
+    const va = valor(a), vb = valor(b);
+    const c = typeof va === 'number' ? va - vb : String(va).localeCompare(String(vb), 'pt-BR');
+    return c * dir || b.l[QVAL] - a.l[QVAL];
+  });
+  const soma = somaDe(linhas.map(x => x.l));
+  $('#qs-conta').textContent = `${fmt(linhas.length)} de ${fmt(itens.length)} PI · ${brl(soma)}`;
+  $('#qs-det-sub').textContent = PSV.semanas.length ? 'foto de ' + dlonga(PSV.semanas[qx.b]) : '';
+
+  const cols = [['pi', 'PI'], ['cli', 'Cliente'], ['polo', 'Polo'], ['cid', 'Cidade'],
+                ['val', 'Compensação'], ['acao', 'Ação proposta'], ['resp', 'Responsável'], ['prev', 'Previsão']];
+  const cab = cols.map(([k, r]) =>
+    `<th scope="col" class="ord" data-qord="${k}">${esc(r)}${col === k ? (dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')
+    + '<th class="cel-rot">Observação</th>';
+  const corpo = linhas.slice(0, 600).map(x => {
+    const l = x.l, ed = PSED[l[QPI]] || {};
+    const marca = c => c ? ' class="ed-feito" title="editado no painel"' : '';
+    return `<tr${x.fora ? ' class="tsub"' : ''}><td><b>${esc(l[QPI])}</b>${noTop.has(l[QPI]) && !x.fora ? ' <span class="vinc-chip">TOP</span>' : ''}</td>
+      <td>${esc(l[QCLI] || '—')}</td><td>${esc(PSV.polos[l[QPOLO]])}</td><td>${esc(PSV.cidades[l[QCID]])}</td>
+      <td><b>${brl(l[QVAL])}</b></td><td>${esc(PSV.acoes[l[QACAO]])}</td><td>${esc(PSV.resps[l[QRESP]])}</td>
+      <td${marca(ed.prev != null)}>${x.fora ? (prevDe(l) ? dlonga(prevDe(l)) : '—')
+        : `<input class="psv-in" type="date" data-campo="prev" data-pi="${esc(l[QPI])}" value="${esc(prevDe(l))}">`}</td>
+      <td class="cel-rot"${marca(ed.obs != null)}>${x.fora ? esc(obsDe(l) || '—')
+        : `<input class="psv-in" data-campo="obs" data-pi="${esc(l[QPI])}" value="${esc(obsDe(l))}" placeholder="observação" autocomplete="off">`}</td></tr>`;
+  }).join('');
+  $('#qs-det').innerHTML = `<div class="tab-wrap alta"><table class="dt"><thead><tr>${cab}</tr></thead>
+    <tbody>${corpo}</tbody></table></div>` +
+    (linhas.length > 600 ? `<div class="nota">Mostrando os 600 primeiros de ${fmt(linhas.length)}.</div>` : '');
+}
+
+/* ---------- render ---------- */
+function renderPsv() {
+  const vazio = !PSV.semanas.length;
+  $('#q-vazio').hidden = !vazio;
+  $('#q-corpo').hidden = vazio;
+  if (vazio) {
+    $('#pill-ant').innerHTML = 'PSVT <b>sem dados</b>';
+    $('#pill-atu').innerHTML = 'Carregue a <b>planilha de PSVT</b>';
+    $('#pill-escopo').innerHTML = '';
+    $('#rodape').innerHTML = `<b>Painel versão ${VERSAO}</b> · módulo PSVT sem base carregada.`;
+    pintaAnotacoes();
+    return;
+  }
+  if (qx.b >= PSV.semanas.length) { qx.b = PSV.semanas.length - 1; qx.a = qx.b - 1; }
+  const mB = fatiaPsv(qx.b), mA = fatiaPsv(qx.a);
+  const escopo = [st.ger || 'TR · todas as polos', st.polo ? 'Polo ' + st.polo : null,
+                  qx.cid || null, qx.resp || null, qx.acao || null].filter(Boolean).join(' · ');
+  $('#pill-ant').innerHTML = qx.a < 0 ? 'Comparação <b>primeira foto</b>' : `Comparação <b>${dlonga(PSV.semanas[qx.a])}</b>`;
+  $('#pill-atu').innerHTML = `Semana <b>${dlonga(PSV.semanas[qx.b])}</b>`;
+  $('#pill-escopo').innerHTML = `Escopo <b>${esc(escopo)}</b>`;
+  $('#qs-tit-evo').textContent = `Compensação do TOP ${fmt(qx.topN)}, semana a semana`;
+  $('#qs-sub-evo').textContent = `${fmt(PSV.semanas.length)} foto(s) na base`;
+  $('#qs-tit-top').textContent = `Os ${fmt(qx.topN)} maiores`;
+  $('#qs-sub-top').textContent = `foto de ${dlonga(PSV.semanas[qx.b])}`;
+  $('#qs-sub-comp').textContent = 'compensação somada, do maior para o menor';
+  $('#q-top').value = qx.topN;
+
+  pintaPsvKPIs(mB, mA);
+  pinta('qs-evo', gPsvEvo());
+  pinta('qs-top', gPsvTop(mB, mA));
+  pintaTopTabela(mB);
+  pinta('qs-comp', gPsvComp(mB, mA));
+  pintaPsvDetalhe(mB, mA);
+  pintaAnotacoes();
+
+  const agora = new Date();
+  $('#imp-cab').textContent = `PSVT · semana ${dlonga(PSV.semanas[qx.b])} · ` +
+    `comparação ${qx.a < 0 ? '—' : dlonga(PSV.semanas[qx.a])} · escopo ${escopo} · ` +
+    `emitido em ${agora.toLocaleDateString('pt-BR')} ${agora.toLocaleTimeString('pt-BR').slice(0, 5)}`;
+  $('#rodape').innerHTML = `<b>Painel versão ${VERSAO}</b> · ` +
+    `PSVT ${esc(ORIGEM_PSV || 'sem origem')}: ${fmt(PSV.linhas.length)} registros · ` +
+    `${fmt(PSV.semanas.length)} foto(s) (${dlonga(PSV.semanas[0])} a ${dlonga(PSV.semanas[PSV.semanas.length - 1])}) · ` +
+    `${fmt(Object.keys(PSED).length)} PI com tratativa editada.`;
+}
+
+/* ---------- controles ---------- */
+function montaControlesPsv() {
+  const sems = PSV.semanas.map((w, i) => ({v: String(i), r: dlonga(w)}));
+  opcoes($('#q-semana'), sems.length ? sems : [{v: '0', r: '—'}], String(qx.b));
+  opcoes($('#q-comp'), [{v: '-1', r: 'sem comparação'}].concat(sems), String(qx.a));
+  const gers = Object.keys(MAPA_GERENCIA).filter(g => PSV.polos.some(p => gerenciaDe(p) === g));
+  opcoes($('#q-ger'), [{v: '', r: 'TR · Superintendência'}].concat((gers.length ? gers : Object.keys(MAPA_GERENCIA)).map(g => ({v: g, r: g}))), st.ger);
+  const polos = st.ger ? PSV.polos.filter(p => gerenciaDe(p) === st.ger) : PSV.polos;
+  if (st.polo && polos.indexOf(st.polo) < 0) st.polo = '';
+  opcoes($('#q-polo'), [{v: '', r: 'Todos os polos'}].concat(polos.map(p => ({v: p, r: 'Polo ' + p}))), st.polo);
+  opcoes($('#q-cid'), [{v: '', r: 'Todas as cidades'}].concat(PSV.cidades.map(c => ({v: c, r: c}))), qx.cid);
+  opcoes($('#q-resp'), [{v: '', r: 'Todos os responsáveis'}].concat(PSV.resps.map(r => ({v: r, r}))), qx.resp);
+  opcoes($('#q-acao'), [{v: '', r: 'Todas as ações'}].concat(PSV.acoes.map(a => ({v: a, r: a}))), qx.acao);
+  $('#q-top').value = qx.topN;
+  $('#q-semanas').innerHTML = PSV.semanas.length
+    ? 'Fotos PSVT: ' + PSV.semanas.map((w, i) =>
+        `<span class="sem-item">${dlonga(w)} · ${fmt(PSV.linhas.filter(l => l[QS] === i).length)} PI` +
+        `<button type="button" data-rm-qsem="${esc(w)}" title="remover esta foto">×</button></span>`).join('')
+    : 'Nenhuma foto carregada.';
+}
+function avisoPsv(html, erro) { $('#qmsg').innerHTML = `<div class="msg ${erro ? 'erro' : 'ok'}">${html}</div>`; }
+
+/* ---------- eventos ---------- */
+$('#q-semana').addEventListener('change', e => { qx.b = +e.target.value; qx.a = qx.b - 1; montaControlesPsv(); render(); });
+$('#q-comp').addEventListener('change', e => { qx.a = +e.target.value; render(); });
+$('#q-ger').addEventListener('change', e => { st.ger = e.target.value; st.polo = ''; montaPolos(); montaControlesPsv(); render(); });
+$('#q-polo').addEventListener('change', e => { st.polo = e.target.value; montaPolos(); render(); });
+$('#q-cid').addEventListener('change', e => { qx.cid = e.target.value; render(); });
+$('#q-resp').addEventListener('change', e => { qx.resp = e.target.value; render(); });
+$('#q-acao').addEventListener('change', e => { qx.acao = e.target.value; render(); });
+$('#q-top').addEventListener('change', e => {
+  qx.topN = Math.max(1, Math.min(200, parseInt(e.target.value, 10) || 20));
+  e.target.value = qx.topN; render();
+});
+$('#q-limpa').addEventListener('click', () => {
+  st.ger = st.polo = ''; qx.cid = qx.resp = qx.acao = ''; qx.topN = 20;
+  qx.b = Math.max(0, PSV.semanas.length - 1); qx.a = qx.b - 1;
+  montaPolos(); montaControlesPsv(); render();
+});
+$('#bt-qdados').addEventListener('click', () => {
+  const p = $('#qpainel'), abrir = p.hidden;
+  p.hidden = !abrir;
+  $('#bt-qdados').setAttribute('aria-expanded', String(abrir));
+  if (abrir && !$('#q-data').value) $('#q-data').value = PSV.semanas.length ? PSV.semanas[PSV.semanas.length - 1] : hojeISO();
+});
+$('#bt-qfechar').addEventListener('click', () => {
+  $('#qpainel').hidden = true; $('#bt-qdados').setAttribute('aria-expanded', 'false');
+});
+$$('[data-qmodo]').forEach(b => b.addEventListener('click', () => {
+  qx.modo = b.dataset.qmodo;
+  $$('[data-qmodo]').forEach(o => o.setAttribute('aria-selected', String(o === b)));
+  render();
+}));
+$$('[data-qdet]').forEach(b => b.addEventListener('click', () => {
+  qx.det = b.dataset.qdet;
+  $$('[data-qdet]').forEach(o => o.setAttribute('aria-selected', String(o === b)));
+  render();
+}));
+['qs-polo-f', 'qs-cid-f', 'qs-resp-f', 'qs-acao-f'].forEach(ligaMsel);
+$('#qs-busca').addEventListener('input', e => { qx.dBusca = e.target.value; render(); });
+$('#qs-limpa-lista').addEventListener('click', () => {
+  st.qPolo = []; st.qCid = []; st.qResp = []; st.qAcao = [];
+  qx.dBusca = ''; $('#qs-busca').value = ''; render();
+});
+$('#qs-det').addEventListener('click', ev => {
+  const th = ev.target.closest('[data-qord]');
+  if (!th) return;
+  const c = th.dataset.qord;
+  qx.dOrd = {col: c, dir: qx.dOrd.col === c ? -qx.dOrd.dir : (c === 'val' ? -1 : 1)};
+  render();
+});
+/* previsão e observação: gravam ao sair do campo, presas ao PI */
+document.addEventListener('change', ev => {
+  const inp = ev.target.closest('.psv-in');
+  if (!inp) return;
+  const pi = inp.dataset.pi, campo = inp.dataset.campo, v = inp.value.trim();
+  if (!PSED[pi]) PSED[pi] = {};
+  /* apagar o campo volta ao valor da planilha, em vez de gravar vazio */
+  if (!v) delete PSED[pi][campo]; else PSED[pi][campo] = v;
+  if (!Object.keys(PSED[pi]).length) delete PSED[pi];
+  guardaPsed();
+  render();
+});
+$('#q-semanas').addEventListener('click', ev => {
+  const bt = ev.target.closest('[data-rm-qsem]');
+  if (!bt) return;
+  const iso = bt.dataset.rmQsem;
+  const restam = PSV.linhas.filter(l => PSV.semanas[l[QS]] !== iso)
+    .map(l => ({sem: PSV.semanas[l[QS]], polo: PSV.polos[l[QPOLO]], cid: PSV.cidades[l[QCID]],
+      pi: l[QPI], cli: l[QCLI], val: l[QVAL], acao: PSV.acoes[l[QACAO]], resp: PSV.resps[l[QRESP]],
+      prev: l[QPREV] || '', obs: l[QOBS] || ''}));
+  if (!restam.length) { apagaPsv(); avisoPsv('Base PSVT apagada.', false); return; }
+  PSV.semanas = PSV.semanas.filter(s => s !== iso);
+  PSV.linhas = restam.map(x => [PSV.semanas.indexOf(x.sem), PSV.polos.indexOf(x.polo),
+    PSV.cidades.indexOf(x.cid), x.pi, x.cli, x.val, PSV.acoes.indexOf(x.acao),
+    PSV.resps.indexOf(x.resp), x.prev, x.obs]);
+  guardaPsv();
+  qx.b = Math.max(0, PSV.semanas.length - 1); qx.a = qx.b - 1;
+  montaControlesPsv(); render();
+  avisoPsv(`Foto de ${dlonga(iso)} removida.`, false);
+});
+function apagaPsv() {
+  PSV = {semanas: [], polos: [], cidades: [], acoes: [], resps: [], linhas: []};
+  ORIGEM_PSV = '';
+  try { localStorage.removeItem(CHAVE_PSV); } catch (e) {}
+  qx.b = 0; qx.a = -1;
+  montaControlesPsv(); render();
+}
+$('#bt-qapaga').addEventListener('click', () => {
+  apagaPsv();
+  avisoPsv('Base PSVT apagada. As previsões e observações que você escreveu continuam guardadas.', false);
+});
+$('#bt-qexemplo').addEventListener('click', () => {
+  PSV = baseExemploPsv(); ORIGEM_PSV = 'de exemplo';
+  qx.b = PSV.semanas.length - 1; qx.a = qx.b - 1;
+  guardaPsv(); montaControlesPsv(); render();
+  avisoPsv('Base de <b>exemplo</b> carregada, com 4 semanas. Use “Apagar base PSVT” antes de subir a planilha real.', false);
+});
+function baseExemploPsv() {
+  const polos = ['PM', 'PO', 'BD', 'UR', 'AX', 'FR', 'UL', 'AG', 'TB'];
+  const cidades = {PM: ['Patos de Minas', 'Lagoa Grande'], PO: ['Patrocínio', 'Coromandel'],
+    BD: ['Bom Despacho', 'Luz'], UR: ['Uberaba', 'Conceição das Alagoas'], AX: ['Araxá', 'Ibiá'],
+    FR: ['Frutal', 'Itapagipe'], UL: ['Uberlândia', 'Monte Alegre'], AG: ['Araguari', 'Indianópolis'],
+    TB: ['Ituiutaba', 'Capinópolis']};
+  const acoes = ['Troca de condutor', 'Instalação de regulador', 'Recondutoramento',
+                 'Manutenção em religador', 'Ajuste de proteção', 'Obra de reforço'];
+  const resps = ['Execução Regional', 'NGE-TR', 'Engenharia', 'Obras Terceiros'];
+  let seed = 31;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const esc2 = a => a[Math.floor(rnd() * a.length)];
+  const hoje = segunda(hojeISO());
+  const semanas = [somaDias(hoje, -21), somaDias(hoje, -14), somaDias(hoje, -7), hoje];
+  let base = [];
+  for (let i = 0; i < 85; i++) {
+    const polo = esc2(polos);
+    base.push({pi: String(70000 + i * 7), polo, cid: esc2(cidades[polo]),
+      cli: 'Cliente ' + String.fromCharCode(65 + Math.floor(rnd() * 26)) + (100 + Math.floor(rnd() * 900)),
+      val: Math.round((500 + rnd() * rnd() * 120000) / 10) * 10,
+      acao: esc2(acoes), resp: esc2(resps),
+      prev: rnd() < 0.55 ? somaDias(hoje, Math.floor(rnd() * 120) + 7) : '', obs: ''});
+  }
+  const regs = [];
+  semanas.forEach((sem, wi) => {
+    if (wi) {
+      base = base.filter(() => rnd() > 0.05);
+      base.forEach(b => { if (rnd() < 0.25) b.val = Math.round(b.val * (0.85 + rnd() * 0.5) / 10) * 10; });
+      const n = 3 + Math.floor(rnd() * 5);
+      for (let i = 0; i < n; i++) {
+        const polo = esc2(polos);
+        base.push({pi: String(80000 + wi * 100 + i), polo, cid: esc2(cidades[polo]),
+          cli: 'Cliente N' + (100 + Math.floor(rnd() * 900)),
+          val: Math.round((2000 + rnd() * 90000) / 10) * 10, acao: esc2(acoes), resp: esc2(resps),
+          prev: rnd() < 0.4 ? somaDias(hoje, Math.floor(rnd() * 120) + 7) : '', obs: ''});
+      }
+    }
+    base.forEach(b => regs.push(Object.assign({sem}, b)));
+  });
+  const alfa = (a, b) => String(a).localeCompare(String(b), 'pt-BR');
+  const uni = (fn, ord) => { const s = Array.from(new Set(regs.map(fn))); return ord ? s.sort(ord) : s; };
+  const ordemPolo = [].concat.apply([], Object.keys(MAPA_GERENCIA).map(g => MAPA_GERENCIA[g]));
+  const uPolo = uni(x => x.polo, (a, b) => ordemPolo.indexOf(a) - ordemPolo.indexOf(b));
+  const uCid = uni(x => x.cid, alfa), uAcao = uni(x => x.acao, alfa), uResp = uni(x => x.resp, alfa);
+  const pos = l => { const o = {}; l.forEach((v, i) => o[v] = i); return o; };
+  const iS = pos(semanas), iP = pos(uPolo), iC = pos(uCid), iA = pos(uAcao), iR = pos(uResp);
+  return {semanas, polos: uPolo, cidades: uCid, acoes: uAcao, resps: uResp,
+          linhas: regs.map(x => [iS[x.sem], iP[x.polo], iC[x.cid], x.pi, x.cli, x.val,
+                                 iA[x.acao], iR[x.resp], x.prev, x.obs])};
+}
+$('#qarq').addEventListener('change', async ev => {
+  const arqs = Array.from(ev.target.files || []);
+  ev.target.value = '';
+  if (!arqs.length) return;
+  const data = $('#q-data').value || hojeISO();
+  avisoPsv('Lendo a planilha…', false);
+  try {
+    const mats = [], cascas = [];
+    for (const a of arqs) {
+      const fmtA = await formatoReal(a);
+      if (fmtA === 'xls-binario') { avisoPsv(AVISO_BIN(a.name), true); return; }
+      const cw = fmtA === 'texto' ? await cascaWeb(a) : null;
+      if (cw) { cascas.push([a.name, cw]); continue; }
+      if (fmtA === 'zip' || /\.(xlsx|xlsm)$/i.test(a.name)) {
+        const buf = await a.arrayBuffer(), zip = abreZip(buf);
+        const sst = await extraiZip(zip, 'xl/sharedStrings.xml');
+        const textos = sst ? porNome(xmlDoc(sst), 'si').map(si => textoDe(si, 't')) : [];
+        const abas = Array.from(zip.itens.keys()).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n)).sort();
+        for (const ab of abas) { const x = await extraiZip(zip, ab); if (x) mats.push(matrizDaAba(x, textos)); }
+      } else {
+        const m = await leArquivoExec(a, codifDe(fmtA));
+        if (m) mats.push(m);
+      }
+    }
+    if (!mats.length && cascas.length) { avisoPsv(AVISO_CASCA(cascas[0][0], cascas[0][1]), true); return; }
+    const r = montaPsv(mats.filter(Boolean), data);
+    if (r.erro) {
+      avisoPsv(`<b>Não foi possível carregar.</b><br>${esc(r.erro)}` +
+               (cascas.length ? '<br>' + AVISO_CASCA(cascas[0][0], cascas[0][1]) : ''), true);
+      return;
+    }
+    PSV = r.base; ORIGEM_PSV = 'do arquivo ' + arqs.map(a => a.name).join(', ');
+    const ultima = r.datas[r.datas.length - 1];
+    qx.b = PSV.semanas.indexOf(ultima); if (qx.b < 0) qx.b = PSV.semanas.length - 1;
+    qx.a = qx.b - 1;
+    const coube = guardaPsv();
+    montaControlesPsv(); render();
+    const obs = [];
+    obs.push(r.comColuna
+      ? `data da coleta lida da coluna do arquivo em ${fmt(r.comColuna)} linha(s)`
+      : `o arquivo não traz coluna de data: vale a data carimbada aqui (${dlonga(data)})`);
+    if (r.datas.length > 1) obs.push('datas no arquivo: ' + r.datas.map(dcurta).join(', '));
+    if (r.refeitas.length) obs.push('já existiam e foram substituídas: ' + r.refeitas.map(dcurta).join(', '));
+    if (r.dup) obs.push(`${fmt(r.dup)} PI repetido(s) na mesma data foram ignorados`);
+    if (r.semValor) obs.push(`${fmt(r.semValor)} linha(s) sem valor de compensação legível entraram como zero`);
+    if (r.ruins) obs.push(`${fmt(r.ruins)} linha(s) ignoradas por não ter PI nem valor`);
+    const fora = PSV.polos.filter(p => gerenciaDe(p) === SEM_GERENCIA);
+    if (fora.length) obs.push('polos fora do mapa de gerências: ' + fora.join(', '));
+    if (!coube) obs.push('não coube no navegador: esta base vale só nesta sessão');
+    const mB = fatiaPsv(qx.b);
+    avisoPsv(`<b>${fmt(r.novas)} PI carregados</b> em ${fmt(r.datas.length)} data(s) · ` +
+             `${fmt(PSV.semanas.length)} foto(s) na base · TOP ${fmt(qx.topN)} soma ` +
+             `<b>${brl(somaDe(topoDe(mB, qx.topN)))}</b>.<ul>${obs.map(o => `<li>${esc(o)}</li>`).join('')}</ul>`, false);
+  } catch (e) {
+    avisoPsv(`<b>Erro na leitura.</b><br>${esc(String(e && e.message || e))}`, true);
+  }
+});
+
 /* ============================================================
    INÍCIO
    ============================================================ */
@@ -10087,6 +10913,7 @@ recuperaEx();
 recuperaGd();
 recuperaMed();
 recuperaBat();
+recuperaPsv();
 const guardada = baseGuardada();
 aplicaBase(guardada || baseDemo(), guardada ? 'da planilha (guardada neste navegador)' : 'demonstração');
 if (EX.semanas.length) { sx.b = EX.semanas.length - 1; sx.a = sx.b - 1; }
@@ -10095,6 +10922,7 @@ montaControles();
 montaControlesEx();
 montaControlesMed();
 montaControlesBat();
+montaControlesPsv();
 render();
 </script>
 </body>
