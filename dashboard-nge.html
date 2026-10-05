@@ -522,7 +522,7 @@
     .nota{font-size:9.5px;margin-top:5px}
     /* listas longas precisam fluir entre páginas, senão o restante é cortado */
     #sec-detalhe .card,#sec-edetalhe .card,#sec-notas .card,#sec-visao .card,
-    #ex-cruz{break-inside:auto;page-break-inside:auto}
+
     .param-linha{background:#fff;border:none;padding:0;margin:0 0 6px}
     .param-linha input{border:none;background:#fff;width:auto;padding:0 2px}
     /* a visão geral abre o relatório */
@@ -943,38 +943,10 @@
           <div class="tools"><button class="tbtn" data-tab="ex-carga" aria-pressed="false">Tabela</button></div></div>
         <div id="ex-carga"></div>
       </div>
-      <div class="card" style="margin-top:16px">
-        <div class="card-hd"><h3>Projeção da fila</h3><span class="sub" id="ex-sub-proj"></span>
-          <div class="tools"><button class="tbtn" data-tab="ex-proj" aria-pressed="false">Tabela</button></div></div>
-        <div class="explica">
-          Parte do total de hoje e caminha semana a semana: <b>subtrai o que sai</b> e <b>soma o que entra</b>.
-          A linha azul usa as guias que você programou em cada semana; a verde usa a capacidade teórica das
-          equipes; a cinza é a referência de não executar nada.
-        </div>
-        <div class="param-linha">
-          <label>Entrada por semana <input id="p-ent" type="number" min="0" max="500" step="1"></label>
-          <label>Conversão em regularização <input id="p-conv" type="number" min="0" max="100" step="5"> %</label>
-          <span class="nota" id="p-ent-nota"></span>
-        </div>
-        <div id="ex-proj"></div>
-      </div>
-    </section>
-
-    <section class="secao">
-      <h2>Cruzamento com indisponibilidade</h2>
-      <div class="card">
-        <div class="card-hd"><h3>Regra: indisponível em Regional - Automação deve ter guia</h3>
-          <span class="sub" id="ex-sub-cruz"></span>
-          <div class="param-linha" style="margin:0 0 0 auto;padding:0;border:none;background:none">
-            <label>Tolerância <input id="p-tol" type="number" min="0" max="60" step="1"> dias</label>
-          </div>
-        </div>
-        <div id="ex-cruz"></div>
-      </div>
     </section>
 
     <section class="secao" id="sec-gdis">
-      <h2>Executado na semana · G-DIS OP</h2>
+      <h2>Executado na semana · Inspeções SGE × G-DIS OP</h2>
       <div class="card">
         <div class="card-hd"><h3>Planejado × executado</h3><span class="sub" id="gd-sub"></span></div>
         <div id="gd-corpo"></div>
@@ -6782,13 +6754,9 @@ function pintaCapacidade(mB) {
       <td>${semTxt(r.prazoBruto)}</td>
       <td>${isFinite(r.prazoLiq) ? semTxt(r.prazoLiq) : '<span class="chip c-ruim">não zera</span>'}</td></tr>`).join('') +
     `</tbody></table></div>`;
-  const auto = entradaSemanal(null);
   $('#ex-sub-cap').textContent = PROG.equipes.length
     ? `${fmt(tot)} guias em tela`
     : `${fmt(tot)} guias em tela · cadastre as equipes ao lado`;
-  $('#p-ent-nota').innerHTML = auto == null
-    ? 'sem histórico ainda: a entrada semanal é um palpite seu até a segunda foto'
-    : `medida no histórico: <b>${auto.toFixed(1).replace('.', ',')}</b> guias por semana`;
   st.tab['ex-cap'] = {svg: $('#ex-cap').innerHTML,
     tabela: {cab: ['Gerência', 'Guias', 'Equipes', 'Dedicação %', 'Cap. semana', 'Prazo bruto (sem)', 'Prazo líquido (sem)'],
       linhas: linhas.map(r => [r.g, fmt(r.n), fmt(r.c.equipes), fmt(r.c.ded), fmt(Math.round(r.c.semana)),
@@ -6982,72 +6950,6 @@ function pintaPrevisto(mB) {
   return {svg: html, tabela: {cab: ['Equipe', 'Gerência', 'Semana', 'Programadas', 'Capacidade'], linhas}};
 }
 
-/* --- projeção da fila --- */
-function gExProj(mB) {
-  const sems = semanasFuturas(EX.semanas[sx.b], 8);
-  const iso = EX.semanas[sx.b];
-  const gers = st.ger ? [st.ger] : gersEx();
-  const capSem = gers.reduce((a, g) => a + capacidade(g, iso).semana, 0);
-  const ent = entradaEmUso();
-  const prog = sems.map(sm => { let n = 0; mB.forEach((l, sol) => { const p = PROG.prog[sol]; if (p && p.sem === sm) n++; }); return n; });
-  const f0 = mB.size;
-  const serie = (passo) => { const o = [f0]; for (let k = 0; k < sems.length; k++) o.push(Math.max(0, o[k] - passo(k) + ent)); return o; };
-  const sProg = serie(k => prog[k]);
-  const sCap = serie(() => capSem);
-  const sNada = serie(() => 0);
-
-  const W = 1200, H = 360, ml = 54, mr = 178, mt = 40, mb = 54;
-  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
-  const max = escalaMax(Math.max(...sProg, ...sCap, ...sNada, 1) * 1.08, 5);
-  const x = i => px0 + (px1 - px0) * i / sems.length;
-  const y = v => py1 - (v / max) * (py1 - py0);
-  let s = grade(px0, px1, marcasY(max, 5).map(y));
-  s += marcasY(max, 5).map(v => txt(px0 - 9, y(v) + 4, fmt(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1})).join('');
-  const linha = (dados, cor, rot) => {
-    const pts = dados.map((v, i) => `${x(i)},${y(v)}`).join(' ');
-    let o = `<polyline points="${pts}" fill="none" stroke="${cor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
-    o += `<circle cx="${x(dados.length - 1)}" cy="${y(dados[dados.length - 1])}" r="5" fill="${cor}" stroke="${COR.surface}" stroke-width="2"/>`;
-    o += txt(x(dados.length - 1) + 10, y(dados[dados.length - 1]) + 4, `${fmt(Math.round(dados[dados.length - 1]))} ${rot}`, {cor: COR.t2, tam: 12, peso: 650});
-    return o;
-  };
-  s += linha(sNada, COR.t3, 'referência');
-  s += linha(sCap, COR.s1, 'pela capacidade');
-  s += linha(sProg, COR.s2, 'pelo programado');
-  /* marca a semana em que cada cenário zera, quando acontece dentro do horizonte */
-  [[sProg, COR.s2], [sCap, COR.s1]].forEach(([d, c]) => {
-    const k = d.findIndex((v, i) => i > 0 && v <= 0);
-    if (k > 0) {
-      s += `<line x1="${x(k)}" y1="${py0}" x2="${x(k)}" y2="${py1}" stroke="${c}" stroke-width="1"/>`;
-      s += txt(x(k), py0 - 8, 'zera em ' + dcurta(sems[k - 1]), {cor: c, tam: 11.5, anc: 'middle', peso: 650});
-    }
-  });
-  s += `<circle cx="${x(0)}" cy="${y(f0)}" r="5" fill="${COR.t1}"/>`;
-  s += txt(x(0), y(f0) - 14, fmt(f0), {cor: COR.t1, tam: 16, peso: 650, anc: 'middle'});
-  s += txt(x(0), py1 + 20, 'hoje', {cor: COR.t1, tam: 11.5, anc: 'middle', peso: 700});
-  sems.forEach((sm, i) => s += txt(x(i + 1), py1 + 20, dcurta(sm), {cor: COR.t3, tam: 11.5, anc: 'middle', tab: 1}));
-  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
-
-  /* expectativa de regularização de indisponíveis */
-  let ligadas = 0;
-  mB.forEach((l, sol) => {
-    const p = PROG.prog[sol];
-    if (p && sems.indexOf(p.sem) >= 0 && ehIndisp(l)) ligadas++;
-  });
-  const conv = (+PROG.cfg.conv || 0) / 100;
-  const pe = legenda([{cor: COR.s2, rot: 'pelo programado', linha: true},
-                      {cor: COR.s1, rot: 'pela capacidade teórica', linha: true},
-                      {cor: COR.t3, rot: 'referência: se nada for executado', linha: true}]) +
-    `<div class="nota">Entrada considerada: <b>${fmt(ent)}</b> guia(s) por semana. ` +
-    `Das guias programadas para as próximas 8 semanas, <b>${fmt(ligadas)}</b> são de equipamentos que continuam indisponíveis; ` +
-    `com conversão de ${fmt(PROG.cfg.conv)}%, a expectativa é de <b>${fmt(Math.round(ligadas * conv))}</b> regularização(ões). ` +
-    `Atender a guia não garante o equipamento voltar a ficar disponível — por isso a conversão é um parâmetro, não uma certeza.</div>`;
-  return {svg: svgRoot(W, H, s), pe,
-          tabela: {cab: ['Semana', 'Pelo programado', 'Pela capacidade', 'Sem executar', 'Programadas'],
-                   linhas: sems.map((sm, i) => [dlonga(sm), fmt(Math.round(sProg[i + 1])), fmt(Math.round(sCap[i + 1])),
-                                                fmt(Math.round(sNada[i + 1])), fmt(prog[i])])}};
-}
-
-/* --- cruzamento com indisponibilidade --- */
 function dadosCruz(mB) {
   const alvo = EX.semanas.length ? EX.semanas[sx.b] : null;
   let wi = -1;
@@ -7087,97 +6989,6 @@ function dadosCruz(mB) {
   return {wi, semanaInd: wi >= 0 ? SEMANAS[wi] : null, auto, setAuto, porDisp, orfas,
           todosInd, indTotal: todosInd.size};
 }
-function pintaCruz(mB) {
-  const c = CRUZ || dadosCruz(mB);
-  if (!EX.semanas.length || c.wi < 0) {
-    $('#ex-cruz').innerHTML = '<div class="vazio">O cruzamento precisa das duas bases carregadas.</div>';
-    $('#ex-sub-cruz').textContent = '';
-    return;
-  }
-  const tol = +PROG.cfg.tol || 0;
-  $('#p-tol').value = tol;
-  const dist = Math.abs(diasEntre(c.semanaInd, EX.semanas[sx.b]));
-  $('#ex-sub-cruz').textContent = `indisponibilidade de ${dlonga(c.semanaInd)} × guias de ${dlonga(EX.semanas[sx.b])}`;
-  let alerta = '';
-  if (/demonstra/i.test(ORIGEM)) alerta = 'O módulo de indisponibilidade está com a <b>base de demonstração</b>, cujos equipamentos são fictícios — por isso nada cruza. Carregue a planilha real para este quadro valer.';
-  else if (dist > 7) alerta = `As duas fotos estão a <b>${fmt(dist)} dias</b> de distância. O cruzamento só é confiável com fotos da mesma semana.`;
-  const aviso = alerta ? `<div class="msg erro" style="margin:0 0 14px">${alerta}</div>` : '';
-
-  const sems = semanasFuturas(EX.semanas[sx.b], 8);
-  const progDe = l => PROG.prog[l[XSOL]];
-  const com = c.auto.filter(x => x.guias.length);
-  const sem = c.auto.filter(x => !x.guias.length).sort((a, b) => b.dias - a.dias);
-  const semForaTol = sem.filter(x => x.dias > tol);
-  const comSemProg = com.filter(x => !x.guias.some(progDe));
-  const cob = c.auto.length ? com.length / c.auto.length * 100 : 0;
-
-  const tiles = `<div class="kpis" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:14px">
-    <div class="tile"><span class="rot">Indisponíveis em ${esc(RESP_COM_GUIA)}</span><span class="val">${fmt(c.auto.length)}</span>
-      <span class="pe">deveriam ter guia aberta</span></div>
-    <div class="tile"><span class="rot">Com guia</span><span class="val" style="color:#006300">${fmt(com.length)}</span>
-      <span class="pe">cobertura de ${pct1(cob)}%</span></div>
-    <div class="tile"><span class="rot">Com guia, sem programação</span><span class="val" style="color:${COR.ruim}">${fmt(comSemProg.length)}</span>
-      <span class="pe">a guia existe mas não tem equipe nem semana</span></div>
-    <div class="tile"><span class="rot">Sem guia</span><span class="val" style="color:${COR.ruim}">${fmt(semForaTol.length)}</span>
-      <span class="pe">acima de ${fmt(tol)} dias · ${fmt(sem.length - semForaTol.length)} dentro da tolerância</span></div>
-  </div>`;
-
-  /* evidência de prioridade: as guias de indisponível estão na frente das demais? */
-  const grupos = [{rot: 'Guias ligadas à indisponibilidade', liga: 1}, {rot: 'Demais guias', liga: 0}];
-  const dados = grupos.map(g => {
-    let tot = 0, prog = 0, prim = 0, somaSem = 0;
-    mB.forEach((l, sol) => {
-      const lig = temLiga(l) ? 1 : 0;
-      if (lig !== g.liga) return;
-      tot++;
-      const p = PROG.prog[sol];
-      if (!p) return;
-      const k = sems.indexOf(p.sem);
-      if (k < 0) return;
-      prog++; somaSem += k + 1;
-      if (k === 0) prim++;
-    });
-    return {rot: g.rot, tot, prog, prim, media: prog ? somaSem / prog : null};
-  });
-  const prio = `<h4 class="sub-tit">Prioridade na programação</h4>
-    <div class="explica">Compara as guias ligadas à indisponibilidade — as de tipo
-    “Indisponível - …” mais as de qualquer tipo em equipamento que continua indisponível — com todas as
-    demais: se elas são mesmo prioridade, devem estar mais programadas e em semanas mais próximas.</div>
-    <div class="tab-wrap"><table class="dt"><thead><tr>
-      <th>Grupo</th><th>Guias</th><th>Programadas</th><th>% programadas</th><th>Para a próxima semana</th><th>Semana média</th>
-    </tr></thead><tbody>` +
-    dados.map(d => `<tr><td>${esc(d.rot)}</td><td>${fmt(d.tot)}</td><td>${fmt(d.prog)}</td>
-      <td>${d.tot ? pct1(pct(d.prog, d.tot)) + '%' : '—'}</td><td>${fmt(d.prim)}</td>
-      <td>${d.media ? d.media.toFixed(1).replace('.', ',') + 'ª' : '—'}</td></tr>`).join('') +
-    `</tbody></table></div>`;
-
-  const tabCom = com.length ? `<h4 class="sub-tit">Indisponíveis com guia — a guia está programada?</h4>
-    <div class="tab-wrap"><table class="dt"><thead><tr>
-      <th>Equip.</th><th>Polo</th><th>Dias indisponível</th><th>Guia</th><th>Estágio</th>
-      <th>Tipo de serviço</th><th>Idade da guia</th><th>Programação</th></tr></thead><tbody>` +
-    com.sort((a, b) => b.dias - a.dias).map(x => x.guias.map((g, k) => {
-      const p = progDe(g);
-      return `<tr><td>${k ? '' : esc(x.eq)}</td><td>${k ? '' : esc(x.polo)}</td><td>${k ? '' : fmt(x.dias)}</td>
-        <td>${esc(String(g[XSOL]))}</td><td>${esc(ESTAGIOS[g[XEST]])}</td><td>${esc(EX.tipos[g[XTIPO]])}</td>
-        <td>${fmt(idadeEx(g, sx.b))}</td>
-        <td>${p ? `<span class="prog-chip">${esc(nomeEquipe(p.eq))} · ${dcurta(p.sem)}</span>`
-                : '<span class="chip c-ruim">sem programação</span>'}</td></tr>`;
-    }).join('')).join('') + `</tbody></table></div>` : '';
-
-  const tabSem = sem.length ? `<h4 class="sub-tit">Indisponíveis sem guia</h4><div class="tab-wrap"><table class="dt"><thead><tr>
-      <th>Equip.</th><th>Tipo</th><th>Polo</th><th>Gerência</th><th>Dias indisponível</th></tr></thead><tbody>` +
-    sem.map(x => `<tr${x.dias <= tol ? ' class="tenue"' : ''}><td>${esc(x.eq)}</td><td>${esc(x.tipo)}</td><td>${esc(x.polo)}</td>
-      <td>${esc(x.ger)}</td><td>${fmt(x.dias)}</td></tr>`).join('') +
-    `</tbody></table></div>` : `<div class="vazio">Todos os equipamentos em ${esc(RESP_COM_GUIA)} têm guia aberta.</div>`;
-
-  const orf = c.orfas.length > c.indTotal
-    ? `<div class="nota">Guias de tipo de indisponibilidade cujo equipamento não está na lista: ${fmt(c.orfas.length)} — como a base de indisponibilidade tem ${fmt(c.indTotal)} equipamentos, as duas listas parecem cobrir escopos diferentes e essa contagem não é confiável.</div>`
-    : `<div class="nota">${fmt(c.orfas.length)} guia(s) de tipo de indisponibilidade cujo equipamento não consta na lista de indisponíveis — vale conferir, nem sempre é erro.</div>`;
-
-  $('#ex-cruz').innerHTML = aviso + tiles + prio + tabCom + tabSem + orf;
-}
-
-/* --- KPIs e detalhe da execução --- */
 function pintaExKPIs(mA, mB, entraram, sairam, fluxo) {
   const sc = fluxo.semComp, ou = v => sc ? '—' : fmt(v);
   const tA = mA.size, tB = mB.size, dv = tB - tA;
@@ -7380,9 +7191,6 @@ function renderEx() {
   $('#ex-tit-polo').textContent = st.ger ? 'Guias por polo' : 'Guias por gerência';
   $('#ex-sub-polo').textContent = st.ger ? `${st.ger} · ${polosDeGer(st.ger).join(', ')}` : 'TR · gerências';
   $('#ex-sub-carga').textContent = sx.semProg ? 'semana de ' + dlonga(sx.semProg) : 'próximas 8 semanas';
-  $('#ex-sub-proj').textContent = 'próximas 8 semanas';
-  $('#p-ent').value = PROG.cfg.ent == null ? entradaEmUso() : PROG.cfg.ent;
-  $('#p-conv').value = PROG.cfg.conv;
 
   CRUZ = dadosCruz(mB);
   pintaExKPIs(mA, mB, entraram, sairam, fluxo);
@@ -7400,8 +7208,6 @@ function renderEx() {
   pintaCapacidade(mB);
   pintaEquipes();
   pinta('ex-carga', pintaPrevisto(mB));
-  pinta('ex-proj', gExProj(mB));
-  pintaCruz(mB);
   pintaGdis(mA, mB);
   pintaExDetalhe(mA, mB);
   pintaAnotacoes();
@@ -7937,9 +7743,6 @@ function paramNum(id, aplica) {
 }
 paramNum('p-dia', v => { paramsSemana(EX.semanas[sx.b]).dia = Math.max(1, v); });
 paramNum('p-mes', v => { paramsSemana(EX.semanas[sx.b]).mes = Math.max(1, v); });
-paramNum('p-ent', v => { PROG.cfg.ent = Math.max(0, v); });
-paramNum('p-conv', v => { PROG.cfg.conv = Math.min(100, Math.max(0, v)); });
-paramNum('p-tol', v => { PROG.cfg.tol = Math.max(0, v); });
 $('#ex-carga').addEventListener('click', ev => {
   const td = ev.target.closest && ev.target.closest('td.cel-prog');
   if (!td) return;
