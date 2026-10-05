@@ -308,12 +308,18 @@ fica firme.
 As telas:
 
 - **Resumo** — o TOP em compensação e a variação contra a foto anterior, o total da tela, o peso do
-  TOP no total, o maior PI e quantos estão sem previsão.
+  TOP no total, o maior PI e quantos estão sem data de previsão. Abaixo dos indicadores, a
+  **participação de cada responsável**: uma pizza com o percentual que cada um carrega da compensação
+  em tela, o valor em R$ ao lado de cada nome e, no miolo, o total. A partir do nono responsável as
+  fatias menores entram somadas em cinza (`+ N responsáveis`) — a tabela do botão **Tabela** traz
+  cada um, com valor, percentual e a foto anterior para comparar.
 - **Evolução do TOP** — uma coluna por foto com o valor do TOP e a variação escrita embaixo de cada
   uma. É o acompanhamento semanal: de R$ 1,5 mi para R$ 1,7 mi é +R$ 222 mil, e aparece assim.
   Aumento sai em vermelho, porque aqui subir é ruim.
-- **TOP** — os maiores PI em barras, coloridos pela gerência, com a variação de cada um contra a
-  foto anterior e a marca **novo** para quem entrou. Abaixo, a tabela de tratativa.
+- **TOP** — os maiores PI em barras, coloridos pela gerência, identificados por **nome do cliente e
+  número do PI**, com polo e cidade ao lado, a variação de cada um contra a foto anterior e a marca
+  **novo** para quem entrou. Sem nome e sem PI na planilha, a barra cai na ação proposta, para o
+  ranking não ficar com todos os rótulos iguais. Abaixo, a tabela de tratativa.
 - **Composição** — compensação somada por **polo**, **responsável**, **cidade** ou **ação proposta**,
   com a variação de cada recorte.
 - **Detalhe** — todos os PI, com filtros de múltipla escolha e abas para o TOP, os que entraram, os

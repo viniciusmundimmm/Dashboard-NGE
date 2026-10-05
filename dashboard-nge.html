@@ -1380,6 +1380,13 @@
     <section class="secao">
       <h2>Resumo</h2>
       <div class="kpis" id="qs-kpis"></div>
+      <div class="card">
+        <div class="card-hd"><h3>Participação de cada responsável</h3>
+          <span class="sub" id="qs-sub-resp"></span>
+          <div class="tools"><button class="tbtn" data-tab="qs-resp" aria-pressed="false">Tabela</button></div>
+        </div>
+        <div id="qs-resp"></div>
+      </div>
     </section>
 
     <section class="secao">
@@ -10260,6 +10267,8 @@ const obsDe  = l => {
 const piRot = l => String(l[QPI]).indexOf('S/PI') === 0 ? String(l[QPI]) : 'PI ' + l[QPI];
 const dataPrev = l => /^\d{4}-\d{2}-\d{2}$/.test(prevDe(l)) ? prevDe(l) : '';
 const prevTxt  = l => { const p = prevDe(l); return p ? (dataPrev(l) ? dlonga(p) : p) : '—'; };
+/* o que vai dentro do campo editável: data em dd/mm/aaaa, texto como veio */
+const prevEdit = l => dataPrev(l) ? dlonga(dataPrev(l)) : prevDe(l);
 
 function guardaPsv() {
   try { localStorage.setItem(CHAVE_PSV, JSON.stringify({base: PSV, origem: ORIGEM_PSV})); return true; }
@@ -10574,12 +10583,14 @@ function gPsvTop(mB, mA) {
     const yc = mt + i * rh + rh / 2, h = 15;
     const polo = PSV.polos[l[QPOLO]];
     s += txt(10, yc + 4, String(i + 1), {cor: COR.t3, tam: 12, peso: 700, tab: 1});
-    /* sem número de PI, quem identifica a linha é a ação — polo e cidade já
-       aparecem na coluna ao lado e repeti-los só gastaria a largura */
+    /* o ranking é lido pelo nome do cliente e pelo PI; quando a planilha não
+       traz nem um nem outro, cai na ação proposta para as barras não ficarem
+       todas com o mesmo rótulo */
     const semPi = String(l[QPI]).indexOf('S/PI') === 0;
-    s += txt(30, yc + 4, corta(semPi ? PSV.acoes[l[QACAO]]
-                                     : 'PI ' + l[QPI] + ' · ' + (l[QCLI] || PSV.cidades[l[QCID]]), 26),
-             {cor: COR.t1, tam: 12, peso: 600});
+    const nome = String(l[QCLI] || '').trim();
+    const rotulo = [nome, semPi ? '' : 'PI ' + l[QPI]].filter(Boolean).join(' · ')
+                   || PSV.acoes[l[QACAO]];
+    s += txt(30, yc + 4, corta(rotulo, 26), {cor: COR.t1, tam: 12, peso: 600});
     s += txt(px0 - 10, yc + 4, polo + ' · ' + corta(PSV.cidades[l[QCID]], 13), {cor: COR.t3, tam: 10.5, anc: 'end'});
     const dica = `<b>${brl(l[QVAL])}</b><br><span class="l">${esc(piRot(l))} · ${PSV.cidades[l[QCID]]} · ${PSV.resps[l[QRESP]]}</span>`;
     s += barraSVG(px0, yc - h / 2, Math.max(2, (l[QVAL] / max) * (px1 - px0)), h, corGer(gerenciaDe(polo)), dica);
@@ -10628,12 +10639,84 @@ function linhaPsvEditavel(l, pos) {
     <td>${esc(PSV.polos[l[QPOLO]])}</td><td>${esc(PSV.cidades[l[QCID]])}</td>
     <td><b>${brl(l[QVAL])}</b></td><td>${esc(PSV.acoes[l[QACAO]])}</td><td>${esc(PSV.resps[l[QRESP]])}</td>
     <td${marca(ed.prev != null)}><input class="psv-in" data-campo="prev" data-pi="${esc(l[QPI])}"
-      value="${esc(prevDe(l))}" placeholder="dd/mm/aaaa ou texto" autocomplete="off"></td>
+      value="${esc(prevEdit(l))}" placeholder="dd/mm/aaaa ou texto" autocomplete="off"></td>
     <td class="cel-rot"${marca(ed.obs != null)}><input class="psv-in" data-campo="obs" data-pi="${esc(l[QPI])}"
       value="${esc(obsDe(l))}" placeholder="observação" autocomplete="off"></td></tr>`;
 }
 
 /* ---------- composição por recorte ---------- */
+/* quanto do dinheiro em tela está na mão de cada responsável.
+   Pizza porque aqui a pergunta é de parte sobre o todo: as fatias somam 100%. */
+function gPsvResp(mB, mA) {
+  const somaB = new Map(), somaA = new Map(), cnt = new Map();
+  Array.from(mB.values()).forEach(l => { const k = PSV.resps[l[QRESP]];
+    somaB.set(k, (somaB.get(k) || 0) + l[QVAL]); cnt.set(k, (cnt.get(k) || 0) + 1); });
+  Array.from(mA.values()).forEach(l => { const k = PSV.resps[l[QRESP]];
+    somaA.set(k, (somaA.get(k) || 0) + l[QVAL]); });
+  const total = somaDe(Array.from(mB.values()));
+  const todos = Array.from(somaB.keys()).sort((a, b) => somaB.get(b) - somaB.get(a));
+  if (!todos.length || total <= 0) {
+    return {svg: '<div class="vazio">Sem compensação no filtro atual.</div>', tabela: null};
+  }
+  /* a pizza tem oito cores distintas; do nono em diante o resto vira uma fatia
+     só, e a tabela abaixo continua trazendo todo mundo, um por um */
+  const teto = COR_PIZZA.length, juntou = todos.length > teto + 1;
+  const fatias = juntou
+    ? todos.slice(0, teto).map(k => ({k, v: somaB.get(k), n: cnt.get(k)})).concat([{
+        k: `+ ${fmt(todos.length - teto)} responsáveis`, outros: true,
+        v: todos.slice(teto).reduce((a, k) => a + somaB.get(k), 0),
+        n: todos.slice(teto).reduce((a, k) => a + cnt.get(k), 0)}])
+    : todos.map(k => ({k, v: somaB.get(k), n: cnt.get(k)}));
+
+  const cols = fatias.length > 6 ? 2 : 1, porCol = Math.ceil(fatias.length / cols);
+  const W = 1000, H = Math.max(320, 56 + porCol * 28);
+  const cx = 178, cy = H / 2, ro = 122, ri = 80;
+  const cor = (f, i) => f.outros ? COR_OUTROS : corTipo(i);
+  let s = '', ang = -Math.PI / 2;
+  fatias.forEach((f, i) => {
+    const a = (f.v / total) * Math.PI * 2, a1 = ang + a, gr = a > Math.PI ? 1 : 0;
+    const p = (r, x) => [cx + r * Math.cos(x), cy + r * Math.sin(x)];
+    const [x1, y1] = p(ro, ang), [x2, y2] = p(ro, a1), [x3, y3] = p(ri, a1), [x4, y4] = p(ri, ang);
+    const dv = somaA.size && !f.outros ? f.v - (somaA.get(f.k) || 0) : null;
+    const dica = `<b>${brl(f.v)}</b> · ${pct1(pct(f.v, total))}% do total<br>` +
+      `<span class="l">${esc(String(f.k))} · ${fmt(f.n)} PI` +
+      `${dv == null ? '' : ' · ' + sinalBrl(dv) + ' × a foto anterior'}</span>`;
+    s += `<path d="M${x1},${y1} A${ro},${ro} 0 ${gr} 1 ${x2},${y2} L${x3},${y3} A${ri},${ri} 0 ${gr} 0 ${x4},${y4} Z"
+            fill="${cor(f, i)}" stroke="${COR.surface}" stroke-width="2" class="hit"
+            data-t="${esc(dica)}"/>`;
+    if (a > 0.34) {
+      const [lx, ly] = p((ro + ri) / 2, ang + a / 2);
+      s += txt(lx, ly + 5, pct1(pct(f.v, total)) + '%',
+               {cor: tintaSobre(cor(f, i)), tam: 13.5, anc: 'middle', peso: 700});
+    }
+    ang = a1;
+  });
+  /* o total vai no miolo: a fonte encolhe conforme o texto cresce, senão
+     "R$ 1.172 mil" passa por cima do rótulo da primeira fatia */
+  const rotC = brlCurto(total);
+  s += txt(cx, cy + 1, rotC, {cor: COR.t1, tam: rotC.length > 11 ? 18 : rotC.length > 8 ? 21 : 25,
+                              anc: 'middle', peso: 650});
+  s += txt(cx, cy + 22, 'em tela', {cor: COR.t3, tam: 12.5, anc: 'middle'});
+  const lx0 = 352, lh = 28, y0 = Math.max(32, cy - (porCol * lh) / 2 + 12);
+  fatias.forEach((f, i) => {
+    const col = Math.floor(i / porCol), lin = i % porCol;
+    const x = lx0 + col * 324, y = y0 + lin * lh;
+    s += `<rect x="${x}" y="${y - 9}" width="11" height="11" rx="3" fill="${cor(f, i)}"/>`;
+    s += txt(x + 18, y, corta(String(f.k), 17), {cor: COR.t1, tam: 12.5, peso: 600});
+    s += txt(x + 250, y, brlCurto(f.v), {cor: COR.t2, tam: 12.5, anc: 'end', tab: 1});
+    s += txt(x + 312, y, pct1(pct(f.v, total)) + '%', {cor: COR.t1, tam: 12.5, anc: 'end', peso: 650, tab: 1});
+  });
+  return {svg: svgRoot(W, H, s),
+          pe: juntou ? `<div class="nota">As oito maiores fatias saem com cor própria; as outras
+                ${fmt(todos.length - teto)} entram somadas em cinza (<b>+ ${fmt(todos.length - teto)} responsáveis</b>).
+                A tabela traz cada um, com o valor e o percentual.</div>` : '',
+          tabela: {cab: ['Responsável', 'PI', 'Compensação', '% do total', 'Foto anterior'],
+                   linhas: todos.map(k => [esc(String(k)), fmt(cnt.get(k)), brl(somaB.get(k)),
+                     pct1(pct(somaB.get(k), total)) + '%',
+                     somaA.size ? brl(somaA.get(k) || 0) : '—'])
+                     .concat([[`<b>Total</b>`, `<b>${fmt(mB.size)}</b>`, `<b>${brl(total)}</b>`,
+                               '<b>100,0%</b>', somaA.size ? `<b>${brl(somaDe(Array.from(mA.values())))}</b>` : '—']])}};
+}
 function gPsvComp(mB, mA) {
   const modo = qx.modo;
   const campo = {polo: l => PSV.polos[l[QPOLO]], resp: l => PSV.resps[l[QRESP]],
@@ -10737,7 +10820,7 @@ function pintaPsvDetalhe(mB, mA) {
       <td>${esc(l[QCLI] || '—')}</td><td>${esc(PSV.polos[l[QPOLO]])}</td><td>${esc(PSV.cidades[l[QCID]])}</td>
       <td><b>${brl(l[QVAL])}</b></td><td>${esc(PSV.acoes[l[QACAO]])}</td><td>${esc(PSV.resps[l[QRESP]])}</td>
       <td${marca(ed.prev != null)}>${x.fora ? esc(prevTxt(l))
-        : `<input class="psv-in" data-campo="prev" data-pi="${esc(l[QPI])}" value="${esc(prevDe(l))}"
+        : `<input class="psv-in" data-campo="prev" data-pi="${esc(l[QPI])}" value="${esc(prevEdit(l))}"
              placeholder="dd/mm/aaaa ou texto" autocomplete="off">`}</td>
       <td class="cel-rot"${marca(ed.obs != null)}>${x.fora ? esc(obsDe(l) || '—')
         : `<input class="psv-in" data-campo="obs" data-pi="${esc(l[QPI])}" value="${esc(obsDe(l))}" placeholder="observação" autocomplete="off">`}</td></tr>`;
@@ -10775,6 +10858,10 @@ function renderPsv() {
   $('#q-top').value = qx.topN;
 
   pintaPsvKPIs(mB, mA);
+  const nResp = new Set(Array.from(mB.values()).map(l => PSV.resps[l[QRESP]])).size;
+  $('#qs-sub-resp').textContent =
+    `${fmt(nResp)} responsável(is) na tela · % sobre a compensação total do filtro`;
+  pinta('qs-resp', gPsvResp(mB, mA));
   pinta('qs-evo', gPsvEvo());
   pinta('qs-top', gPsvTop(mB, mA));
   pintaTopTabela(mB);
