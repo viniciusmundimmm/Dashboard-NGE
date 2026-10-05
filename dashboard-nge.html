@@ -130,6 +130,7 @@
     margin:2px 0 10px;padding:9px 12px;border-left:3px solid var(--verde-medio);
     background:#f4faf6;border-radius:0 8px 8px 0;font-size:12.5px;line-height:1.6;color:var(--tinta-2);
   }
+  .explica.alerta{border-left-color:#b06a12;background:#fdf6ec}
   .explica b{color:var(--tinta)}
   .sub-tit{margin:16px 0 8px;font-size:13px;font-weight:700;color:var(--tinta)}
   #md-ns .plot{max-width:640px}
@@ -1427,7 +1428,7 @@
             <button class="aba" role="tab" data-qdet="top" aria-selected="false">Só o TOP</button>
             <button class="aba" role="tab" data-qdet="novos" aria-selected="false">Entraram</button>
             <button class="aba" role="tab" data-qdet="sai" aria-selected="false">Saíram</button>
-            <button class="aba" role="tab" data-qdet="semprev" aria-selected="false">Sem previsão</button>
+            <button class="aba" role="tab" data-qdet="semprev" aria-selected="false">Sem data de previsão</button>
           </div>
         </div>
         <div class="filtros-lista">
@@ -10239,13 +10240,26 @@ const brl = v => 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR');
 const brlCurto = v => {
   const a = Math.abs(v || 0);
   if (a >= 1e6) return 'R$ ' + (v / 1e6).toFixed(a >= 1e7 ? 0 : 1).replace('.', ',') + ' mi';
-  if (a >= 1e3) return 'R$ ' + Math.round(v / 1e3).toLocaleString('pt-BR') + ' mil';
+  /* abaixo de cem mil, uma casa: num TOP de poucos milhares, arredondar para
+     o milhar cheio faria 1.472, 1.414 e 1.395 virarem todos "R$ 1 mil" */
+  if (a >= 1e3) return 'R$ ' + (v / 1e3).toFixed(a >= 1e5 ? 0 : 1).replace('.', ',') + ' mil';
   return 'R$ ' + Math.round(v);
 };
 const sinalBrl = v => (v > 0 ? '+' : v < 0 ? '−' : '') + brlCurto(Math.abs(v));
 /* o que vale na tela: a edição do usuário por cima do que veio na planilha */
 const prevDe = l => (PSED[l[QPI]] && PSED[l[QPI]].prev != null) ? PSED[l[QPI]].prev : (l[QPREV] || '');
-const obsDe  = l => (PSED[l[QPI]] && PSED[l[QPI]].obs  != null) ? PSED[l[QPI]].obs  : (l[QOBS] || '');
+const obsDe  = l => {
+  const o = (PSED[l[QPI]] && PSED[l[QPI]].obs != null) ? PSED[l[QPI]].obs : (l[QOBS] || '');
+  /* observação que é só um número vem do Excel com cauda binária
+     (277.29000000000002); mostra o mesmo número, sem a cauda */
+  return /^-?\d+\.\d{6,}$/.test(o) ? String(Math.round(parseFloat(o) * 100) / 100) : o;
+};
+/* a coluna Previsão aceita data ou texto ("Pendente", "a definir").
+   dataPrev só devolve o que é data de verdade; prevTxt é o que aparece na tela */
+/* chave montada pelo painel (planilha sem coluna PI) não leva o prefixo "PI" */
+const piRot = l => String(l[QPI]).indexOf('S/PI') === 0 ? String(l[QPI]) : 'PI ' + l[QPI];
+const dataPrev = l => /^\d{4}-\d{2}-\d{2}$/.test(prevDe(l)) ? prevDe(l) : '';
+const prevTxt  = l => { const p = prevDe(l); return p ? (dataPrev(l) ? dlonga(p) : p) : '—'; };
 
 function guardaPsv() {
   try { localStorage.setItem(CHAVE_PSV, JSON.stringify({base: PSV, origem: ORIGEM_PSV})); return true; }
@@ -10270,7 +10284,7 @@ const ALVO_PSV = {
   cid:  ['cidade', 'municipio'],
   pi:   ['pi', 'numeropi', 'npi', 'processo'],
   cli:  ['cliente'],
-  val:  ['compensacaoemrs', 'compensacaoem', 'compensacao', 'valor', 'rs'],
+  val:  ['compensacaoemrs', 'compensacaoem', 'rscompensacao', 'compensacao', 'valor', 'rs'],
   acao: ['acoespropostas', 'acaoproposta', 'acoes', 'acao'],
   resp: ['responsavel'],
   prev: ['previsao', 'dataprevisao', 'previsaodata'],
@@ -10292,6 +10306,17 @@ function mapeiaPsv(cab) {
   };
   ORDEM_PSV.forEach(k => tenta(k, true));
   ORDEM_PSV.forEach(k => tenta(k, false));
+  /* última tentativa: o nome procurado em qualquer posição do título
+     ("R$ Compensação", "Valor da compensação"). Só nomes longos, para
+     'pi' e 'rs' não grudarem em qualquer coluna. */
+  ORDEM_PSV.forEach(k => {
+    if (idx[k] >= 0) return;
+    for (const a of ALVO_PSV[k]) {
+      if (a.length < 5) continue;
+      const i = norm.findIndex((c, j) => !usado.has(j) && c.indexOf(a) >= 0);
+      if (i >= 0) { idx[k] = i; usado.add(i); return; }
+    }
+  });
   return idx;
 }
 const ehCabecalhoPsv = linha => {
@@ -10307,21 +10332,25 @@ function valorPsv(t) {
   const neg = /^\(.*\)$/.test(s) || /-/.test(s);
   s = s.replace(/r\$/i, '').replace(/[()]/g, '').replace(/[^\d.,]/g, '');
   if (!s || !/\d/.test(s)) return NaN;
+  const nV = (s.match(/,/g) || []).length, nP = (s.match(/\./g) || []).length;
   const ultV = s.lastIndexOf(','), ultP = s.lastIndexOf('.');
   let num;
-  if (ultV >= 0 && ultP >= 0) {
-    /* o separador decimal é o que vier por último */
+  if (nV && nP) {
+    /* os dois aparecem: o separador decimal é o que vier por último */
     num = ultV > ultP ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
-  } else if (ultV >= 0) {
-    /* só vírgula: decimal quando sobram 1 ou 2 casas, senão é milhar */
-    num = (s.length - ultV - 1) <= 2 && s.split(',').length === 2
-      ? s.replace(',', '.') : s.replace(/,/g, '');
-  } else if (ultP >= 0) {
-    num = (s.length - ultP - 1) <= 2 && s.split('.').length === 2
-      ? s : s.replace(/\./g, '');
+  } else if (nV) {
+    /* só vírgula: em planilha brasileira é decimal, a não ser que se repita */
+    num = nV === 1 ? s.replace(',', '.') : s.replace(/,/g, '');
+  } else if (nP) {
+    /* só ponto: é milhar quando se repete (1.234.567) ou quando sobram
+       exatamente 3 casas (1.234). Qualquer outra quantidade de casas é
+       decimal — inclusive o 529.80999999999995 que o Excel grava por
+       arredondamento binário, que antes virava 52 quatrilhões. */
+    num = (nP === 1 && (s.length - ultP - 1) !== 3) ? s : s.replace(/\./g, '');
   } else num = s;
   const v = parseFloat(num);
-  return isFinite(v) ? (neg ? -Math.abs(v) : v) : NaN;
+  if (!isFinite(v)) return NaN;
+  return Math.round(Math.abs(v) * 100) / 100 * (neg ? -1 : 1);   /* dinheiro: 2 casas */
 }
 /* quando a coluna mapeada vem zerada, procura a que realmente tem dinheiro:
    a de maior soma entre as que são numéricas na maioria das linhas */
@@ -10343,8 +10372,8 @@ function acheColunaValor(linhas, evitar) {
   return melhor;
 }
 function montaPsv(matrizes, dataISO) {
-  const regs = [], vistos = new Set();
-  let ruins = 0, dup = 0, comColuna = 0, semValor = 0;
+  const regs = [], vistos = new Set(), grupo = new Map();
+  let ruins = 0, dup = 0, comColuna = 0, semValor = 0, semPi = 0, prevTexto = 0;
   const diag = {cab: null, idx: null, valAuto: -1};
   matrizes.forEach(m => {
     let idx = null, corpo = null;
@@ -10374,12 +10403,29 @@ function montaPsv(matrizes, dataISO) {
       const semLinha = leData(v('sem'));
       const sem = semLinha || dataISO;
       if (semLinha) comColuna++;
-      const ch = sem + '\u0001' + (pi || ('L' + regs.length));
+      const polo = v('polo') || '—', cid = v('cid') || '—', acao = v('acao') || '—';
+      /* sem número de PI a planilha não tem chave, e sem chave todas as linhas
+         viram uma só. Monta uma a partir de polo + cidade + ação, numerando
+         quando o trio se repete: é o que sustenta a comparação semana a semana
+         e a edição de previsão/observação linha a linha. */
+      let id = pi;
+      if (!id) {
+        /* o número de ordem acompanha exatamente o rótulo, senão duas linhas
+           do mesmo polo e cidade cairiam na mesma chave */
+        const g = sem + '\u0001' + polo + '\u0001' + cid;
+        const n = (grupo.get(g) || 0) + 1; grupo.set(g, n);
+        id = 'S/PI · ' + polo + '/' + cid + (n > 1 ? ' #' + n : '');
+        semPi++;
+      }
+      const ch = sem + '\u0001' + id;
       if (vistos.has(ch)) { dup++; return; }
       vistos.add(ch);
-      regs.push({sem, polo: v('polo') || '—', cid: v('cid') || '—', pi: pi || '—',
-                 cli: v('cli'), val: isFinite(val) ? val : 0, acao: v('acao') || '—',
-                 resp: v('resp') || '—', prev: leData(v('prev')) || '', obs: v('obs')});
+      /* previsão pode vir data ou texto livre ("Pendente", "a definir") */
+      const prevBruta = v('prev'), prevISO = leData(prevBruta);
+      if (prevBruta && !prevISO) prevTexto++;
+      regs.push({sem, polo, cid, pi: id,
+                 cli: v('cli'), val: isFinite(val) ? val : 0, acao,
+                 resp: v('resp') || '—', prev: prevISO || prevBruta, obs: v('obs')});
     });
   });
   if (!regs.length) {
@@ -10416,7 +10462,7 @@ function montaPsv(matrizes, dataISO) {
     responsável: nomeCol(diag.idx.resp), previsão: nomeCol(diag.idx.prev), observação: nomeCol(diag.idx.obs),
     data: nomeCol(diag.idx.sem)} : null;
   return {base: {semanas, polos, cidades, acoes, resps, linhas},
-          novas: regs.length, ruins, dup, comColuna, semValor,
+          novas: regs.length, ruins, dup, comColuna, semValor, semPi, prevTexto,
           refeitas: Array.from(substituidas).sort(), mapa, valAuto: diag.valAuto >= 0 ? letra(diag.valAuto) : '',
           soma: regs.reduce((a, r) => a + r.val, 0), semCab: !diag.cab,
           datas: Array.from(noArquivo).sort(), data: dataISO};
@@ -10450,7 +10496,7 @@ function pintaPsvKPIs(mB, mA) {
   const totB = somaDe(Array.from(mB.values())), totA = somaDe(Array.from(mA.values()));
   const semComp = qx.a < 0 || !mA.size;
   const d = sB - sA, dTot = totB - totA;
-  const semPrev = Array.from(mB.values()).filter(l => !prevDe(l)).length;
+  const semPrev = Array.from(mB.values()).filter(l => !dataPrev(l)).length;
   const tiles = [
     {rot: `TOP ${fmt(n)} em compensação`, val: brlCurto(sB), hero: true,
      pe: semComp ? `${brl(sB)} · ${pct1(pct(sB, totB || 1))}% do total da tela`
@@ -10460,9 +10506,9 @@ function pintaPsvKPIs(mB, mA) {
     {rot: `Peso do TOP ${fmt(n)}`, val: pct1(pct(sB, totB || 1)) + '%',
      pe: `${fmt(topB.length)} de ${fmt(mB.size)} PI concentram esse valor`},
     {rot: 'Maior PI', val: topB.length ? brlCurto(topB[0][QVAL]) : '—',
-     pe: topB.length ? `PI ${esc(topB[0][QPI])} · ${esc(PSV.cidades[topB[0][QCID]])}` : 'sem PI na tela'},
-    {rot: 'Sem previsão', val: fmt(semPrev),
-     pe: semPrev ? `${pct1(pct(semPrev, mB.size || 1))}% dos PI em tela` : 'todos têm previsão'}
+     pe: topB.length ? `${esc(piRot(topB[0]))} · ${esc(PSV.cidades[topB[0][QCID]])}` : 'sem PI na tela'},
+    {rot: 'Sem data de previsão', val: fmt(semPrev),
+     pe: semPrev ? `${pct1(pct(semPrev, mB.size || 1))}% dos PI em tela` : 'todos têm data'}
   ];
   $('#qs-kpis').innerHTML = tiles.map(t =>
     `<div class="tile${t.hero ? ' hero' : ''}"><span class="rot">${esc(t.rot)}</span>
@@ -10528,10 +10574,14 @@ function gPsvTop(mB, mA) {
     const yc = mt + i * rh + rh / 2, h = 15;
     const polo = PSV.polos[l[QPOLO]];
     s += txt(10, yc + 4, String(i + 1), {cor: COR.t3, tam: 12, peso: 700, tab: 1});
-    s += txt(30, yc + 4, corta('PI ' + l[QPI] + ' · ' + (l[QCLI] || PSV.cidades[l[QCID]]), 24),
+    /* sem número de PI, quem identifica a linha é a ação — polo e cidade já
+       aparecem na coluna ao lado e repeti-los só gastaria a largura */
+    const semPi = String(l[QPI]).indexOf('S/PI') === 0;
+    s += txt(30, yc + 4, corta(semPi ? PSV.acoes[l[QACAO]]
+                                     : 'PI ' + l[QPI] + ' · ' + (l[QCLI] || PSV.cidades[l[QCID]]), 26),
              {cor: COR.t1, tam: 12, peso: 600});
     s += txt(px0 - 10, yc + 4, polo + ' · ' + corta(PSV.cidades[l[QCID]], 13), {cor: COR.t3, tam: 10.5, anc: 'end'});
-    const dica = `<b>${brl(l[QVAL])}</b><br><span class="l">PI ${l[QPI]} · ${PSV.cidades[l[QCID]]} · ${PSV.resps[l[QRESP]]}</span>`;
+    const dica = `<b>${brl(l[QVAL])}</b><br><span class="l">${esc(piRot(l))} · ${PSV.cidades[l[QCID]]} · ${PSV.resps[l[QRESP]]}</span>`;
     s += barraSVG(px0, yc - h / 2, Math.max(2, (l[QVAL] / max) * (px1 - px0)), h, corGer(gerenciaDe(polo)), dica);
     s += txt(W - 92, yc + 4, brlCurto(l[QVAL]), {cor: COR.t1, tam: 14, peso: 650, anc: 'end', tab: 1});
     const a = antes.get(l[QPI]);
@@ -10553,10 +10603,18 @@ function gPsvTop(mB, mA) {
 function pintaTopTabela(mB) {
   const top = topoDe(mB, qx.topN);
   if (!top.length) { $('#qs-top-tab').innerHTML = ''; return; }
+  const derivados = PSV.linhas.filter(l => String(l[QPI]).indexOf('S/PI') === 0).length;
+  const notaPi = derivados
+    ? `<div class="explica alerta"><b>${fmt(derivados)} linha(s) sem número de PI.</b> O painel montou
+       a chave com polo + cidade (<i>S/PI · PO/Coromandel #2</i>) para conseguir comparar semanas e guardar
+       a tratativa. Enquanto a coluna PI vier vazia, duas semanas só se encontram se o polo, a cidade e a
+       ordem das linhas forem os mesmos — preencha a coluna PI para o acompanhamento ficar firme.</div>`
+    : '';
   $('#qs-top-tab').innerHTML =
     `<h4 class="sub-tit">Tratativa de cada PI do TOP</h4>
      <div class="explica"><b>Previsão</b> e <b>Observação</b> são editáveis: o que você escrever vale por
-     cima do que veio na planilha, fica preso ao número do PI e sobrevive às próximas cargas.</div>
+     cima do que veio na planilha, fica preso à chave da linha e sobrevive às próximas cargas.
+     A previsão aceita data (<i>12/03/2026</i>) ou texto (<i>Pendente</i>).</div>${notaPi}
      <div class="tab-wrap"><table class="dt"><thead><tr>
        <th>#</th><th>PI</th><th>Cliente</th><th>Polo</th><th>Cidade</th><th>Compensação</th>
        <th>Ação proposta</th><th>Responsável</th><th>Previsão</th><th class="cel-rot">Observação</th>
@@ -10569,8 +10627,8 @@ function linhaPsvEditavel(l, pos) {
   return `<tr>${pos ? `<td>${fmt(pos)}</td>` : ''}<td><b>${esc(l[QPI])}</b></td><td>${esc(l[QCLI] || '—')}</td>
     <td>${esc(PSV.polos[l[QPOLO]])}</td><td>${esc(PSV.cidades[l[QCID]])}</td>
     <td><b>${brl(l[QVAL])}</b></td><td>${esc(PSV.acoes[l[QACAO]])}</td><td>${esc(PSV.resps[l[QRESP]])}</td>
-    <td${marca(ed.prev != null)}><input class="psv-in" type="date" data-campo="prev" data-pi="${esc(l[QPI])}"
-      value="${esc(prevDe(l))}"></td>
+    <td${marca(ed.prev != null)}><input class="psv-in" data-campo="prev" data-pi="${esc(l[QPI])}"
+      value="${esc(prevDe(l))}" placeholder="dd/mm/aaaa ou texto" autocomplete="off"></td>
     <td class="cel-rot"${marca(ed.obs != null)}><input class="psv-in" data-campo="obs" data-pi="${esc(l[QPI])}"
       value="${esc(obsDe(l))}" placeholder="observação" autocomplete="off"></td></tr>`;
 }
@@ -10629,7 +10687,7 @@ function pintaPsvDetalhe(mB, mA) {
   if (qx.det === 'top') itens = topoDe(mB, qx.topN).map(l => ({l}));
   else if (qx.det === 'novos') itens = Array.from(mB.values()).filter(l => !mA.has(l[QPI])).map(l => ({l}));
   else if (qx.det === 'sai') itens = Array.from(mA.values()).filter(l => !mB.has(l[QPI])).map(l => ({l, fora: true}));
-  else if (qx.det === 'semprev') itens = Array.from(mB.values()).filter(l => !prevDe(l)).map(l => ({l}));
+  else if (qx.det === 'semprev') itens = Array.from(mB.values()).filter(l => !dataPrev(l)).map(l => ({l}));
   else itens = Array.from(mB.values()).map(l => ({l}));
 
   const busca = qx.dBusca.trim().toLowerCase();
@@ -10656,7 +10714,7 @@ function pintaPsvDetalhe(mB, mA) {
   const linhas = itens.filter(x => passaDet(x));
   const dir = qx.dOrd.dir, col = qx.dOrd.col;
   const valor = x => col === 'val' ? x.l[QVAL] : col === 'pi' ? String(x.l[QPI])
-    : col === 'prev' ? (prevDe(x.l) || '9999') : col === 'cli' ? String(x.l[QCLI] || '')
+    : col === 'prev' ? (dataPrev(x.l) || (prevDe(x.l) ? '9998' + prevDe(x.l) : '9999')) : col === 'cli' ? String(x.l[QCLI] || '')
     : VAL_PSV[col] ? VAL_PSV[col](x) : x.l[QVAL];
   linhas.sort((a, b) => {
     const va = valor(a), vb = valor(b);
@@ -10678,8 +10736,9 @@ function pintaPsvDetalhe(mB, mA) {
     return `<tr${x.fora ? ' class="tsub"' : ''}><td><b>${esc(l[QPI])}</b>${noTop.has(l[QPI]) && !x.fora ? ' <span class="vinc-chip">TOP</span>' : ''}</td>
       <td>${esc(l[QCLI] || '—')}</td><td>${esc(PSV.polos[l[QPOLO]])}</td><td>${esc(PSV.cidades[l[QCID]])}</td>
       <td><b>${brl(l[QVAL])}</b></td><td>${esc(PSV.acoes[l[QACAO]])}</td><td>${esc(PSV.resps[l[QRESP]])}</td>
-      <td${marca(ed.prev != null)}>${x.fora ? (prevDe(l) ? dlonga(prevDe(l)) : '—')
-        : `<input class="psv-in" type="date" data-campo="prev" data-pi="${esc(l[QPI])}" value="${esc(prevDe(l))}">`}</td>
+      <td${marca(ed.prev != null)}>${x.fora ? esc(prevTxt(l))
+        : `<input class="psv-in" data-campo="prev" data-pi="${esc(l[QPI])}" value="${esc(prevDe(l))}"
+             placeholder="dd/mm/aaaa ou texto" autocomplete="off">`}</td>
       <td class="cel-rot"${marca(ed.obs != null)}>${x.fora ? esc(obsDe(l) || '—')
         : `<input class="psv-in" data-campo="obs" data-pi="${esc(l[QPI])}" value="${esc(obsDe(l))}" placeholder="observação" autocomplete="off">`}</td></tr>`;
   }).join('');
@@ -10808,13 +10867,17 @@ $('#qs-det').addEventListener('click', ev => {
 document.addEventListener('change', ev => {
   const inp = ev.target.closest('.psv-in');
   if (!inp) return;
-  const pi = inp.dataset.pi, campo = inp.dataset.campo, v = inp.value.trim();
+  const pi = inp.dataset.pi, campo = inp.dataset.campo;
+  let v = inp.value.trim();
+  if (campo === 'prev' && v) v = leData(v) || v;   /* 12/03/2026 vira data; "Pendente" fica texto */
   if (!PSED[pi]) PSED[pi] = {};
   /* apagar o campo volta ao valor da planilha, em vez de gravar vazio */
   if (!v) delete PSED[pi][campo]; else PSED[pi][campo] = v;
   if (!Object.keys(PSED[pi]).length) delete PSED[pi];
   guardaPsed();
-  render();
+  /* o redesenho troca o HTML da tabela; se acontecer dentro do próprio evento
+     de saída do campo, o navegador reclama do nó que sumiu debaixo do foco */
+  setTimeout(render, 0);
 });
 $('#q-semanas').addEventListener('click', ev => {
   const bt = ev.target.closest('[data-rm-qsem]');
@@ -10947,6 +11010,10 @@ $('#qarq').addEventListener('change', async ev => {
     if (r.dup) obs.push(`${fmt(r.dup)} PI repetido(s) na mesma data foram ignorados`);
     if (r.semValor) obs.push(`${fmt(r.semValor)} linha(s) sem valor de compensação legível entraram como zero`);
     if (r.ruins) obs.push(`${fmt(r.ruins)} linha(s) ignoradas por não ter PI nem valor`);
+    if (r.semPi) obs.push(`${fmt(r.semPi)} linha(s) sem número de PI receberam uma chave ` +
+      `montada de polo + cidade + ação (aparecem como "S/PI · …"); preencha a coluna PI ` +
+      `para a comparação entre semanas ficar firme`);
+    if (r.prevTexto) obs.push(`${fmt(r.prevTexto)} previsão(ões) vieram como texto e não como data`);
     const fora = PSV.polos.filter(p => gerenciaDe(p) === SEM_GERENCIA);
     if (fora.length) obs.push('polos fora do mapa de gerências: ' + fora.join(', '));
     if (!coube) obs.push('não coube no navegador: esta base vale só nesta sessão');

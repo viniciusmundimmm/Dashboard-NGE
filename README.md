@@ -299,6 +299,12 @@ Colunas lidas: **B** (polo), **C** (cidade), **D** (PI), **E** (cliente), **F** 
 sem ela, vale a data carimbada no painel. Cada data presente no arquivo substitui a foto daquele dia,
 e a chave de um registro é **data + PI**.
 
+**Se a coluna PI vier vazia**, o painel monta uma chave com **polo + cidade**, numerando quando o par
+se repete (`S/PI · PO/Coromandel #2`), e avisa quantas linhas entraram assim. É o que permite comparar
+semanas e guardar a tratativa mesmo sem número de PI — mas duas semanas só se encontram enquanto o
+polo, a cidade e a ordem das linhas forem os mesmos. Com a coluna PI preenchida, o acompanhamento
+fica firme.
+
 As telas:
 
 - **Resumo** — o TOP em compensação e a variação contra a foto anterior, o total da tela, o peso do
@@ -311,10 +317,12 @@ As telas:
 - **Composição** — compensação somada por **polo**, **responsável**, **cidade** ou **ação proposta**,
   com a variação de cada recorte.
 - **Detalhe** — todos os PI, com filtros de múltipla escolha e abas para o TOP, os que entraram, os
-  que saíram e os sem previsão.
+  que saíram e os sem data de previsão.
 
 **O valor é lido em qualquer formato**: número puro com formatação de moeda, `R$ 1.234,56`,
-`1,234.56`, negativo entre parênteses. Se a coluna mapeada vier vazia ou zerada, o painel **procura
+`1,234.56`, negativo entre parênteses, e o `529.80999999999995` que o Excel grava quando a célula é
+moeda (vira R$ 529,81, arredondado em duas casas). Ponto só é separador de milhar quando se repete
+(`1.234.567`) ou quando sobram exatamente três casas (`1.234`). Se a coluna mapeada vier vazia ou zerada, o painel **procura
 sozinho** a coluna que realmente tem dinheiro e avisa qual usou. A mensagem de carga lista de que
 coluna veio cada campo, e se nenhum valor for lido ela diz isso em vermelho em vez de mostrar
 R$ 0 calado.
@@ -324,8 +332,10 @@ inclusive a série histórica. Os filtros de gerência, polo, cidade, responsáv
 TOP dentro da seleção**: o TOP 20 de um polo é o dos 20 maiores daquele polo, não um recorte do TOP
 geral.
 
-**Previsão e Observação são editáveis** na tabela do TOP e no detalhe. O que você escreve vale por
-cima do que veio na planilha, fica preso ao **número do PI**, sobrevive às próximas cargas e ao
+**Previsão e Observação são editáveis** na tabela do TOP e no detalhe. A previsão aceita **data**
+(`12/03/2026`, que vira data) ou **texto livre** (`Pendente`, `a definir`) — o KPI e a aba contam
+quem está **sem data**, então um `Pendente` aparece ali. O que você escreve vale por
+cima do que veio na planilha, fica preso à **chave da linha**, sobrevive às próximas cargas e ao
 **Apagar base PSVT**, e a célula editada ganha uma marca verde à esquerda. Apagar o conteúdo devolve
 o valor original da planilha.
 
@@ -347,7 +357,7 @@ o valor original da planilha.
 | Vida útil da bateria | 24 meses a partir de `Data baterias` |
 | Bateria sem data | conta como vencida, por falta de atualização do cadastro |
 | Chave de um religador | série + dispositivo |
-| Chave de um PI (PSVT) | data da foto + número do PI |
+| Chave de um PI (PSVT) | data da foto + número do PI; sem número de PI, data + polo + cidade + ordem |
 | TOP do PSVT | os N maiores valores de compensação dentro dos filtros em uso |
 
 ## Rotina semanal
