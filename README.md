@@ -136,25 +136,28 @@ aparece em foto nenhuma: nem na de segunda, que é anterior a ela, nem na da seg
 ela já saiu. O serviço que a equipe fez por causa dessa guia entrava no painel como **“sem guia”**, e
 o módulo subestimava exatamente o que existe para medir.
 
-O arquivo **Concluídas** fecha esse buraco. Tem a mesma estrutura das guias, mais a coluna
-**M · Execução**, que diz se a guia foi executada em campo. A regra é a que o processo usa: *se o
-serviço do G-DIS está num equipamento que já tem guia concluída e executada, o serviço é oriundo de
-guia*. O painel procura a coluna pelo nome e, se não achar, usa a posição **M** — e avisa qual dos
-dois caminhos usou.
+O arquivo **Concluídas** fecha esse buraco. Tem a estrutura das guias — `Solicitacao`, `Status`,
+`Dispositivo`, `Conjunto`, `Municipio`, `Cadastro`, `Tipo`, `Observações` — mais a coluna
+**M · Execução**, que traz a **data em que o técnico de campo informou a inspeção pelo G-DIS OP**.
+O painel procura a coluna pelo nome e, se não achar, usa a posição **M**, dizendo na carga qual dos
+dois caminhos usou e de que coluna veio cada campo.
 
-**O que conta como executado você define.** Logo abaixo da lista de serviços, o quadro *Coluna
-Execução* mostra cada valor que apareceu no arquivo, quantas guias e quantos equipamentos tem cada
-um, e uma caixa para marcar quais contam como executado em campo. Enquanto você não marcar, vale o
-palpite do painel, que lê `sim`, `executado`, `realizado`, `concluído` e parecidos como executado, e
-`não`, `pendente` e `cancelado` como não executado. A marcação fica salva no navegador e recalcula
-tudo na hora.
+**Arquivo único acumulado.** A data vem na própria linha, como nos executados do G-DIS, então não há
+foto semanal aqui: recarregar o mesmo arquivo não duplica e a solicitação que voltar é reescrita com
+o conteúdo novo. Uma linha sem data na coluna Execução fica na base como concluída **sem execução em
+campo** e não entra no casamento.
 
-**A coerência é verificada.** A foto de concluídas diz “esta guia já saiu até esta data”, não a hora
-em que saiu. Então o painel confere se a guia aparece concluída numa foto **igual ou posterior** ao
-serviço; quando ela já constava concluída **antes** do serviço, o casamento é contado e avisado na
-tela como provavelmente outro trabalho no mesmo equipamento.
+**A regra do casamento.** Um serviço do G-DIS é *oriundo de guia* quando o equipamento dele tem guia
+concluída e a data da execução está perto da data da nota. Perto porque as duas datas não são a
+mesma coisa: a coluna Execução é quando o técnico informou, e a nota pode cair um ou dois dias antes
+ou depois. O campo **folga da concluída**, no alto da seção, define quantos dias de diferença são
+aceitos — o padrão é **7**. Quando há mais de uma guia concluída no mesmo equipamento, vale a de data
+mais próxima do serviço.
 
-Carga igual à das guias: cada par **data + polo** do arquivo é reposto, o resto da base fica.
+Na lista de serviços cada casamento mostra **o número da guia e a distância em dias** (`guia 21412 ·
+3 dias depois`), e no fim da seção um quadro abre a distribuição: no mesmo dia, 1 ou 2 dias, 3 a 7, e
+quantos ficaram fora da folga. É por esse quadro que se escolhe a folga com os olhos nos dados, em
+vez de no palpite.
 
 ### Executado na semana · Inspeções SGE × G-DIS OP
 
@@ -189,7 +192,7 @@ em ordem de força, e cada serviço recebe a primeira que couber:
 
 | | Evidência | O que significa |
 |---|---|---|
-| 1 | **guia concluída e executada** | a guia existiu e foi dada como feita em campo — a mais forte, e a única que pega a guia nascida e encerrada entre duas fotos |
+| 1 | **guia concluída e executada** | a guia existiu e a coluna Execução diz quando foi feita em campo — a mais forte, e a única que pega a guia nascida e encerrada entre duas fotos |
 | 2 | **guia segue aberta** | há guia em aberto no equipamento; pode ser ela, pode ser outra guia do mesmo equipamento ou falta de encerramento |
 | 3 | **guia encerrada no período** | a guia estava na foto anterior e sumiu na atual |
 
@@ -411,7 +414,7 @@ escolha o recorte uma vez e ele acompanha a troca de aba.
 |---|---|---|---|---|
 | 1 | **Indisponibilidade** | a planilha única, com a semana na coluna A | substitui a base inteira | duas datas da coluna A, escolhidas nos seletores |
 | 2 | **Execução** · guias | `AbertoTR` + `AndamentoTR`, data da coleta na coluna A | repõe os pares **data + polo** do arquivo | foto atual × foto anterior |
-| 3 | **Execução** · concluídas | `Concluídas`, mesma estrutura + coluna M · Execução | repõe os pares **data + polo** do arquivo | guias que saíram, e o casamento por equipamento |
+| 3 | **Execução** · concluídas | `Concluídas`, arquivo único acumulado, data na coluna M | acrescenta, reescrevendo a solicitação repetida | casamento por equipamento, com folga em dias |
 | 4 | **Execução** · executados | arquivo único acumulado do G-DIS OP | acrescenta, ignorando repetidos | janela entre as duas fotos de guias |
 | 4 | **Medidas SAP** | Gestão Campo + Gestão Equipamento, data na coluna A | repõe os pares **data + processo** | foto atual × foto anterior |
 | 5 | **Baterias** | cadastro de religadores | cada carga vira um arquivo novo | dois arquivos escolhidos nos seletores |
