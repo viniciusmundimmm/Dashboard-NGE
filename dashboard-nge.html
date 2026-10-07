@@ -517,7 +517,10 @@
     .topbar-in{padding:0 0 8px}
     .filtros,#painel,#epainel,.tools,.abas,.filtros-lista,.zona,#tip,.btn,.x,#f-limpa,
     .ambientes,.eq-nova,.lote,td.sel,th.sel,.vazio-mod,
-    #lupa,#modal-imp,.cel-nota,th[data-ord="nota"]{display:none!important}
+    #lupa,#modal-imp{display:none!important}
+    /* o Detalhe no PDF é a lista de tratativas, não o inventário inteiro:
+       saem só as linhas com anotação, e a anotação vai junto */
+    #det tbody tr:not(.tem-nota),#ex-det tbody tr:not(.tem-nota){display:none!important}
     /* a largura da página cai abaixo do ponto de quebra responsivo: recompõe as colunas */
     .wrap{display:flex;flex-direction:column}
     .grade{gap:9px}
@@ -695,6 +698,13 @@
         <div id="evo"></div>
       </div>
     </div>
+    <div class="card" id="card-mov-polo">
+      <div class="card-hd"><h3 id="tit-mov-polo">Movimento por polo</h3>
+        <span class="sub" id="sub-mov-polo"></span>
+        <div class="tools"><button class="tbtn" data-tab="mov-polo" aria-pressed="false">Tabela</button></div>
+      </div>
+      <div id="mov-polo"></div>
+    </div>
   </section>
 
   <section class="secao">
@@ -794,6 +804,8 @@
         <button class="btn" id="d-limpa" type="button">Limpar lista</button>
         <span class="conta" id="d-conta"></span>
       </div>
+      <div class="so-impressao nota">No relatório sai apenas o que tem anotação — a lista
+        completa fica na tela.</div>
       <div id="det"></div>
     </div>
   </section>
@@ -1022,6 +1034,8 @@
           <button class="btn" id="ed-lote-rm" type="button">Tirar programação</button>
           <button class="btn" id="ed-lote-no" type="button" style="margin-left:auto">Limpar seleção</button>
         </div>
+        <div class="so-impressao nota">No relatório sai apenas o que tem anotação — a lista
+          completa fica na tela.</div>
         <div id="ex-det"></div>
       </div>
     </section>
@@ -4785,6 +4799,60 @@ function tabelaHTML(t) {
    GRÁFICOS
    ============================================================ */
 
+/* --- movimento por polo: onde a gerência ganhou e onde perdeu ---
+   Halteres: o ponto cinza é a semana anterior, o colorido é a atual, e a
+   linha entre eles é o caminho. A cor é polaridade (subir é ruim aqui),
+   não identidade, então ela repete de propósito. */
+function gMovPolo(mA, mB, novos, reg) {
+  const chaves = st.ger ? (GER_POLOS[st.ger] || []).slice()
+                        : Object.keys(MAPA_GERENCIA);
+  const de = st.ger ? (l => POLOS[l[P]]) : (l => POLO_GER[POLOS[l[P]]]);
+  const conta = (m, fn) => { const c = {}; chaves.forEach(k => c[k] = 0);
+    m.forEach(l => { const k = fn(l); if (k in c) c[k]++; }); return c; };
+  const cA = conta(mA, de), cB = conta(mB, de);
+  const cN = {}, cR = {};
+  chaves.forEach(k => { cN[k] = 0; cR[k] = 0; });
+  novos.forEach(l => { const k = de(l); if (k in cN) cN[k]++; });
+  reg.forEach(l => { const k = de(l); if (k in cR) cR[k]++; });
+  const cats = chaves.filter(k => cA[k] || cB[k]).sort((a, b) => cB[b] - cB[a]);
+  if (!cats.length) return {svg: '<div class="vazio">Sem equipamentos no filtro atual.</div>', tabela: null};
+
+  const W = 1000, ml = 92, mr = 210, mt = 30, rh = 34;
+  const H = mt + cats.length * rh + 14;
+  const px0 = ml, px1 = W - mr;
+  const max = escalaMax(Math.max(1, ...cats.map(k => Math.max(cA[k], cB[k]))) * 1.06);
+  const x = v => px0 + (v / max) * (px1 - px0);
+  let s = '';
+  marcasY(max).forEach(v => {
+    s += `<line x1="${x(v)}" y1="${mt - 8}" x2="${x(v)}" y2="${mt + cats.length * rh}"
+            stroke="${COR.grade}" stroke-width="1"/>`;
+    s += txt(x(v), mt - 14, fmt(v), {cor: COR.t3, tam: 10.5, anc: 'middle', tab: 1});
+  });
+  cats.forEach((k, i) => {
+    const yc = mt + i * rh + rh / 2, a = cA[k], b = cB[k], d = b - a;
+    const cor = d > 0 ? COR.ruim : d < 0 ? COR.bom : COR.t3;
+    s += txt(10, yc + 4, st.ger ? 'Polo ' + k : k, {cor: COR.t1, tam: 12.5, peso: 600});
+    s += `<line x1="${x(a)}" y1="${yc}" x2="${x(b)}" y2="${yc}" stroke="${cor}" stroke-width="2"/>`;
+    const ponto = (v, c, r) => `<circle cx="${x(v)}" cy="${yc}" r="${r}" fill="${c}"
+        stroke="${COR.surface}" stroke-width="2" class="hit"
+        data-t="${esc(`<b>${fmt(v)}</b><br><span class="l">${k} · ${v === a ? 'semana anterior' : 'semana atual'}</span>`)}"/>`;
+    s += ponto(a, COR.t3, 5) + ponto(b, cor, 6.5);
+    s += txt(px1 + 14, yc + 4, fmt(b), {cor: COR.t1, tam: 14, peso: 650, tab: 1});
+    s += txt(px1 + 56, yc + 4, sinal(d), {cor, tam: 12, peso: 650, tab: 1});
+    s += txt(px1 + 104, yc + 4, `+${fmt(cN[k])} / −${fmt(cR[k])}`,
+             {cor: COR.t3, tam: 11, tab: 1});
+  });
+  s += txt(px1 + 14, mt - 14, 'atual', {cor: COR.t3, tam: 10.5});
+  s += txt(px1 + 56, mt - 14, 'saldo', {cor: COR.t3, tam: 10.5});
+  s += txt(px1 + 104, mt - 14, 'novos / regul.', {cor: COR.t3, tam: 10.5});
+  return {svg: svgRoot(W, H, s),
+          pe: legenda([{cor: COR.t3, rot: 'semana anterior'}, {cor: COR.ruim, rot: 'subiu'},
+                       {cor: COR.bom, rot: 'caiu'}]),
+          tabela: {cab: [st.ger ? 'Polo' : 'Gerência', 'Anterior', 'Atual', 'Saldo', 'Novos', 'Regularizados'],
+                   linhas: cats.map(k => [esc(k), fmt(cA[k]), fmt(cB[k]), sinal(cB[k] - cA[k]),
+                                          fmt(cN[k]), fmt(cR[k])])}};
+}
+
 /* --- cascata: anterior -> regularizados -> novos -> atual --- */
 function gCascata(tA, tB, novos, reg) {
   const W = 640, H = 330, ml = 52, mr = 18, mt = 44, mb = 58;
@@ -5341,12 +5409,6 @@ function pintaKPIs(mA, mB, novos, reg) {
        ${chip(a120B - a120A)}
        <span class="pe">${pct1(pct(a120B, tB || 1))}% do total · anterior ${fmt(a120A)}</span>
      </div>`,
-    `<div class="tile">
-       <span class="rot">Média de dias</span>
-       <span class="val">${fmt(mdB)}</span>
-       ${chip(mdB - mdA)}
-       <span class="pe">dias indisponíveis por equipamento</span>
-     </div>`
   ];
   $('#kpis').innerHTML = tiles.join('');
 }
@@ -5814,6 +5876,13 @@ function renderIndisp() {
 
   pintaKPIs(mA, mB, novos, reg);
   pinta('casc',  gCascata(mA.size, mB.size, novos.length, reg.length));
+  const cardMP = $('#card-mov-polo');
+  cardMP.hidden = !!st.polo;                      /* com um polo só não há o que comparar */
+  if (!st.polo) {
+    $('#tit-mov-polo').textContent = st.ger ? `Movimento por polo · ${st.ger}` : 'Movimento por gerência';
+    $('#sub-mov-polo').textContent = `${dcurta(SEMANAS[st.a])} → ${dcurta(SEMANAS[st.b])}`;
+    pinta('mov-polo', gMovPolo(mA, mB, novos, reg));
+  }
   pinta('evo',   gEvolucao());
   pinta('faixa', gFaixa(mA, mB));
   pinta('comp',  gComposicao(mA, mB));
