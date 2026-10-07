@@ -1151,6 +1151,8 @@
       <h2>Códigos de medida</h2>
       <div class="card">
         <div class="card-hd"><h3>Volume por código</h3><span class="sub" id="md-sub-cod"></span>
+          <div class="campo" style="min-width:230px;margin:0 0 0 auto">
+            <label for="md-foco">Abrir uma medida</label><select id="md-foco"></select></div>
           <div class="tools"><button class="tbtn" data-tab="md-cod" aria-pressed="false">Tabela</button></div></div>
         <div id="md-cod"></div>
         <div id="md-rot-cod"></div>
@@ -1162,6 +1164,11 @@
       <div class="grade g-2">
         <div class="card">
           <div class="card-hd"><h3 id="md-tit-polo">Medidas por gerência</h3><span class="sub" id="md-sub-polo"></span>
+            <div class="abas" role="tablist" aria-label="abrir por">
+              <button class="aba" role="tab" data-mdpolo="auto" aria-selected="true">Automático</button>
+              <button class="aba" role="tab" data-mdpolo="ger" aria-selected="false">Gerência</button>
+              <button class="aba" role="tab" data-mdpolo="polo" aria-selected="false">Polo</button>
+            </div>
             <div class="tools"><button class="tbtn" data-tab="md-polo" aria-pressed="false">Tabela</button></div></div>
           <div id="md-polo"></div>
         </div>
@@ -1194,6 +1201,7 @@
           <div class="campo"><label>Polo</label><div class="msel" id="md-polo-f" data-campo="mPolo" data-rot="Todos os polos"></div></div>
           <div class="campo"><label for="md-busca">NS ou código</label><input id="md-busca" type="search" placeholder="número" autocomplete="off"></div>
           <button class="btn" id="md-limpa-lista" type="button">Limpar lista</button>
+          <button class="btn forte" id="md-xls" type="button">Exportar Excel</button>
           <span class="conta" id="md-conta"></span>
         </div>
         <div id="md-det"></div>
@@ -8980,7 +8988,7 @@ let MROT = {cod: {}, su: {}};              /* rótulos que o usuário escreve */
 
 const mx = {
   b: 0, a: -1, proc: '', su: '', resp: '', modo: 'tr', det: 'todos',
-  dBusca: '', dOrd: {col: 'ns', dir: 1}
+  dBusca: '', dOrd: {col: 'ns', dir: 1}, codFoco: '', poloModo: 'auto'
 };
 
 /* a família do status do usuário é o prefixo: ABER… ou ANDM… */
@@ -9433,41 +9441,80 @@ function pintaMdNS(mB) {
 }
 
 /* ---------- códigos de medida ---------- */
+/* Volume por código, aberto por status: a barra inteira é o volume e cada
+   faixa é um status, para a pergunta "das 200, quantas estão abertas?" ser
+   respondida no próprio gráfico. Com um código escolhido, abre nos status
+   crus daquele código. */
 function gMdCodigo(mA, mB) {
-  const cB = new Map(), cA = new Map(), nsPorCod = new Map();
-  mB.forEach(l => {
-    const c = MED.codigos[l[MCOD]];
+  const foco = mx.codFoco || '';
+  const porStatus = foco
+    ? (l => rotSu(MED.su[l[MSU]]))                 /* dentro de um código: status cru */
+    : (l => familiaSu(MED.su[l[MSU]]));            /* na visão geral: a família */
+  const base = foco ? Array.from(mB.values()).filter(l => MED.codigos[l[MCOD]] === foco)
+                    : Array.from(mB.values());
+  const chave = foco ? (l => rotSu(MED.su[l[MSU]])) : (l => MED.codigos[l[MCOD]]);
+  const cB = new Map(), cA = new Map(), nsPorCod = new Map(), fatias = new Map();
+  base.forEach(l => {
+    const c = chave(l);
     cB.set(c, (cB.get(c) || 0) + 1);
     if (!nsPorCod.has(c)) nsPorCod.set(c, new Set());
     nsPorCod.get(c).add(MED.processos[l[MPROC]] + '|' + l[MNS]);
+    if (!fatias.has(c)) fatias.set(c, new Map());
+    const g = porStatus(l);
+    fatias.get(c).set(g, (fatias.get(c).get(g) || 0) + 1);
   });
-  mA.forEach(l => { const c = MED.codigos[l[MCOD]]; cA.set(c, (cA.get(c) || 0) + 1); });
-  const cats = Array.from(cB.keys()).sort((a, b) => cB.get(b) - cB.get(a) || a.localeCompare(b, 'pt-BR'));
+  mA.forEach(l => { if (foco && MED.codigos[l[MCOD]] !== foco) return;
+    const c = chave(l); cA.set(c, (cA.get(c) || 0) + 1); });
+  const cats = Array.from(cB.keys()).sort((a, b) => cB.get(b) - cB.get(a) || String(a).localeCompare(String(b), 'pt-BR'));
   if (!cats.length) return {svg: '<div class="vazio">Sem medidas no filtro atual.</div>', tabela: null};
-  const teto = 18, mostra = cats.slice(0, teto), total = mB.size || 1;
+  /* os status presentes, na ordem em que pesam */
+  const pesos = new Map();
+  fatias.forEach(m => m.forEach((v, k) => pesos.set(k, (pesos.get(k) || 0) + v)));
+  const grupos = Array.from(pesos.keys()).sort((a, b) => pesos.get(b) - pesos.get(a));
+  const corDe = g => foco ? COR_FAM[familiaSu(g)] || COR.t3 : (COR_FAM[g] || COR.t3);
+  const teto = 18, mostra = cats.slice(0, teto), total = base.length || 1;
   const W = 800, ml = 246, mr = 146, mt = 26, rh = 30;
   const H = mt + mostra.length * rh + 18;
   const px0 = ml, px1 = W - mr;
   const max = Math.max(1, ...mostra.map(c => cB.get(c)));
   let s = '';
   mostra.forEach((c, i) => {
-    const yc = mt + i * rh + rh / 2;
-    const cor = COR.o[Math.min(3, Math.floor(i / Math.max(1, Math.ceil(mostra.length / 4))))];
+    const yc = mt + i * rh + rh / 2, tot = cB.get(c);
     s += txt(10, yc + 4, String(i + 1), {cor: COR.t3, tam: 12, peso: 700, tab: 1});
-    s += txt(32, yc + 4, corta(codLongo(c), 25), {cor: COR.t1, tam: 12, peso: 600});
-    const dica = `<b>${fmt(cB.get(c))}</b> medidas<br><span class="l">${codLongo(c)} · ${fmt(nsPorCod.get(c).size)} NS</span>`;
-    s += barraSVG(px0, yc - 8, Math.max(2, (cB.get(c) / max) * (px1 - px0)), 16, cor, dica);
-    s += txt(W - 62, yc + 4, fmt(cB.get(c)), {cor: COR.t1, tam: 15, peso: 650, anc: 'end', tab: 1});
-    s += txt(W - 8, yc + 4, pct1(pct(cB.get(c), total)) + '%', {cor: COR.t3, tam: 11, anc: 'end', tab: 1});
+    s += txt(32, yc + 4, corta(foco ? String(c) : codLongo(c), 25), {cor: COR.t1, tam: 12, peso: 600});
+    let x = px0;
+    const larg = (tot / max) * (px1 - px0);
+    grupos.forEach(g => {
+      const v = (fatias.get(c) || new Map()).get(g) || 0;
+      if (!v) return;
+      const w = Math.max(1.5, (v / tot) * larg);
+      const dica = `<b>${fmt(v)}</b> de ${fmt(tot)}<br><span class="l">${foco ? c : codLongo(c)} · ${g} ·
+        ${pct1(pct(v, tot))}%</span>`;
+      s += barraSVG(x, yc - 8, w, 16, corDe(g), dica);
+      x += w + 2;                                  /* respiro entre as faixas */
+    });
+    s += txt(W - 62, yc + 4, fmt(tot), {cor: COR.t1, tam: 15, peso: 650, anc: 'end', tab: 1});
+    s += txt(W - 8, yc + 4, pct1(pct(tot, total)) + '%', {cor: COR.t3, tam: 11, anc: 'end', tab: 1});
   });
-  const pe = (cats.length > teto ? `<div class="nota">Mostrando os ${teto} maiores de ${fmt(cats.length)} códigos; a tabela traz todos.</div>` : '')
-    + `<div class="nota">Cada código aparece uma vez por NS, então o número de medidas é também o número
-       de NS com aquele código — salvo quando a mesma NS repete o código, o que a base não permite.</div>`;
+  /* com um código aberto a cor é a família e o nome do status está na própria
+     linha, então a legenda mostra as famílias — senão apareceriam três
+     quadradinhos azuis com nomes diferentes */
+  const itensLeg = foco
+    ? Array.from(new Set(grupos.map(g => familiaSu(g)))).map(fa => ({cor: COR_FAM[fa] || COR.t3, rot: 'família ' + fa}))
+    : grupos.map(g => ({cor: corDe(g), rot: g}));
+  const pe = legenda(itensLeg)
+    + (cats.length > teto ? `<div class="nota">Mostrando ${teto} de ${fmt(cats.length)}; a tabela traz todos.</div>` : '');
+  const cabTab = (foco ? ['Status', 'Medidas', 'NS', '% do código', 'Foto anterior']
+                       : ['Código', 'Nome', 'Medidas', 'NS', '% do total', 'Foto anterior'])
+                 .concat(foco ? [] : grupos);
   return {svg: svgRoot(W, H, s), pe,
-          tabela: {cab: ['Código', 'Nome', 'Medidas', 'NS', '% do total', 'Foto anterior'],
-                   linhas: cats.map(c => [esc(c), esc((MROT.cod[c] || '').trim() || '—'), fmt(cB.get(c)),
-                                          fmt(nsPorCod.get(c).size), pct1(pct(cB.get(c), total)) + '%',
-                                          fmt(cA.get(c) || 0)])}};
+          tabela: {cab: cabTab,
+                   linhas: cats.map(c => (foco
+                     ? [esc(String(c)), fmt(cB.get(c)), fmt(nsPorCod.get(c).size),
+                        pct1(pct(cB.get(c), total)) + '%', fmt(cA.get(c) || 0)]
+                     : [esc(c), esc((MROT.cod[c] || '').trim() || '—'), fmt(cB.get(c)),
+                        fmt(nsPorCod.get(c).size), pct1(pct(cB.get(c), total)) + '%', fmt(cA.get(c) || 0)]
+                       .concat(grupos.map(g => fmt((fatias.get(c) || new Map()).get(g) || 0)))))}};
 }
 function pintaRotCod(mB) {
   const cont = new Map();
@@ -9534,6 +9581,7 @@ const VAL_MED = {
   ger:  x => gerenciaDe(MED.polos[x.l[MPOLO]]),
   polo: x => MED.polos[x.l[MPOLO]]
 };
+let MD_LISTA = [];
 function pintaMdDetalhe(mA, mB, entraram, sairam) {
   const tit = {todos: 'Todas as medidas', novos: 'Medidas que entraram',
                sai: 'Medidas que saíram', dup: 'Medidas de NS com 2+ medidas'};
@@ -9593,6 +9641,7 @@ function pintaMdDetalhe(mA, mB, entraram, sairam) {
     const c = typeof va === 'number' ? va - vb : String(va).localeCompare(String(vb), 'pt-BR');
     return c * dir || Number(a.l[MNS]) - Number(b.l[MNS]);
   });
+  MD_LISTA = linhas;
   $('#md-conta').textContent = `${fmt(linhas.length)} de ${fmt(itens.length)} medidas`;
   $('#md-det-sub').textContent = MED.semanas.length ? 'foto de ' + dlonga(MED.semanas[mx.b]) : '';
 
@@ -9645,10 +9694,8 @@ function renderMed() {
   $('#md-sub-casc').textContent = semComp ? 'primeira foto' : `${dcurta(MED.semanas[mx.a])} → ${dcurta(MED.semanas[mx.b])}`;
   $('#md-sub-su').textContent = mx.modo === 'tr' ? 'total por status · cor = família do código'
     : mx.modo === 'ger' ? 'aberto por gerência' : 'aberto por processo';
-  $('#md-tit-polo').textContent = st.ger ? 'Medidas por polo' : 'Medidas por gerência';
   $('#md-sub-polo').textContent = st.ger ? `${st.ger} · ${polosDeGerMed(st.ger).join(', ')}` : 'TR · gerências';
   $('#md-sub-resp').textContent = `${fmt(MED.resps.length)} responsáveis na base`;
-  $('#md-sub-cod').textContent = `foto de ${dlonga(MED.semanas[mx.b])}`;
 
   pintaMdKPIs(mA, mB, entraram, sairam, semComp);
   pinta('md-casc', semComp
@@ -9659,11 +9706,24 @@ function renderMed() {
   pintaRotSu(mB);
   pinta('md-prazo', gMdPrazo(mB));
   pintaMdNS(mB);
+  const codsNaTela = Array.from(new Set(Array.from(mB.values()).map(l => MED.codigos[l[MCOD]])))
+    .sort((a, b) => String(a).localeCompare(String(b), 'pt-BR'));
+  if (mx.codFoco && codsNaTela.indexOf(mx.codFoco) < 0) mx.codFoco = '';
+  opcoes($('#md-foco'), [{v: '', r: 'Todas as medidas'}]
+    .concat(codsNaTela.map(c => ({v: c, r: codLongo(c)}))), mx.codFoco);
+  $('#md-sub-cod').textContent = mx.codFoco
+    ? `medida ${codLongo(mx.codFoco)} · aberta por status`
+    : `foto de ${dlonga(MED.semanas[mx.b])} · cada barra aberta por status`;
   pinta('md-cod', gMdCodigo(mA, mB));
   pintaRotCod(mB);
   const gersM = Object.keys(MAPA_GERENCIA).filter(g => MED.polos.some(p => gerenciaDe(p) === g));
-  pinta('md-polo', st.ger
-    ? gMdBarras(mB, mA, l => MED.polos[l[MPOLO]], p => corGer(gerenciaDe(p)), polosDeGerMed(st.ger))
+  /* automático segue o escopo: com gerência escolhida abre em polo, senão em gerência */
+  const porPolo = mx.poloModo === 'polo' || (mx.poloModo === 'auto' && st.ger);
+  $$('[data-mdpolo]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.mdpolo === mx.poloModo)));
+  $('#md-tit-polo').textContent = porPolo ? 'Medidas por polo' : 'Medidas por gerência';
+  pinta('md-polo', porPolo
+    ? gMdBarras(mB, mA, l => MED.polos[l[MPOLO]], p => corGer(gerenciaDe(p)),
+                st.ger ? polosDeGerMed(st.ger) : null)
     : gMdBarras(mB, mA, l => gerenciaDe(MED.polos[l[MPOLO]]), g => corGer(g), gersM));
   pinta('md-resp', gMdBarras(mB, mA, l => MED.resps[l[MRESP]],
     r => COR_PIZZA[MED.resps.indexOf(r) % COR_PIZZA.length]));
@@ -9740,6 +9800,22 @@ $('#md-busca').addEventListener('input', e => { mx.dBusca = e.target.value; rend
 $('#md-limpa-lista').addEventListener('click', () => {
   st.mProc = []; st.mCod = []; st.mSu = []; st.mResp = []; st.mGer = []; st.mPolo = [];
   mx.dBusca = ''; $('#md-busca').value = ''; render();
+});
+$('#md-foco').addEventListener('change', e => { mx.codFoco = e.target.value; render(); });
+$$('[data-mdpolo]').forEach(b => b.addEventListener('click', () => {
+  mx.poloModo = b.dataset.mdpolo; render();
+}));
+$('#md-xls').addEventListener('click', () => {
+  const linhas = MD_LISTA.map(x => { const l = x.l;
+    return [Number(l[MNS]) || String(l[MNS]), MED.codigos[l[MCOD]],
+            (MROT.cod[MED.codigos[l[MCOD]]] || '').trim(), MED.processos[l[MPROC]],
+            rotSu(MED.su[l[MSU]]), familiaSu(MED.su[l[MSU]]), MED.status[l[MSTAT]],
+            MED.resps[l[MRESP]], MED.polos[l[MPOLO]],
+            gerenciaDe(MED.polos[l[MPOLO]]) || '', l[MINI] || ''];
+  });
+  baixaExcel(nomeExcel('medidas_sap'),
+    ['NS', 'Código', 'Medida', 'Processo', 'Status do usuário', 'Família', 'Prazo',
+     'Responsável', 'Polo', 'Gerência', 'Início planejado'], linhas, 'Medidas SAP');
 });
 $('#md-det').addEventListener('click', ev => {
   const th = ev.target.closest('[data-mord]');
