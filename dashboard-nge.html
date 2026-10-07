@@ -4727,6 +4727,133 @@ function legenda(itens) {
     `<span><i class="sw${i.linha ? ' linha' : ''}${i.tick ? ' tick' : ''}" style="background:${i.cor}"></i>${esc(i.rot)}</span>`
   ).join('') + `</div>`;
 }
+/* ============================================================
+   EXPORTAÇÃO PARA EXCEL
+   Um .xlsx de verdade, montado aqui: zip sem compressão, uma aba, cabeçalho
+   congelado e filtro automático. Sem biblioteca e sem servidor.
+   ============================================================ */
+function crc32(buf) {
+  let t = crc32.t;
+  if (!t) {
+    t = crc32.t = new Int32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c;
+    }
+  }
+  let r = -1;
+  for (let i = 0; i < buf.length; i++) r = (r >>> 8) ^ t[(r ^ buf[i]) & 0xFF];
+  return (r ^ -1) >>> 0;
+}
+function zipSemCompressao(arquivos) {
+  const enc = new TextEncoder(), partes = [], central = [];
+  let desloc = 0;
+  arquivos.forEach(a => {
+    const nome = enc.encode(a.nome), dados = enc.encode(a.texto), crc = crc32(dados);
+    const loc = new DataView(new ArrayBuffer(30));
+    loc.setUint32(0, 0x04034b50, true); loc.setUint16(4, 20, true);
+    loc.setUint16(6, 0x0800, true);                 /* nome em UTF-8 */
+    loc.setUint32(14, crc, true);
+    loc.setUint32(18, dados.length, true); loc.setUint32(22, dados.length, true);
+    loc.setUint16(26, nome.length, true);
+    partes.push(new Uint8Array(loc.buffer), nome, dados);
+    const cen = new DataView(new ArrayBuffer(46));
+    cen.setUint32(0, 0x02014b50, true); cen.setUint16(4, 20, true); cen.setUint16(6, 20, true);
+    cen.setUint16(8, 0x0800, true);
+    cen.setUint32(16, crc, true);
+    cen.setUint32(20, dados.length, true); cen.setUint32(24, dados.length, true);
+    cen.setUint16(28, nome.length, true);
+    cen.setUint32(42, desloc, true);
+    central.push(new Uint8Array(cen.buffer), nome);
+    desloc += 30 + nome.length + dados.length;
+  });
+  const tamCen = central.reduce((a, x) => a + x.length, 0);
+  const fim = new DataView(new ArrayBuffer(22));
+  fim.setUint32(0, 0x06054b50, true);
+  fim.setUint16(8, arquivos.length, true); fim.setUint16(10, arquivos.length, true);
+  fim.setUint32(12, tamCen, true); fim.setUint32(16, desloc, true);
+  return new Blob(partes.concat(central, [new Uint8Array(fim.buffer)]),
+    {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+const colLetra = i => { let r = '', k = i + 1;
+  while (k > 0) { const t = (k - 1) % 26; r = String.fromCharCode(65 + t) + r; k = Math.floor((k - 1) / 26); }
+  return r; };
+const xmlEsc = t => String(t == null ? '' : t)
+  .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+/* número de verdade vira número na planilha; o resto vira texto */
+function baixaExcel(nomeArq, cab, linhas, aba) {
+  const cels = (vals, lin, estilo) => vals.map((v, i) => {
+    const ref = colLetra(i) + lin, st = estilo ? ' s="1"' : '';
+    if (typeof v === 'number' && isFinite(v)) return `<c r="${ref}"${st}><v>${v}</v></c>`;
+    return `<c r="${ref}"${st} t="inlineStr"><is><t xml:space="preserve">${xmlEsc(v)}</t></is></c>`;
+  }).join('');
+  const corpo = [`<row r="1">${cels(cab, 1, true)}</row>`]
+    .concat(linhas.map((l, i) => `<row r="${i + 2}">${cels(l, i + 2, false)}</row>`)).join('');
+  const largura = cab.map((c, i) => {
+    let m = String(c).length;
+    linhas.forEach(l => { const v = l[i]; if (v != null) m = Math.max(m, String(v).length); });
+    return `<col min="${i + 1}" max="${i + 1}" width="${Math.min(60, Math.max(9, m + 2))}" customWidth="1"/>`;
+  }).join('');
+  const ultima = colLetra(cab.length - 1) + (linhas.length + 1);
+  const folha = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<sheetViews><sheetView workbookViewId="0" tabSelected="1">
+<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
+<cols>${largura}</cols><sheetData>${corpo}</sheetData>
+<autoFilter ref="A1:${ultima}"/></worksheet>`;
+  const nomeAba = xmlEsc(String(aba || 'Dados').slice(0, 28)).replace(/[\[\]\*\/\\?:]/g, ' ');
+  const arquivos = [
+    {nome: '[Content_Types].xml', texto: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+</Types>`},
+    {nome: '_rels/.rels', texto: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`},
+    {nome: 'xl/workbook.xml', texto: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+ xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets><sheet name="${nomeAba}" sheetId="1" r:id="rId1"/></sheets></workbook>`},
+    {nome: 'xl/_rels/workbook.xml.rels', texto: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`},
+    {nome: 'xl/styles.xml', texto: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font>
+<font><b/><sz val="11"/><name val="Calibri"/></font></fonts>
+<fills count="2"><fill><patternFill patternType="none"/></fill>
+<fill><patternFill patternType="gray125"/></fill></fills>
+<borders count="1"><border/></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>
+</styleSheet>`},
+    {nome: 'xl/worksheets/sheet1.xml', texto: folha}
+  ];
+  const url = URL.createObjectURL(zipSemCompressao(arquivos));
+  const a = document.createElement('a');
+  a.href = url; a.download = nomeArq;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+/* nome com o escopo e a data, para o arquivo não virar "download (3)" */
+function nomeExcel(base) {
+  const p = [base];
+  if (st.ger) p.push(st.ger.replace('/', '-'));
+  if (st.polo) p.push(st.polo);
+  p.push(hojeISO());
+  return p.join('_').replace(/[^\w\-.]+/g, '_') + '.xlsx';
+}
+
 /* texto legível sobre preenchimento */
 function tintaSobre(hex) {
   const n = parseInt(hex.slice(1), 16);
@@ -6605,7 +6732,8 @@ const sx = {
   b: 0, a: -1, tipo: '', estagio: '', modo: 'tr', det: 'todos',
   dTipo: '', dEst: '', dGer: '', dPolo: '', dEquipe: '', dBusca: '',
   dOrd: {col: 'idade', dir: -1}, dAssin: '', sel: new Set(), semProg: '', dVinc: '',
-  gdDe: '', gdAte: '', gdModo: 'dia', gdBusca: '', gdTol: null
+  gdDe: '', gdAte: '', gdModo: 'dia', gdBusca: '', gdTol: null,
+  gdPolo: '', gdEquipe: '', gdDia: ''
 };
 function corGer(g) {
   if (COR.ger && COR.ger[g]) return COR.ger[g];
@@ -7888,16 +8016,24 @@ function pintaGdis(mA, mB) {
   /* controle de período: as duas bases têm naturezas diferentes e nem sempre
      o intervalo das fotos de guias é o que se quer olhar nos executados */
   const pg = periodoGd();
+  /* atalhos ancorados no fim da base de executados: é de lá que se olha para trás */
+  const fimBase = pg ? pg.ate : fim;
+  const atalhos = [{d: 0, r: 'Dia'}, {d: 6, r: '7 dias'}, {d: 13, r: '14 dias'}, {d: 29, r: '30 dias'}];
+  const btAtalho = a => {
+    const de = somaDias(fimBase, -a.d);   /* d dias para trás, contando o último */
+    const ativo = !auto && sx.gdDe === de && sx.gdAte === fimBase;
+    return `<button class="aba" type="button" data-gdatalho="${a.d}" aria-selected="${ativo}">${a.r}</button>`;
+  };
   const ctrl = `<div class="param-linha gd-periodo">
-    <label>Executados de <input type="date" id="gd-de" value="${esc(auto ? de1 : (sx.gdDe || pg.de))}"></label>
+    <div class="abas" role="group" aria-label="período">
+      <button class="aba" type="button" data-gdatalho="auto" aria-selected="${auto}">Fotos de guias</button>
+      ${atalhos.map(btAtalho).join('')}
+    </div>
+    <label>de <input type="date" id="gd-de" value="${esc(auto ? de1 : (sx.gdDe || pg.de))}"></label>
     <label>até <input type="date" id="gd-ate" value="${esc(auto ? fim : (sx.gdAte || pg.ate))}"></label>
-    <button class="btn" id="gd-auto" type="button"${auto ? ' disabled' : ''}>Acompanhar as fotos de guias</button>
     ${CONC.linhas.length ? `<label class="gd-tol">folga da concluída
       <input type="number" id="gd-tol" min="0" max="60" step="1" value="${tol}"> dia(s)</label>` : ''}
-    <span class="nota">${auto
-      ? 'o período segue a comparação entre as duas fotos de guias'
-      : 'período fixado: as guias continuam na foto de ' + dlonga(alvo)}
-      · base de executados de ${pg ? dlonga(pg.de) + ' a ' + dlonga(pg.ate) : '—'}</span>
+    <span class="nota">base de ${pg ? dlonga(pg.de) + ' a ' + dlonga(pg.ate) : '—'}</span>
   </div>`;
 
   if (!serv.length) {
@@ -7946,23 +8082,20 @@ function pintaGdis(mA, mB) {
   /* os dois números que o módulo existe para mostrar, lado a lado */
   const temConc = CONC.linhas.length > 0;
   const tiles = `<div class="kpis" style="grid-template-columns:repeat(${temConc ? 6 : 5},minmax(0,1fr));margin-bottom:14px">
-    <div class="tile hero"><span class="rot">Guias de inspeção</span><span class="val">${fmt(mB.size)}</span>
-      <span class="pe">na carteira em ${dlonga(alvo)} — Inspeções SGE</span></div>
-    <div class="tile hero"><span class="rot">Serviços executados</span><span class="val" style="color:var(--verde-forte)">${fmt(total)}</span>
-      <span class="pe">${fmt(eqs.size)} equipamentos · ${fmt(equipes.size)} equipe(s) · ${fmt(du)} dia(s) úteis</span></div>
-    <div class="tile"><span class="rot">Oriundos de guia</span><span class="val" style="color:#006300">${fmt(comGuia)}</span>
-      <span class="pe">${pct1(pct(comGuia, total))}% dos executados${temConc
-        ? ` · ${fmt(cont.concluida)} com guia concluída e executada` : ''} · ${fmt(cont.aberta)} com guia
-        aberta · ${fmt(cont.encerrada)} com a guia encerrada no período</span></div>
+    <div class="tile hero"><span class="rot">Carteira Guias de Inspeção SGE</span><span class="val">${fmt(mB.size)}</span>
+      <span class="pe">foto de ${dcurta(alvo)}</span></div>
+    <div class="tile hero"><span class="rot">Serviços Executados G-DIS OP</span><span class="val" style="color:var(--verde-forte)">${fmt(total)}</span>
+      <span class="pe">${fmt(eqs.size)} equip. · ${fmt(equipes.size)} equipes · ${fmt(du)} dias úteis</span></div>
+    <div class="tile"><span class="rot">Oriundo Guias SGE</span><span class="val" style="color:#006300">${fmt(comGuia)}</span>
+      <span class="pe">${pct1(pct(comGuia, total))}%${temConc ? ` · ${fmt(cont.concluida)} concluída` : ''}
+        · ${fmt(cont.aberta)} aberta · ${fmt(cont.encerrada)} encerrada</span></div>
     ${temConc ? `<div class="tile"><span class="rot">Guias executadas no período</span>
       <span class="val">${fmt(concPeriodo.length)}</span>
-      <span class="pe">pela data da coluna Execução${foraDaFolga
-        ? ` · ${fmt(foraDaFolga)} serviço(s) em equipamento com guia concluída ficaram fora da folga`
-        : ''}</span></div>` : ''}
+      <span class="pe">coluna Execução${foraDaFolga ? ` · ${fmt(foraDaFolga)} fora da folga` : ''}</span></div>` : ''}
     <div class="tile"><span class="rot">Sem guia no equipamento</span><span class="val" style="color:${COR.ruim}">${fmt(cont.sem)}</span>
-      <span class="pe">${pct1(pct(cont.sem, total))}% — execução fora do controle de guias</span></div>
-    <div class="tile"><span class="rot">Por dia útil, por equipe</span><span class="val">${pct1(total / du / Math.max(1, equipes.size))}</span>
-      <span class="pe">${pct1(total / du)} serviços por dia útil no total</span></div>
+      <span class="pe">${pct1(pct(cont.sem, total))}% fora do controle de guias</span></div>
+    <div class="tile"><span class="rot">Serviços por dia/equipe</span><span class="val">${pct1(total / du / Math.max(1, equipes.size))}</span>
+      <span class="pe">${pct1(total / du)} por dia útil no total</span></div>
   </div>
   <div class="nota" style="margin:-6px 0 14px">A ligação entre serviço e guia é feita <b>pelo número do
   equipamento</b>: não existe campo oficial que ligue um serviço do G-DIS à guia que o originou.
@@ -8024,6 +8157,12 @@ function pintaGdis(mA, mB) {
     <div class="gd-par"><div>${gdRank(rank(porPoloL).map(r => Object.assign(r, {k: 'Polo ' + r.k})))}</div>
       <div>${tabGrupo(porPoloL, 'Polo', k => gerDoPolo(k))}</div></div>`;
 
+  const eq = gEquipes(serv, ini, fim, cls);
+  const blocoEq = `<h4 class="sub-tit">Produção por equipe</h4>
+    <div class="card-hd" style="margin-bottom:6px"><span class="sub">ordenado pelo total · cor = gerência</span>
+      <div class="tools"><button class="tbtn" data-tab="gd-equipes" aria-pressed="false">Tabela</button></div>
+    </div><div id="gd-equipes"></div>`;
+
   const lista = listaGdis(serv, cls, semProgramada, indisp, achaGuia);
 
   const avisos = [];
@@ -8031,7 +8170,9 @@ function pintaGdis(mA, mB) {
   if (semData) avisos.push(`${fmt(semData)} serviço(s) sem data de término legível ficaram com a data informada na carga.`);
   const aviso = avisos.length ? `<div class="msg erro" style="margin:0 0 14px">${avisos.map(esc).join('<br>')}</div>` : '';
 
-  cx.innerHTML = ctrl + aviso + tiles + ritmoGdis(serv, ini, fim) + maiores + ader + lista + quadroConc(serv, achaGuia);
+  cx.innerHTML = ctrl + aviso + tiles + ritmoGdis(serv, ini, fim) + maiores + blocoEq + ader +
+                 lista + quadroConc(serv, achaGuia);
+  pinta('gd-equipes', eq);
   ligaCtrlGdis();
 }
 /* liga os controles que são recriados a cada pintura */
@@ -8063,6 +8204,101 @@ function ligaCtrlGdis() {
     sx.gdTol = isFinite(n) && n >= 0 ? Math.min(60, n) : TOL_CONC;
     render();
   });
+  $$('[data-gdatalho]').forEach(b2 => b2.addEventListener('click', () => {
+    const v = b2.dataset.gdatalho;
+    if (v === 'auto') { sx.gdDe = sx.gdAte = ''; }
+    else {
+      const pg2 = periodoGd(); if (!pg2) return;
+      sx.gdAte = pg2.ate; sx.gdDe = somaDias(pg2.ate, -parseInt(v, 10));
+    }
+    render();
+  }));
+  [['#gd-f-polo', 'gdPolo'], ['#gd-f-equipe', 'gdEquipe'], ['#gd-f-dia', 'gdDia']].forEach(([id, k]) => {
+    const el = $(id);
+    if (el) el.addEventListener('change', e => { sx[k] = e.target.value; render(); });
+  });
+  const lp = $('#gd-limpa');
+  if (lp) lp.addEventListener('click', () => {
+    sx.gdPolo = sx.gdEquipe = sx.gdDia = ''; sx.gdBusca = ''; render();
+  });
+  const xl = $('#gd-xls');
+  if (xl) xl.addEventListener('click', () => {
+    const ROT = {concluida: 'guia concluída e executada', aberta: 'guia aberta',
+                 encerrada: 'guia encerrada no período', sem: 'sem guia'};
+    const linhas = GD_LISTA.map(l => {
+      const k = GD_CLS ? GD_CLS(l) : 'sem';
+      const m = (k === 'concluida' && GD_ACHA) ? GD_ACHA(l) : null;
+      return [String(l[GSERV]), l[GDATA] || '', l[GHORA] || '', GD.veiculos[l[GVEIC]] || '',
+              GD.polos[l[GPOLO]] || '', gerenciaDe(GD.polos[l[GPOLO]]) || '',
+              String(l[GEQ] || ''), l[GALIM] || '', ROT[k] || k,
+              m ? String(m.l[CSOL]) : '', m ? m.gap : '', l[GOBS] || ''];
+    });
+    baixaExcel(nomeExcel('executados_gdis'),
+      ['Serviço', 'Data', 'Hora', 'Equipe', 'Polo', 'Gerência', 'Equipamento', 'Alimentador',
+       'Vínculo com guia', 'Guia concluída', 'Dias entre execução e nota', 'Observação de fechamento'],
+      linhas, 'Executados G-DIS');
+  });
+}
+
+/* ---------- quem produz: ranking de equipes ----------
+   A pergunta é de magnitude entre equipes, então barra horizontal ordenada.
+   A cor é a gerência (identidade), e os números ao lado dão o ritmo por dia
+   útil e por semana sem precisar de um segundo gráfico. */
+function gEquipes(serv, ini, fim, cls) {
+  if (!serv.length) return {svg: '<div class="vazio">Sem serviços no período.</div>', tabela: null};
+  const du = Math.max(1, diasUteis(ini, fim));
+  const sem = Math.max(1, diasEntre(ini, fim) / 7);
+  const m = new Map();
+  serv.forEach(l => {
+    const k = GD.veiculos[l[GVEIC]] || '—';
+    if (!m.has(k)) m.set(k, {t: 0, g: 0, dias: new Set(), polos: new Set(), semanas: new Map()});
+    const o = m.get(k);
+    o.t++;
+    if (cls(l) !== 'sem') o.g++;
+    if (l[GDATA]) { o.dias.add(l[GDATA]); const w = segunda(l[GDATA]);
+      o.semanas.set(w, (o.semanas.get(w) || 0) + 1); }
+    o.polos.add(GD.polos[l[GPOLO]]);
+  });
+  const cats = Array.from(m.entries()).sort((a, b) => b[1].t - a[1].t ||
+    String(a[0]).localeCompare(String(b[0]), 'pt-BR'));
+  const teto = 16, mostra = cats.slice(0, teto);
+  const gerDe = o => { const gs = Array.from(o.polos).map(p => gerenciaDe(p) || '—');
+    return Array.from(new Set(gs)).join(', '); };
+  const W = 1000, ml = 220, mr = 236, mt = 26, rh = 30;
+  const H = mt + mostra.length * rh + 16;
+  const px0 = ml, px1 = W - mr;
+  const max = Math.max(1, mostra[0][1].t);
+  let s = '';
+  mostra.forEach(([k, o], i) => {
+    const yc = mt + i * rh + rh / 2;
+    const g = gerDe(o);
+    s += txt(10, yc + 4, String(i + 1), {cor: COR.t3, tam: 11.5, peso: 700, tab: 1});
+    s += txt(30, yc + 4, corta(String(k), 18), {cor: COR.t1, tam: 12.5, peso: 600});
+    s += txt(px0 - 10, yc + 4, corta(g + ' · ' + Array.from(o.polos).join('/'), 16),
+             {cor: COR.t3, tam: 10.5, anc: 'end'});
+    /* a barra mais longa para antes da coluna de números, senão o rótulo encosta */
+    s += barraSVG(px0, yc - 7.5, Math.max(2, (o.t / max) * (px1 - px0 - 18)), 15, corGer(g.split(',')[0]),
+      `<b>${fmt(o.t)}</b> serviços<br><span class="l">${k} · ${g} · ${fmt(o.g)} oriundos de guia ·
+       ${fmt(o.dias.size)} dia(s) com lançamento</span>`);
+    s += txt(px1 + 14, yc + 4, fmt(o.t), {cor: COR.t1, tam: 14, peso: 650, anc: 'end', tab: 1});
+    s += txt(px1 + 84, yc + 4, pct1(o.t / du), {cor: COR.t2, tam: 12, anc: 'end', tab: 1});
+    s += txt(px1 + 154, yc + 4, pct1(o.t / sem), {cor: COR.t2, tam: 12, anc: 'end', tab: 1});
+    s += txt(px1 + 218, yc + 4, fmt(o.dias.size), {cor: COR.t3, tam: 11.5, anc: 'end', tab: 1});
+  });
+  s += txt(px1 + 14, mt - 12, 'total', {cor: COR.t3, tam: 10.5, anc: 'end'});
+  s += txt(px1 + 84, mt - 12, 'por dia útil', {cor: COR.t3, tam: 10.5, anc: 'end'});
+  s += txt(px1 + 154, mt - 12, 'por semana', {cor: COR.t3, tam: 10.5, anc: 'end'});
+  s += txt(px1 + 218, mt - 12, 'dias ativos', {cor: COR.t3, tam: 10.5, anc: 'end'});
+  const gersNaTela = Array.from(new Set(mostra.map(([, o]) => gerDe(o).split(',')[0])));
+  return {svg: svgRoot(W, H, s),
+          pe: legenda(gersNaTela.map(g => ({cor: corGer(g), rot: g}))) +
+              (cats.length > teto ? `<div class="nota">${fmt(cats.length)} equipes no período; o gráfico
+                mostra as ${teto} maiores e a tabela traz todas.</div>` : ''),
+          tabela: {cab: ['#', 'Equipe', 'Gerência', 'Polo(s)', 'Serviços', 'Oriundos de guia',
+                         'Por dia útil', 'Por semana', 'Dias ativos'],
+                   linhas: cats.map(([k, o], i) => [String(i + 1), esc(String(k)), esc(gerDe(o)),
+                     esc(Array.from(o.polos).join(', ')), fmt(o.t), fmt(o.g),
+                     pct1(o.t / du), pct1(o.t / sem), fmt(o.dias.size)])}};
 }
 
 /* ---------- serviços por dia útil: dia, semana, equipe ou polo ---------- */
@@ -8183,17 +8419,34 @@ function quadroConc(serv, achaGuia) {
       semExec ? ` · ${fmt(semExec)} sem data na coluna Execução, que não entram no casamento` : ''}${
       ORIGEM_CONC ? ' · ' + esc(ORIGEM_CONC) : ''}.</div>`;
 }
+let GD_LISTA = [], GD_CLS = null, GD_ACHA = null;
 function listaGdis(serv, cls, semProgramada, indisp, acha) {
   const rot = {concluida: '<span class="chip c-bom">guia concluída e executada</span>',
                aberta: '<span class="chip c-zero">guia segue aberta</span>',
                encerrada: '<span class="chip c-zero">guia encerrada no período</span>',
                sem: '<span class="chip c-ruim">sem guia</span>'};
   const busca = (sx.gdBusca || '').trim().toLowerCase();
-  const filtrados = serv.filter(l => !busca ||
+  /* cada seletor oferece o que existe considerando os outros dois */
+  const passa = (l, exceto) =>
+    (exceto === 'polo'   || !sx.gdPolo   || GD.polos[l[GPOLO]] === sx.gdPolo) &&
+    (exceto === 'equipe' || !sx.gdEquipe || GD.veiculos[l[GVEIC]] === sx.gdEquipe) &&
+    (exceto === 'dia'    || !sx.gdDia    || l[GDATA] === sx.gdDia);
+  const opcoesDe = campo => {
+    const chave = {polo: l => GD.polos[l[GPOLO]], equipe: l => GD.veiculos[l[GVEIC]], dia: l => l[GDATA]};
+    const c = new Map();
+    serv.filter(l => passa(l, campo)).forEach(l => {
+      const v = chave[campo](l); if (v) c.set(v, (c.get(v) || 0) + 1);
+    });
+    return Array.from(c.entries()).sort((a, b) => campo === 'dia'
+      ? (a[0] < b[0] ? 1 : -1) : String(a[0]).localeCompare(String(b[0]), 'pt-BR'));
+  };
+  const filtrados = serv.filter(l => passa(l, null) && (!busca ||
     String(l[GSERV]).toLowerCase().indexOf(busca) >= 0 ||
     String(l[GEQ]).toLowerCase().indexOf(busca) >= 0 ||
     String(l[GOBS] || '').toLowerCase().indexOf(busca) >= 0 ||
-    String(GD.veiculos[l[GVEIC]]).toLowerCase().indexOf(busca) >= 0);
+    String(GD.veiculos[l[GVEIC]]).toLowerCase().indexOf(busca) >= 0));
+  GD_LISTA = filtrados;                /* o que a exportação leva */
+  GD_CLS = cls; GD_ACHA = acha;
   const temObs = serv.some(l => l[GOBS]);
   const linhas = filtrados.slice().sort((a, b) =>
       String(b[GDATA]).localeCompare(String(a[GDATA])) || String(a[GHORA]).localeCompare(String(b[GHORA])))
@@ -8219,10 +8472,23 @@ function listaGdis(serv, cls, semProgramada, indisp, acha) {
                title="ler a observação de fechamento">🔍</button><span class="obs-txt">${esc(obs)}</span>`
           : '—'}</td>` : '') + `</tr>`;
     }).join('');
+  const sel = (id, rot, campo, atual, fmtRot) => {
+    const o = opcoesDe(campo);
+    return `<div class="campo"><label for="${id}">${rot}</label><select id="${id}">
+      <option value="">todos</option>
+      ${o.map(([v, n]) => `<option value="${esc(v)}"${v === atual ? ' selected' : ''}>` +
+        `${esc(fmtRot ? fmtRot(v) : v)} (${fmt(n)})</option>`).join('')}
+    </select></div>`;
+  };
   return `<h4 class="sub-tit">Serviços executados</h4>
     <div class="filtros-lista" style="padding-top:0">
-      <div class="campo"><label for="gd-busca">Serviço, equipamento, equipe ou observação</label>
+      ${sel('gd-f-polo', 'Polo', 'polo', sx.gdPolo || '')}
+      ${sel('gd-f-equipe', 'Equipe', 'equipe', sx.gdEquipe || '')}
+      ${sel('gd-f-dia', 'Dia', 'dia', sx.gdDia || '', dlonga)}
+      <div class="campo"><label for="gd-busca">Serviço, equipamento ou observação</label>
         <input id="gd-busca" type="search" placeholder="buscar" autocomplete="off" value="${esc(sx.gdBusca || '')}"></div>
+      <button class="btn" id="gd-limpa" type="button">Limpar</button>
+      <button class="btn forte" id="gd-xls" type="button">Exportar Excel</button>
       <span class="conta">${fmt(filtrados.length)} de ${fmt(serv.length)} serviços</span>
     </div>
     <div class="tab-wrap alta"><table class="dt"><thead><tr>
