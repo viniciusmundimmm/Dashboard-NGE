@@ -384,6 +384,14 @@ cima do que veio na planilha, fica preso à **chave da linha**, sobrevive às pr
 **Apagar base PSVT**, e a célula editada ganha uma marca verde à esquerda. Apagar o conteúdo devolve
 o valor original da planilha.
 
+## Exportar para Excel
+
+Três listas saem em `.xlsx`: **Serviços executados** (Execução), **Detalhe** (Medidas) e as três abas
+de **Cobrança × carteira**. Sai o que está filtrado na tela, não a base inteira, com o cabeçalho em
+negrito congelado e filtro automático já ligado. O nome do arquivo carrega o escopo e a data
+(`executados_gdis_TR-PM_2026-10-07.xlsx`). O arquivo é montado no próprio navegador — sem biblioteca,
+sem servidor, funciona offline como o resto.
+
 ## Regras de negócio embutidas
 
 | Estrutura | Definição |
@@ -398,6 +406,7 @@ o valor original da planilha.
 | `Localiz.` do SAP | REG-PM→PM, REG-PT→PO, REG-BD→BD, REG-UR→UR, REG-AX→AX, REG-FR→FR, REG-UL→UL, REG-AG→AG, REG-IT→TB |
 | Família do `StatUsuár.` | o prefixo: `ABER…` ou `ANDM…` |
 | Chave de uma medida | processo + NS + código (`CóMd`) |
+| Chave da cobrança | NS + medida, ambos normalizados: a medida com quatro dígitos (`732` vira `0732`) |
 | `Conjunto` do cadastro | o polo sem o T da frente: TFR→FR, TPM→PM, TTB→TB |
 | Vida útil da bateria | 24 meses a partir de `Data baterias` |
 | Bateria sem data | conta como vencida, por falta de atualização do cadastro |

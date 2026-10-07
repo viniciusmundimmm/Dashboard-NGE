@@ -1073,9 +1073,14 @@
       <div class="campo"><label for="m-data">Data da coleta</label><input type="date" id="m-data"
           title="usada apenas quando o arquivo não traz coluna de data"></div>
       <div class="carga">
-        <span class="carga-rot">Medidas SAP</span>
+        <span class="carga-rot">1 · Carteira</span>
         <label class="btn forte" for="marq">Gestão Campo e Gestão Equipamento</label>
         <input type="file" id="marq" accept=".xls,.xlsx,.htm,.html,.csv,.txt" multiple hidden>
+      </div>
+      <div class="carga">
+        <span class="carga-rot">2 · O que é cobrado</span>
+        <label class="btn forte" for="mcarq">Medidas cobradas</label>
+        <input type="file" id="mcarq" accept=".xls,.xlsx,.htm,.html,.csv,.txt" multiple hidden>
       </div>
       <button class="btn" id="bt-mexemplo" type="button">Carregar exemplo</button>
       <button class="btn" id="bt-mapaga" type="button">Apagar base de medidas</button>
@@ -1177,6 +1182,40 @@
             <div class="tools"><button class="tbtn" data-tab="md-resp" aria-pressed="false">Tabela</button></div></div>
           <div id="md-resp"></div>
         </div>
+      </div>
+    </section>
+
+    <section class="secao" id="sec-cobranca" hidden>
+      <h2>Cobrança × carteira</h2>
+      <div class="kpis" id="cob-kpis"></div>
+      <div class="grade g-2">
+        <div class="card">
+          <div class="card-hd"><h3 id="cob-tit">Cobrado e atendido por polo</h3>
+            <span class="sub" id="cob-sub"></span>
+            <div class="tools"><button class="tbtn" data-tab="cob-polo" aria-pressed="false">Tabela</button></div></div>
+          <div id="cob-polo"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><h3>Por medida</h3><span class="sub">cobrado × encontrado na carteira</span>
+            <div class="tools"><button class="tbtn" data-tab="cob-cod" aria-pressed="false">Tabela</button></div></div>
+          <div id="cob-cod"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><h3 id="cob-det-tit">Lista</h3><span class="sub" id="cob-det-sub"></span>
+          <div class="abas" role="tablist">
+            <button class="aba" role="tab" data-cobdet="fora" aria-selected="true">Cobradas sem tratativa</button>
+            <button class="aba" role="tab" data-cobdet="dentro" aria-selected="false">Cobradas na carteira</button>
+            <button class="aba" role="tab" data-cobdet="extra" aria-selected="false">Carteira sem cobrança</button>
+          </div>
+        </div>
+        <div class="filtros-lista">
+          <div class="campo"><label for="cob-busca">NS ou medida</label>
+            <input id="cob-busca" type="search" placeholder="número" autocomplete="off"></div>
+          <button class="btn forte" id="cob-xls" type="button">Exportar Excel</button>
+          <span class="conta" id="cob-conta"></span>
+        </div>
+        <div id="cob-det"></div>
       </div>
     </section>
 
@@ -8988,7 +9027,8 @@ let MROT = {cod: {}, su: {}};              /* rótulos que o usuário escreve */
 
 const mx = {
   b: 0, a: -1, proc: '', su: '', resp: '', modo: 'tr', det: 'todos',
-  dBusca: '', dOrd: {col: 'ns', dir: 1}, codFoco: '', poloModo: 'auto'
+  dBusca: '', dOrd: {col: 'ns', dir: 1}, codFoco: '', poloModo: 'auto',
+  cobDet: 'fora', cobBusca: ''
 };
 
 /* a família do status do usuário é o prefixo: ABER… ou ANDM… */
@@ -9028,6 +9068,141 @@ function recuperaMed() {
     if (s) { const o = JSON.parse(s); if (o) MROT = {cod: o.cod || {}, su: o.su || {}}; }
   } catch (e) {}
   indexaMed();
+}
+
+/* ============================================================
+   MEDIDAS COBRADAS
+   A planilha de cobrança diz o que o corporativo está cobrando. Cruzada com
+   a carteira (Gestão Campo + Gestão Equipamento) pela chave nota + medida,
+   responde se estamos tratando o que de fato está sendo cobrado.
+   ============================================================ */
+const OPOLO = 0, OGER = 1, ONS = 2, OCOD = 3, OTXT = 4, OANO = 5, OMES = 6, OQTD = 7, OCRIA = 8;
+let COB = {polos: [], cods: [], txts: [], crias: [], linhas: []};
+let ORIGEM_COB = '';
+const CHAVE_COB = 'nge-cob-v1';
+/* o código vem sem o zero da frente em alguns casos: 732 é 0732 */
+const padCod = c => { const d = String(c == null ? '' : c).trim().replace(/\D/g, '');
+  return d ? d.padStart(4, '0') : ''; };
+const normNs = n => { const d = String(n == null ? '' : n).trim().replace(/\D/g, '');
+  return d.replace(/^0+/, '') || d; };
+const chaveCob = (ns, cod) => normNs(ns) + '|' + padCod(cod);
+
+function guardaCob() {
+  try { localStorage.setItem(CHAVE_COB, JSON.stringify({base: COB, origem: ORIGEM_COB})); return true; }
+  catch (e) { return false; }
+}
+function recuperaCob() {
+  try {
+    const s = localStorage.getItem(CHAVE_COB);
+    if (s) { const o = JSON.parse(s);
+      if (o && o.base && Array.isArray(o.base.linhas)) { COB = o.base; ORIGEM_COB = o.origem || ''; } }
+  } catch (e) {}
+}
+const ALVO_COB = {
+  sup:  ['superintendencia'],
+  ger:  ['gerencia'],
+  polo: ['polo'],
+  ns:   ['numero da nota', 'numero da nota ', 'nota', 'ns', 'numero nota'],
+  cod:  ['medida', 'codigo da medida', 'cod medida', 'comd'],
+  txt:  ['texto medida', 'texto da medida', 'texto'],
+  ano:  ['inicio - ano', 'inicio ano', 'ano'],
+  mes:  ['inicio - mes', 'inicio mes', 'mes'],
+  qtd:  ['qtde medidas pendentes', 'qtde medidas', 'qtde', 'quantidade'],
+  cria: ['criado por', 'criador']
+};
+const POS_COB = {sup: 0, ger: 1, polo: 2, ns: 3, cod: 4, txt: 5, ano: 6, mes: 7, qtd: 8, cria: 9};
+function mapeiaCob(linha) {
+  const norm = linha.map(c => chaveTexto(c).replace(/[^a-z0-9]+/g, ' ').trim());
+  const idx = {};
+  Object.keys(ALVO_COB).forEach(k => {
+    idx[k] = norm.findIndex(c => ALVO_COB[k].some(a => c === chaveTexto(a).replace(/[^a-z0-9]+/g, ' ').trim()));
+  });
+  /* o que o nome não achou vem pela posição combinada (A a J) */
+  let porPosicao = 0;
+  Object.keys(POS_COB).forEach(k => {
+    if (idx[k] < 0 && linha.length > POS_COB[k]) { idx[k] = POS_COB[k]; porPosicao++; }
+  });
+  return {idx, porPosicao};
+}
+const ehCabecalhoCob = linha => {
+  const n = linha.map(c => chaveTexto(c).replace(/[^a-z0-9]+/g, ''));
+  return n.some(c => c.indexOf('medida') >= 0) &&
+         n.some(c => c.indexOf('nota') >= 0 || c === 'ns') &&
+         n.some(c => c.indexOf('polo') >= 0 || c.indexOf('gerencia') >= 0);
+};
+function montaCob(matrizes) {
+  const regs = [], onde = new Map();
+  let ruins = 0, dup = 0, lidas = 0, linhasLidas = 0, primeira = null, porPosicao = 0;
+  let cab = null, idx = null;
+  matrizes.forEach(m => {
+    let i2 = null;
+    m.forEach(linha => {
+      linhasLidas++;
+      if (!primeira && linha.join('').trim()) primeira = linha;
+      if (!i2) {
+        if (ehCabecalhoCob(linha)) { const r = mapeiaCob(linha); i2 = r.idx; idx = r.idx;
+          porPosicao = r.porPosicao; cab = linha.slice(); }
+        return;
+      }
+      const v = k => (i2[k] >= 0 && linha[i2[k]] != null) ? String(linha[i2[k]]).trim() : '';
+      const ns = v('ns'), cod = v('cod');
+      if (!normNs(ns) || !padCod(cod)) { if (linha.join('').trim()) ruins++; return; }
+      lidas++;
+      const q = parseInt(String(v('qtd')).replace(/\D/g, ''), 10);
+      const polo = CONJ_POLO[chaveTexto(v('polo'))] || v('polo') || '—';
+      const r = {polo, ger: v('ger') || gerenciaDe(polo) || '—', ns: normNs(ns), cod: padCod(cod),
+                 txt: v('txt'), ano: v('ano'), mes: v('mes'), qtd: isFinite(q) ? q : 1, cria: v('cria') || '—'};
+      const ch = chaveCob(r.ns, r.cod);
+      if (onde.has(ch)) { regs[onde.get(ch)] = r; dup++; return; }
+      onde.set(ch, regs.length); regs.push(r);
+    });
+  });
+  if (!regs.length) {
+    const viu = primeira ? primeira.slice(0, 12).map(c => String(c).trim()).filter(Boolean).join(' · ') : '(vazio)';
+    return {erro: `Nenhuma medida cobrada reconhecida em ${fmt(linhasLidas)} linha(s). O painel procura um ` +
+                  `cabeçalho com <b>Nota</b>, <b>Medida</b> e <b>Polo</b> ou <b>Gerência</b>. A primeira ` +
+                  `linha com conteúdo era: <i>${esc(viu)}</i>`};
+  }
+  const alfa = (a, b) => String(a).localeCompare(String(b), 'pt-BR');
+  const ordemPolo = [].concat.apply([], Object.keys(MAPA_GERENCIA).map(g => MAPA_GERENCIA[g]));
+  const uni = (fn, ord) => { const x = Array.from(new Set(regs.map(fn))); return ord ? x.sort(ord) : x; };
+  const polos = uni(x => x.polo, (a, b) => {
+    const ia = ordemPolo.indexOf(a), ib = ordemPolo.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || alfa(a, b);
+  });
+  const cods = uni(x => x.cod, alfa), txts = uni(x => x.txt, alfa), crias = uni(x => x.cria, alfa);
+  const pos = l => { const o = {}; l.forEach((v, i) => o[v] = i); return o; };
+  const iP = pos(polos), iC = pos(cods), iT = pos(txts), iCr = pos(crias);
+  const linhas = regs.map(x => [iP[x.polo], x.ger, x.ns, iC[x.cod], iT[x.txt],
+                                x.ano, x.mes, x.qtd, iCr[x.cria]]);
+  const letra = i => { let r = '', k = i + 1;
+    while (k > 0) { const t = (k - 1) % 26; r = String.fromCharCode(65 + t) + r; k = Math.floor((k - 1) / 26); }
+    return r; };
+  const nomeCol = i => i < 0 ? '—' : letra(i) + (cab && cab[i] ? ' · ' + String(cab[i]).trim() : '');
+  const mapa = idx ? {polo: nomeCol(idx.polo), nota: nomeCol(idx.ns), medida: nomeCol(idx.cod),
+    texto: nomeCol(idx.txt), pendentes: nomeCol(idx.qtd), criador: nomeCol(idx.cria)} : null;
+  return {base: {polos, cods, txts, crias, linhas}, lidas, dup, ruins, porPosicao, mapa,
+          zeroPosto: regs.filter(r => r.cod !== String(parseInt(r.cod, 10))).length};
+}
+/* o cruzamento: a chave nota + medida de cada lado */
+function cruzaCob(mB) {
+  const carteira = new Map();
+  mB.forEach(l => {
+    const ch = chaveCob(l[MNS], MED.codigos[l[MCOD]]);
+    if (!carteira.has(ch)) carteira.set(ch, []);
+    carteira.get(ch).push(l);
+  });
+  const cobradas = new Map();
+  COB.linhas.forEach(l => {
+    const polo = COB.polos[l[OPOLO]];
+    if (st.ger && gerenciaDe(polo) !== st.ger) return;
+    if (st.polo && polo !== st.polo) return;
+    cobradas.set(chaveCob(l[ONS], COB.cods[l[OCOD]]), l);
+  });
+  const dentro = [], fora = [], extra = [];
+  cobradas.forEach((l, ch) => (carteira.has(ch) ? dentro : fora).push(l));
+  carteira.forEach((ls, ch) => { if (!cobradas.has(ch)) extra.push(ls[0]); });
+  return {carteira, cobradas, dentro, fora, extra};
 }
 
 /* ---------- leitura das exportações de medidas ---------- */
@@ -9665,6 +9840,117 @@ function pintaMdDetalhe(mA, mB, entraram, sairam) {
     (linhas.length > 900 ? `<div class="nota">Mostrando as 900 primeiras de ${fmt(linhas.length)}. Use os filtros para chegar no recorte.</div>` : '');
 }
 
+/* ---------- cobrança × carteira ---------- */
+const COR_COB = {dentro: '#17996a', fora: '#c9471f', extra: '#2a78d6'};
+let COB_LISTA = [];
+function pintaCob(mB) {
+  const sec = $('#sec-cobranca');
+  sec.hidden = !COB.linhas.length;
+  if (!COB.linhas.length) return;
+  const c = cruzaCob(mB);
+  const nCob = c.cobradas.size, nDentro = c.dentro.length, nFora = c.fora.length;
+  const pend = l => l[OQTD] || 1;
+  const pendFora = c.fora.reduce((a, l) => a + pend(l), 0);
+  const pendTot = Array.from(c.cobradas.values()).reduce((a, l) => a + pend(l), 0);
+  $('#cob-kpis').innerHTML = [
+    {rot: 'Medidas cobradas', val: fmt(nCob), hero: true, pe: `${fmt(pendTot)} pendente(s) somadas`},
+    {rot: 'Na carteira', val: fmt(nDentro), cor: COR_COB.dentro,
+     pe: `${pct1(pct(nDentro, nCob || 1))}% do que é cobrado está sendo tratado`},
+    {rot: 'Cobradas sem tratativa', val: fmt(nFora), cor: COR_COB.fora,
+     pe: `${pct1(pct(nFora, nCob || 1))}% · ${fmt(pendFora)} pendente(s)`},
+    {rot: 'Carteira sem cobrança', val: fmt(c.extra.length), cor: COR_COB.extra,
+     pe: `${pct1(pct(c.extra.length, c.carteira.size || 1))}% da carteira na tela`}
+  ].map(t => `<div class="tile${t.hero ? ' hero' : ''}"><span class="rot">${esc(t.rot)}</span>
+      <span class="val"${t.cor ? ` style="color:${t.cor}"` : ''}>${t.val}</span>
+      <span class="pe">${t.pe}</span></div>`).join('');
+  $('#cob-sub').textContent = `foto de ${dlonga(MED.semanas[mx.b])}`;
+  pinta('cob-polo', gCobPor(c, l => COB.polos[l[OPOLO]], 'Polo'));
+  pinta('cob-cod', gCobPor(c, l => COB.cods[l[OCOD]], 'Medida'));
+  pintaCobDet(c);
+}
+/* barra dividida: a parte cheia é o que a carteira cobre, a clara é o que falta */
+function gCobPor(c, chave, rot) {
+  const m = new Map();
+  const add = (l, campo) => { const k = chave(l) || '—';
+    if (!m.has(k)) m.set(k, {d: 0, f: 0, p: 0});
+    m.get(k)[campo]++; if (campo === 'f') m.get(k).p += (l[OQTD] || 1); };
+  c.dentro.forEach(l => add(l, 'd'));
+  c.fora.forEach(l => add(l, 'f'));
+  const cats = Array.from(m.entries()).sort((a, b) => (b[1].d + b[1].f) - (a[1].d + a[1].f));
+  if (!cats.length) return {svg: '<div class="vazio">Sem medidas cobradas no filtro atual.</div>', tabela: null};
+  const teto = 12, mostra = cats.slice(0, teto);
+  const W = 640, ml = 128, mr = 118, mt = 26, rh = 30;
+  const H = mt + mostra.length * rh + 16;
+  const px0 = ml, px1 = W - mr;
+  const max = Math.max(1, ...mostra.map(([, o]) => o.d + o.f));
+  let s = '';
+  mostra.forEach(([k, o], i) => {
+    const yc = mt + i * rh + rh / 2, tot = o.d + o.f;
+    const larg = (tot / max) * (px1 - px0);
+    s += txt(10, yc + 4, corta(rot === 'Medida' ? codLongo(k) : String(k), 15),
+             {cor: COR.t1, tam: 12, peso: 600});
+    const wd = tot ? (o.d / tot) * larg : 0;
+    if (o.d) s += barraSVG(px0, yc - 8, Math.max(1.5, wd), 16, COR_COB.dentro,
+      `<b>${fmt(o.d)}</b> na carteira<br><span class="l">${k} · ${pct1(pct(o.d, tot))}% do cobrado</span>`);
+    if (o.f) s += barraSVG(px0 + wd + 2, yc - 8, Math.max(1.5, larg - wd - 2), 16, COR_COB.fora,
+      `<b>${fmt(o.f)}</b> sem tratativa<br><span class="l">${k} · ${fmt(o.p)} pendente(s)</span>`);
+    s += txt(W - 58, yc + 4, fmt(tot), {cor: COR.t1, tam: 14, peso: 650, anc: 'end', tab: 1});
+    s += txt(W - 8, yc + 4, pct1(pct(o.d, tot || 1)) + '%',
+             {cor: o.d === tot ? COR.t3 : COR_COB.fora, tam: 11, anc: 'end', peso: 650, tab: 1});
+  });
+  s += txt(W - 58, mt - 12, 'cobradas', {cor: COR.t3, tam: 10.5, anc: 'end'});
+  s += txt(W - 8, mt - 12, 'atendido', {cor: COR.t3, tam: 10.5, anc: 'end'});
+  return {svg: svgRoot(W, H, s),
+          pe: legenda([{cor: COR_COB.dentro, rot: 'na carteira'}, {cor: COR_COB.fora, rot: 'sem tratativa'}]) +
+              (cats.length > teto ? `<div class="nota">Mostrando ${teto} de ${fmt(cats.length)}; a tabela traz todos.</div>` : ''),
+          tabela: {cab: [rot, 'Cobradas', 'Na carteira', 'Sem tratativa', '% atendido', 'Pendentes sem tratativa'],
+                   linhas: cats.map(([k, o]) => [esc(String(k)), fmt(o.d + o.f), fmt(o.d), fmt(o.f),
+                     pct1(pct(o.d, (o.d + o.f) || 1)) + '%', fmt(o.p)])}};
+}
+function pintaCobDet(c) {
+  const modo = mx.cobDet || 'fora';
+  const tit = {fora: 'Cobradas sem tratativa na carteira', dentro: 'Cobradas que estão na carteira',
+               extra: 'Carteira sem cobrança correspondente'};
+  $('#cob-det-tit').textContent = tit[modo];
+  $$('[data-cobdet]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.cobdet === modo)));
+  const busca = (mx.cobBusca || '').trim().toLowerCase();
+  let linhas;
+  if (modo === 'extra') {
+    linhas = c.extra.map(l => ({ns: String(l[MNS]), cod: MED.codigos[l[MCOD]],
+      txt: (MROT.cod[MED.codigos[l[MCOD]]] || '').trim(), polo: MED.polos[l[MPOLO]],
+      ger: gerenciaDe(MED.polos[l[MPOLO]]) || '—', extra1: rotSu(MED.su[l[MSU]]),
+      extra2: MED.resps[l[MRESP]], qtd: ''}));
+  } else {
+    const fonte = modo === 'fora' ? c.fora : c.dentro;
+    linhas = fonte.map(l => {
+      const ch = chaveCob(l[ONS], COB.cods[l[OCOD]]);
+      const naCart = c.carteira.get(ch);
+      return {ns: String(l[ONS]), cod: COB.cods[l[OCOD]], txt: COB.txts[l[OTXT]] || '',
+              polo: COB.polos[l[OPOLO]], ger: l[OGER] || '—',
+              extra1: naCart ? rotSu(MED.su[naCart[0][MSU]]) : '—',
+              extra2: COB.crias[l[OCRIA]] || '—', qtd: l[OQTD] || 1,
+              quando: [l[OMES], l[OANO]].filter(Boolean).join('/')};
+    });
+  }
+  if (busca) linhas = linhas.filter(x =>
+    x.ns.toLowerCase().indexOf(busca) >= 0 || String(x.cod).toLowerCase().indexOf(busca) >= 0 ||
+    String(x.txt).toLowerCase().indexOf(busca) >= 0);
+  linhas.sort((a, b) => (b.qtd || 0) - (a.qtd || 0) || String(a.ns).localeCompare(String(b.ns)));
+  COB_LISTA = {modo, linhas};
+  $('#cob-conta').innerHTML = `<b>${fmt(linhas.length)}</b> registro(s)`;
+  if (!linhas.length) { $('#cob-det').innerHTML = '<div class="vazio">Nada nesta aba.</div>'; return; }
+  const cabs = modo === 'extra'
+    ? ['NS', 'Medida', 'Nome', 'Polo', 'Gerência', 'Status do usuário', 'Responsável']
+    : ['NS', 'Medida', 'Texto da medida', 'Polo', 'Gerência', 'Status na carteira', 'Criado por', 'Pendentes', 'Início'];
+  const corpo = linhas.slice(0, 900).map(x => `<tr>
+    <td>${esc(x.ns)}</td><td><code>${esc(x.cod)}</code></td><td>${esc(x.txt || '—')}</td>
+    <td>${esc(x.polo)}</td><td>${esc(x.ger)}</td><td>${esc(x.extra1)}</td><td>${esc(x.extra2)}</td>
+    ${modo === 'extra' ? '' : `<td>${fmt(x.qtd)}</td><td>${esc(x.quando || '—')}</td>`}</tr>`).join('');
+  $('#cob-det').innerHTML = `<div class="tab-wrap alta"><table class="dt"><thead><tr>` +
+    cabs.map(h => `<th>${esc(h)}</th>`).join('') + `</tr></thead><tbody>${corpo}</tbody></table></div>` +
+    (linhas.length > 900 ? `<div class="nota">Mostrando as 900 primeiras de ${fmt(linhas.length)}.</div>` : '');
+}
+
 /* ---------- render do ambiente ---------- */
 function renderMed() {
   const vazio = !MED.semanas.length;
@@ -9727,6 +10013,7 @@ function renderMed() {
     : gMdBarras(mB, mA, l => gerenciaDe(MED.polos[l[MPOLO]]), g => corGer(g), gersM));
   pinta('md-resp', gMdBarras(mB, mA, l => MED.resps[l[MRESP]],
     r => COR_PIZZA[MED.resps.indexOf(r) % COR_PIZZA.length]));
+  pintaCob(mB);
   pintaMdDetalhe(mA, mB, entraram, sairam);
   pintaAnotacoes();
 
@@ -9914,6 +10201,67 @@ function baseExemploMed() {
           linhas: regs.map(x => [iS[x.sem], iPr[x.proc], iC[x.cod], x.ns, iSt[x.stat], iSu[x.su],
                                  iR[x.resp], iP[x.polo], x.ini])};
 }
+$('#mcarq').addEventListener('change', async ev => {
+  const arqs = Array.from(ev.target.files || []);
+  ev.target.value = '';
+  if (!arqs.length) return;
+  avisoMed('Lendo as medidas cobradas…', false);
+  try {
+    const mats = [], cascas = [];
+    for (const a of arqs) {
+      const fmtA = await formatoReal(a);
+      if (fmtA === 'xls-binario') { avisoMed(AVISO_BIN(a.name), true); return; }
+      const cw = fmtA === 'texto' ? await cascaWeb(a) : null;
+      if (cw) { cascas.push([a.name, cw]); continue; }
+      if (fmtA === 'zip' || /\.(xlsx|xlsm)$/i.test(a.name)) {
+        const buf = await a.arrayBuffer(), zip = abreZip(buf);
+        const sst = await extraiZip(zip, 'xl/sharedStrings.xml');
+        const textos = sst ? porNome(xmlDoc(sst), 'si').map(si => textoDe(si, 't')) : [];
+        const abas = Array.from(zip.itens.keys()).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n)).sort();
+        for (const ab of abas) { const x = await extraiZip(zip, ab); if (x) mats.push(matrizDaAba(x, textos)); }
+      } else {
+        mats.push(await leArquivoExec(a, codifDe(fmtA)));
+      }
+    }
+    if (!mats.length && cascas.length) { avisoMed(AVISO_CASCA(cascas[0][0], cascas[0][1]), true); return; }
+    const r = montaCob(mats.filter(Boolean));
+    if (r.erro) {
+      avisoMed(`<b>Não foi possível carregar as cobradas.</b><br>${r.erro}` +
+               (cascas.length ? '<br>' + AVISO_CASCA(cascas[0][0], cascas[0][1]) : ''), true);
+      return;
+    }
+    COB = r.base; ORIGEM_COB = 'de ' + arqs.map(a => a.name).join(', ');
+    const coube = guardaCob();
+    render();
+    const obs = [];
+    if (r.mapa) obs.push('colunas lidas: ' + Object.keys(r.mapa).map(k => `${k} = ${r.mapa[k]}`).join(' · '));
+    if (r.porPosicao) obs.push(`${fmt(r.porPosicao)} coluna(s) achadas pela posição, porque o cabeçalho não traz o nome`);
+    if (r.dup) obs.push(`${fmt(r.dup)} par(es) nota + medida repetidos: valeu o último`);
+    if (r.ruins) obs.push(`${fmt(r.ruins)} linha(s) ignoradas por não ter nota ou medida`);
+    if (r.zeroPosto) obs.push(`${fmt(r.zeroPosto)} código(s) ganharam o zero da frente (732 virou 0732)`);
+    if (!coube) obs.push('não coube no navegador: esta base vale só nesta sessão');
+    avisoMed(`<b>${fmt(r.lidas)} medidas cobradas lidas</b> · ${fmt(COB.linhas.length)} pares nota + medida ` +
+             `na base · ${fmt(COB.cods.length)} código(s) · ${fmt(COB.polos.length)} polo(s).` +
+             `<ul>${obs.map(o => `<li>${esc(o)}</li>`).join('')}</ul>`, false);
+  } catch (e) {
+    avisoMed(`<b>Erro na leitura das cobradas.</b><br>${esc(String(e && e.message || e))}`, true);
+  }
+});
+$$('[data-cobdet]').forEach(b => b.addEventListener('click', () => {
+  mx.cobDet = b.dataset.cobdet; render();
+}));
+$('#cob-busca').addEventListener('input', e => { mx.cobBusca = e.target.value; render(); });
+$('#cob-xls').addEventListener('click', () => {
+  const {modo, linhas} = COB_LISTA;
+  const cab = modo === 'extra'
+    ? ['NS', 'Medida', 'Nome', 'Polo', 'Gerência', 'Status do usuário', 'Responsável']
+    : ['NS', 'Medida', 'Texto da medida', 'Polo', 'Gerência', 'Status na carteira', 'Criado por',
+       'Pendentes', 'Início'];
+  baixaExcel(nomeExcel('cobranca_' + modo), cab, linhas.map(x => {
+    const base = [Number(x.ns) || x.ns, x.cod, x.txt || '', x.polo, x.ger, x.extra1, x.extra2];
+    return modo === 'extra' ? base : base.concat([x.qtd || 0, x.quando || '']);
+  }), 'Cobrança');
+});
 $('#marq').addEventListener('change', async ev => {
   const arqs = Array.from(ev.target.files || []);
   ev.target.value = '';
@@ -11869,6 +12217,7 @@ recuperaEx();
 recuperaGd();
 recuperaConc();
 recuperaMed();
+recuperaCob();
 recuperaBat();
 recuperaPsv();
 const guardada = baseGuardada();
