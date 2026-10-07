@@ -148,6 +148,7 @@
   .obs-txt{display:inline-block;max-width:300px;overflow:hidden;text-overflow:ellipsis;
     white-space:nowrap;vertical-align:middle;color:var(--tinta-2);font-size:12px}
   .gd-periodo{margin:0 0 12px}
+  .gd-periodo input[type=date]{min-width:148px}
   .psv-in{border:1px solid var(--linha);border-radius:6px;padding:3px 7px;font:inherit;font-size:12.5px;
     background:var(--papel);color:var(--tinta);width:100%;min-width:120px}
   .psv-in:focus{outline:2px solid var(--verde-forte);outline-offset:-1px}
@@ -162,6 +163,8 @@
   .rot-in{width:100%;min-width:180px;border:1px solid var(--linha);border-radius:6px;
     padding:3px 7px;font:inherit;font-size:12.5px;background:var(--papel);color:var(--tinta)}
   .rot-in:focus{outline:2px solid var(--verde-forte);outline-offset:-1px}
+  .exec-lb{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;cursor:pointer}
+  .exec-lb input{width:15px;height:15px;accent-color:var(--verde-forte);cursor:pointer}
   table.dt code{font-size:12px;background:rgba(0,0,0,.05);padding:1px 5px;border-radius:4px}
   .mini-tit{margin:10px 0 2px;font-size:11.5px;font-weight:700;letter-spacing:.06em;
     text-transform:uppercase;color:var(--tinta-3)}
@@ -819,6 +822,11 @@
       uma vez. Sem essa coluna, vale a data carimbada abaixo. A carga repõe apenas os pares
       <b>data + polo</b> que vierem no arquivo, então tanto faz mandar um arquivo por polo ou um só
       com todos: um não apaga o outro.
+      <b>Concluídas:</b> mesma estrutura das guias, mais a coluna <b>M · Execução</b>, que diz se a
+      guia foi mesmo executada em campo. É ela que fecha o buraco da foto semanal: uma guia aberta na
+      terça e concluída na quarta não aparece em nenhuma foto, e sem este arquivo o serviço feito no
+      campo ficava contado como “sem guia”. Logo abaixo da seção <b>Executado na semana</b> você marca
+      quais valores da coluna Execução contam como executado.
       <b>Executados:</b> lido pelas colunas <b>D</b> (nº do serviço), <b>F</b> (data e hora),
       <b>G</b> (veículo), <b>K</b> (polo executora) e <b>M</b> (equipamento). Cada serviço vale pela
       <b>sua própria data de execução</b>, então o arquivo acumulado pode ser recarregado quantas
@@ -833,7 +841,12 @@
         <input type="file" id="earq" accept=".xls,.xlsx,.htm,.html,.csv,.txt" multiple hidden>
       </div>
       <div class="carga">
-        <span class="carga-rot">2 · Executado em campo</span>
+        <span class="carga-rot">2 · Guias que saíram</span>
+        <label class="btn forte" for="carq">Concluídas</label>
+        <input type="file" id="carq" accept=".xls,.xlsx,.htm,.html,.csv,.txt" multiple hidden>
+      </div>
+      <div class="carga">
+        <span class="carga-rot">3 · Executado em campo</span>
         <label class="btn forte" for="garq">Executados G-DIS OP</label>
         <input type="file" id="garq" accept=".xls,.xlsx,.htm,.html,.csv,.txt" multiple hidden>
       </div>
@@ -6303,8 +6316,8 @@ const FAIXAS_EX = ['Até 15 dias', '16 a 30 dias', '31 a 60 dias', '61 a 120 dia
 const faixaEx = d => d <= 15 ? 0 : d <= 30 ? 1 : d <= 60 ? 2 : d <= 120 ? 3 : 4;
 const COR_EX = ['#86b6ef', '#5598e7', '#2a78d6', '#184f95', '#0d366b'];
 const ESTAGIOS = ['Aberta', 'Andamento'];
-const ROT_ESTAGIO = {'Aberta': 'Aberta · em avaliação de programação',
-                     'Andamento': 'Andamento · em rota de execução'};
+const ROT_ESTAGIO = {'Aberta': 'Aberta · aguarda triagem do técnico regional',
+                     'Andamento': 'Andamento · programada, em rota de execução'};
 const COR_ESTAGIO = {'Aberta': COR.s3, 'Andamento': COR.s1};
 /* nome do conjunto na exportação -> polo do painel */
 const CONJ_POLO = {'uberaba':'UR','araxa':'AX','frutal':'FR','patos de minas':'PM',
@@ -7419,6 +7432,171 @@ function recuperaGd() {
     if (s) { const o = JSON.parse(s); if (o && o.base && Array.isArray(o.base.linhas)) { GD = o.base; ORIGEM_GD = o.origem || ''; } }
   } catch (e) {}
 }
+/* ============================================================
+   GUIAS CONCLUÍDAS
+   A foto de guias é semanal, então uma guia aberta na terça e concluída
+   na quarta não aparece em nenhuma foto: nem na de segunda, nem na da
+   segunda seguinte. O serviço feito no campo ficava como "sem guia".
+   Esta base é o registro de saída, e a coluna Execução diz se a guia foi
+   mesmo executada em campo.
+   ============================================================ */
+const CS = 0, CSOL = 1, CTIPO = 2, CPOLO = 3, CEXEC = 4, CCAD = 5, CDISP = 6, CMUN = 7, COBS = 8;
+let CONC = {semanas: [], tipos: [], polos: [], execs: [], linhas: []};
+let ORIGEM_CONC = '';
+let CROT = {};                 /* valor da coluna Execução -> conta como executada em campo */
+let CONC_EQ = new Map();       /* dispositivo -> guias concluídas e executadas nele */
+const CHAVE_CONC = 'nge-conc-v1', CHAVE_CROT = 'nge-conc-rot-v1';
+
+/* palpite enquanto o usuário não marcou na mão o que cada valor significa */
+const EXEC_SIM = /^(sim|s|ok|x|v|executad|realizad|conclu[ií]|atendid|finaliz|feit)/i;
+const EXEC_NAO = /^(n[aã]o|n|pendente|cancelad|improced|aguard|nao\s)/i;
+function palpiteExec(v) {
+  const t = String(v == null ? '' : v).trim();
+  if (!t) return false;
+  if (EXEC_NAO.test(t)) return false;
+  return EXEC_SIM.test(t);
+}
+const contaExec = v => (CROT[v] == null ? palpiteExec(v) : !!CROT[v]);
+const execDe = l => contaExec(CONC.execs[l[CEXEC]]);
+
+/* índice por dispositivo: é por ele que o serviço do G-DIS encontra a guia */
+function indexaConc() {
+  CONC_EQ = new Map();
+  CONC.linhas.forEach(l => {
+    if (!execDe(l)) return;
+    const d = String(l[CDISP] || '').trim();
+    if (!d) return;
+    const sem = CONC.semanas[l[CS]];
+    const o = CONC_EQ.get(d) || {n: 0, ult: '', sols: []};
+    o.n++;
+    if (sem > o.ult) o.ult = sem;
+    if (o.sols.length < 6) o.sols.push(l[CSOL]);
+    CONC_EQ.set(d, o);
+  });
+}
+function guardaConc() {
+  try { localStorage.setItem(CHAVE_CONC, JSON.stringify({base: CONC, origem: ORIGEM_CONC})); return true; }
+  catch (e) { return false; }
+}
+function guardaCrot() {
+  try { localStorage.setItem(CHAVE_CROT, JSON.stringify(CROT)); return true; } catch (e) { return false; }
+}
+function recuperaConc() {
+  try {
+    const s = localStorage.getItem(CHAVE_CONC);
+    if (s) { const o = JSON.parse(s);
+      if (o && o.base && Array.isArray(o.base.linhas)) { CONC = o.base; ORIGEM_CONC = o.origem || ''; } }
+  } catch (e) {}
+  try {
+    const s = localStorage.getItem(CHAVE_CROT);
+    if (s) { const o = JSON.parse(s); if (o) CROT = o; }
+  } catch (e) {}
+  if (!CONC.execs) CONC.execs = [];
+  indexaConc();
+}
+/* concluídas dentro de (ini, fim], no escopo de gerência e polo da tela */
+function concNoPeriodo(ini, fim) {
+  return CONC.linhas.filter(l => {
+    const sem = CONC.semanas[l[CS]];
+    if (!(sem <= fim && (!ini || sem > ini))) return false;
+    const p = CONC.polos[l[CPOLO]];
+    if (st.ger && gerenciaDe(p) !== st.ger) return false;
+    if (st.polo && p !== st.polo) return false;
+    return true;
+  });
+}
+
+/* ---------- leitura do arquivo de concluídas ---------- */
+const COL_M_EXEC = 12;                /* coluna M, quando o cabeçalho não disser o nome */
+const ALVO_CONC = Object.assign({}, ALVO_COL, {
+  exec: ['execucao', 'execução', 'executado', 'executada', 'execucao em campo', 'exec']
+});
+function mapeiaConc(linha) {
+  const norm = linha.map(chaveTexto);
+  const idx = {};
+  Object.keys(ALVO_CONC).forEach(k => {
+    idx[k] = norm.findIndex(c => ALVO_CONC[k].some(a => c === chaveTexto(a)));
+  });
+  /* o nome da coluna varia; a posição M foi a combinada */
+  if (idx.exec < 0) {
+    const i = norm.findIndex(c => c.indexOf('execu') === 0);
+    idx.exec = i >= 0 ? i : (linha.length > COL_M_EXEC ? COL_M_EXEC : -1);
+    idx.porPosicao = i < 0;
+  }
+  return idx;
+}
+function montaConc(matrizes, dataISO) {
+  const regs = [], vistos = new Set();
+  let ruins = 0, dup = 0, comColuna = 0, linhasLidas = 0, primeira = null;
+  const diag = {cab: null, idx: null};
+  matrizes.forEach(m => {
+    let idx = null;
+    m.forEach(linha => {
+      linhasLidas++;
+      if (!primeira && linha.join('').trim()) primeira = linha;
+      if (!idx) {
+        if (ehCabecalhoGuia(linha)) { idx = mapeiaConc(linha); diag.cab = linha.slice(); diag.idx = idx; }
+        return;
+      }
+      const v = k => (idx[k] >= 0 && linha[idx[k]] != null) ? String(linha[idx[k]]).trim() : '';
+      const sol = v('sol');
+      if (!sol || !/\d/.test(sol)) { if (linha.join('').trim()) ruins++; return; }
+      const cad = leData(v('cad'));
+      const semLinha = leData(v('sem'));
+      const sem = semLinha || dataISO;
+      if (semLinha) comColuna++;
+      const ch = sem + '\u0001' + sol;
+      if (vistos.has(ch)) { dup++; return; }
+      vistos.add(ch);
+      const conj = v('conj');
+      regs.push({sem, sol, tipo: v('tipo') || '(sem tipo)',
+                 polo: CONJ_POLO[chaveTexto(conj)] || (conj || '—'),
+                 exec: v('exec'), cad: cad || '', disp: v('disp'), mun: v('mun'), obs: v('obs')});
+    });
+  });
+  if (!regs.length) {
+    const viu = primeira ? primeira.slice(0, 14).map(c => String(c).trim()).filter(Boolean).join(' · ') : '(vazio)';
+    return {erro: `Nenhuma guia concluída reconhecida em ${fmt(linhasLidas)} linha(s). O painel procura uma ` +
+                  `linha de cabeçalho com a coluna <b>Solicitacao</b> e não achou. A primeira linha com ` +
+                  `conteúdo era: <i>${esc(viu)}</i>`};
+  }
+  /* mesma regra das guias: repõe só os pares data + polo que vieram no arquivo */
+  const noArquivo = new Set(regs.map(r => r.sem + '\u0001' + r.polo));
+  const substituidas = new Set();
+  const antigos = CONC.linhas.filter(l => {
+      const sem = CONC.semanas[l[CS]];
+      if (noArquivo.has(sem + '\u0001' + CONC.polos[l[CPOLO]])) { substituidas.add(sem); return false; }
+      return true;
+    }).map(l => ({sem: CONC.semanas[l[CS]], sol: l[CSOL], tipo: CONC.tipos[l[CTIPO]],
+      polo: CONC.polos[l[CPOLO]], exec: CONC.execs[l[CEXEC]] || '', cad: l[CCAD] || '',
+      disp: l[CDISP], mun: l[CMUN] || '', obs: l[COBS] || ''}));
+  const todos = antigos.concat(regs);
+
+  const alfa = (a, b) => String(a).localeCompare(String(b), 'pt-BR');
+  const ordemPolo = [].concat.apply([], Object.keys(MAPA_GERENCIA).map(g => MAPA_GERENCIA[g]));
+  const uni = (fn, ord) => { const x = Array.from(new Set(todos.map(fn))); return ord ? x.sort(ord) : x; };
+  const semanas = uni(x => x.sem, (a, b) => a < b ? -1 : a > b ? 1 : 0);
+  const tipos = uni(x => x.tipo, alfa);
+  const polos = uni(x => x.polo, (a, b) => {
+    const ia = ordemPolo.indexOf(a), ib = ordemPolo.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || alfa(a, b);
+  });
+  const execs = uni(x => x.exec, alfa);
+  const pos = l => { const o = {}; l.forEach((v, i) => o[v] = i); return o; };
+  const iS = pos(semanas), iT = pos(tipos), iP = pos(polos), iE = pos(execs);
+  const linhas = todos.map(x => [iS[x.sem], x.sol, iT[x.tipo], iP[x.polo], iE[x.exec],
+                                 x.cad, x.disp, x.mun, x.obs]);
+  const letra = i => { let r = '', k = i + 1; while (k > 0) { const t = (k - 1) % 26; r = String.fromCharCode(65 + t) + r; k = Math.floor((k - 1) / 26); } return r; };
+  const colExec = diag.idx ? (diag.idx.exec < 0 ? '—'
+    : letra(diag.idx.exec) + (diag.cab && diag.cab[diag.idx.exec] ? ' · ' + String(diag.cab[diag.idx.exec]).trim() : '')) : '—';
+  return {base: {semanas, tipos, polos, execs, linhas},
+          novas: regs.length, ruins, dup, comColuna, colExec,
+          porPosicao: !!(diag.idx && diag.idx.porPosicao),
+          valores: execs.filter(Boolean),
+          refeitas: Array.from(substituidas).sort(),
+          datas: Array.from(new Set(regs.map(r => r.sem))).sort(), data: dataISO};
+}
+
 /* serviços executados em (ini, fim] */
 function gdisNoPeriodo(ini, fim) {
   return GD.linhas.filter(l => l[GDATA] && l[GDATA] <= fim && (!ini || l[GDATA] > ini));
@@ -7667,15 +7845,31 @@ function pintaGdis(mA, mB) {
     if (p && p.sem && p.sem > ini && p.sem <= somaDias(fim, 6)) semProgramada.add(String(l[XDISP] || ''));
   });
 
+  /* a concluída vem primeiro: é a evidência mais forte de que o serviço saiu
+     de uma guia, porque ali a guia existiu e foi dada como executada em campo.
+     É ela que pega a guia nascida e encerrada entre duas fotos. */
   const cls = l => {
     const d = String(l[GEQ] || '');
+    if (CONC_EQ.has(d)) return 'concluida';
     if (abertaAgora.has(d)) return 'aberta';
     if (abertaAntes.has(d)) return 'encerrada';
     return 'sem';
   };
-  const cont = {aberta: 0, encerrada: 0, sem: 0};
+  const cont = {concluida: 0, aberta: 0, encerrada: 0, sem: 0};
   serv.forEach(l => cont[cls(l)]++);
-  const comGuia = cont.aberta + cont.encerrada;
+  const comGuia = cont.concluida + cont.aberta + cont.encerrada;
+  /* a foto de concluídas diz "esta guia já saiu até esta data", não a hora em
+     que saiu. Então o casamento só é coerente quando a guia aparece concluída
+     numa foto igual ou posterior ao serviço: se ela já estava concluída antes
+     de o serviço acontecer, o serviço é outro trabalho no mesmo equipamento. */
+  let concCoerente = 0;
+  serv.forEach(l => {
+    if (cls(l) !== 'concluida') return;
+    const o = CONC_EQ.get(String(l[GEQ] || ''));
+    if (o && (!l[GDATA] || o.ult >= l[GDATA])) concCoerente++;
+  });
+  const concPeriodo = concNoPeriodo(ini, fim);
+  const concExecPeriodo = concPeriodo.filter(execDe).length;
   const total = serv.length;
   const eqs = new Set(serv.map(l => String(l[GEQ] || '')));
   const emIndisp = serv.filter(l => indisp.has(String(l[GEQ] || ''))).length;
@@ -7685,21 +7879,39 @@ function pintaGdis(mA, mB) {
   const equipes = new Set(serv.map(l => GD.veiculos[l[GVEIC]]));
 
   /* os dois números que o módulo existe para mostrar, lado a lado */
-  const tiles = `<div class="kpis" style="grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:14px">
+  const temConc = CONC.linhas.length > 0;
+  const tiles = `<div class="kpis" style="grid-template-columns:repeat(${temConc ? 6 : 5},minmax(0,1fr));margin-bottom:14px">
     <div class="tile hero"><span class="rot">Guias de inspeção</span><span class="val">${fmt(mB.size)}</span>
       <span class="pe">na carteira em ${dlonga(alvo)} — Inspeções SGE</span></div>
     <div class="tile hero"><span class="rot">Serviços executados</span><span class="val" style="color:var(--verde-forte)">${fmt(total)}</span>
       <span class="pe">${fmt(eqs.size)} equipamentos · ${fmt(equipes.size)} equipe(s) · ${fmt(du)} dia(s) úteis</span></div>
-    <div class="tile"><span class="rot">Em equipamento com guia</span><span class="val" style="color:#006300">${fmt(comGuia)}</span>
-      <span class="pe">${pct1(pct(comGuia, total))}% dos executados · ${fmt(cont.encerrada)} com a guia encerrada no período</span></div>
+    <div class="tile"><span class="rot">Oriundos de guia</span><span class="val" style="color:#006300">${fmt(comGuia)}</span>
+      <span class="pe">${pct1(pct(comGuia, total))}% dos executados${temConc
+        ? ` · ${fmt(cont.concluida)} com guia concluída e executada` : ''} · ${fmt(cont.aberta)} com guia
+        aberta · ${fmt(cont.encerrada)} com a guia encerrada no período</span></div>
+    ${temConc ? `<div class="tile"><span class="rot">Guias concluídas no período</span>
+      <span class="val">${fmt(concPeriodo.length)}</span>
+      <span class="pe">${fmt(concExecPeriodo)} marcadas como executadas em campo${concPeriodo.length
+        ? ' · ' + pct1(pct(concExecPeriodo, concPeriodo.length)) + '%' : ''}</span></div>` : ''}
     <div class="tile"><span class="rot">Sem guia no equipamento</span><span class="val" style="color:${COR.ruim}">${fmt(cont.sem)}</span>
       <span class="pe">${pct1(pct(cont.sem, total))}% — execução fora do controle de guias</span></div>
     <div class="tile"><span class="rot">Por dia útil, por equipe</span><span class="val">${pct1(total / du / Math.max(1, equipes.size))}</span>
       <span class="pe">${pct1(total / du)} serviços por dia útil no total</span></div>
   </div>
-  <div class="nota" style="margin:-6px 0 14px">A ligação entre serviço e guia é feita <b>pelo número do equipamento</b>:
-  não existe campo oficial que ligue um serviço do G-DIS à guia que o originou. Serviço em equipamento com guia
-  aberta é forte indício de que veio dela, não prova.</div>`;
+  <div class="nota" style="margin:-6px 0 14px">A ligação entre serviço e guia é feita <b>pelo número do
+  equipamento</b>: não existe campo oficial que ligue um serviço do G-DIS à guia que o originou.
+  ${temConc
+    ? `Das três evidências, a mais forte é a <b>guia concluída e executada</b> no mesmo equipamento — ali a guia
+       existiu e foi dada como feita em campo, e é ela que recupera a guia aberta e encerrada entre duas fotos,
+       que antes não aparecia em foto nenhuma. ${concCoerente < cont.concluida
+         ? `Atenção: em ${fmt(cont.concluida - concCoerente)} dos ${fmt(cont.concluida)} casamentos a guia já
+            constava concluída <b>antes</b> da data do serviço, então ali o serviço é outro trabalho no mesmo
+            equipamento, não aquela guia.`
+         : `Nos ${fmt(cont.concluida)} casamentos a guia consta concluída numa foto igual ou posterior ao
+            serviço, que é o que se espera.`}`
+    : `Sem o arquivo de <b>Concluídas</b>, a guia aberta na terça e encerrada na quarta não aparece em
+       nenhuma foto, e o serviço feito nela entra aqui como “sem guia”. Carregue as concluídas para fechar
+       esse buraco.`}</div>`;
 
   const ader = progTotal
     ? `<h4 class="sub-tit">Aderência à programação</h4>
@@ -7739,7 +7951,8 @@ function pintaGdis(mA, mB) {
     .concat([{cor: clareia(corGer(gersNoPeriodo[0] || ''), 0.62), rot: 'parte sem guia no equipamento'}]));
   const maiores = `<h4 class="sub-tit">Quem mais executou</h4>
     <div class="explica">A barra é o total de serviços; a parte cheia é o que foi feito em equipamento
-    com guia de inspeção aberta e a parte clara é o resto.</div>${legGer}
+    com guia de inspeção — aberta, encerrada no período ou concluída e executada — e a parte clara é o
+    resto.</div>${legGer}
     <h5 class="mini-tit">Por gerência</h5>
     <div class="gd-par"><div>${gdRank(rank(porGerL))}</div><div>${tabGrupo(porGerL, 'Gerência')}</div></div>
     <h5 class="mini-tit">Por polo</h5>
@@ -7753,7 +7966,7 @@ function pintaGdis(mA, mB) {
   if (semData) avisos.push(`${fmt(semData)} serviço(s) sem data de término legível ficaram com a data informada na carga.`);
   const aviso = avisos.length ? `<div class="msg erro" style="margin:0 0 14px">${avisos.map(esc).join('<br>')}</div>` : '';
 
-  cx.innerHTML = ctrl + aviso + tiles + ritmoGdis(serv, ini, fim) + maiores + ader + lista;
+  cx.innerHTML = ctrl + aviso + tiles + ritmoGdis(serv, ini, fim) + maiores + ader + lista + quadroExec();
   ligaCtrlGdis();
 }
 /* liga os controles que são recriados a cada pintura */
@@ -7858,9 +8071,45 @@ function ritmoGdis(serv, ini, fim) {
 }
 
 /* ---------- lista dos serviços, com a observação de fechamento ---------- */
+/* o painel não adivinha o que cada valor da coluna Execução quer dizer:
+   mostra os que apareceram e deixa marcar quais contam como executado */
+function quadroExec() {
+  if (!CONC.linhas.length) return '';
+  const cont = new Map(), eqs = new Map();
+  CONC.linhas.forEach(l => {
+    const v = CONC.execs[l[CEXEC]] || '';
+    cont.set(v, (cont.get(v) || 0) + 1);
+    if (!eqs.has(v)) eqs.set(v, new Set());
+    const d = String(l[CDISP] || '').trim();
+    if (d) eqs.get(v).add(d);
+  });
+  const vals = Array.from(cont.keys()).sort((a, b) => cont.get(b) - cont.get(a));
+  const marcadas = CONC.linhas.filter(execDe).length;
+  const linhas = vals.map(v => {
+    const liga = contaExec(v), posto = CROT[v] != null;
+    return `<tr><td>${v ? `<code>${esc(v)}</code>` : '<i>(em branco)</i>'}</td>
+      <td>${fmt(cont.get(v))}</td><td>${fmt(eqs.get(v).size)}</td>
+      <td>${posto ? '<span class="chip c-zero">você marcou</span>' : '<span class="l">palpite do painel</span>'}</td>
+      <td class="cel-rot"><label class="exec-lb"><input class="exec-ck" type="checkbox"
+        data-chave="${esc(v)}"${liga ? ' checked' : ''}> conta como executado</label></td></tr>`;
+  }).join('');
+  return `<h4 class="sub-tit">Coluna Execução — o que conta como executado em campo</h4>
+    <div class="explica">A regra sai daqui: um serviço do G-DIS entra como <b>oriundo de guia</b> quando o
+    equipamento dele tem guia concluída marcada como executada. Enquanto você não marcar, vale o palpite do
+    painel, que lê <i>sim</i>, <i>executado</i>, <i>realizado</i> e parecidos como executado. Fica salvo
+    neste navegador.</div>
+    <div class="tab-wrap"><table class="dt"><thead><tr>
+      <th>Valor na coluna Execução</th><th>Guias</th><th>Equipamentos</th><th>Origem da regra</th>
+      <th class="cel-rot">Conta como executado</th>
+    </tr></thead><tbody>${linhas}</tbody></table></div>
+    <div class="nota">${fmt(marcadas)} de ${fmt(CONC.linhas.length)} guias concluídas contam hoje como
+    executadas em campo, em ${fmt(CONC_EQ.size)} equipamento(s) distintos
+    ${ORIGEM_CONC ? '· base ' + esc(ORIGEM_CONC) : ''}.</div>`;
+}
 function listaGdis(serv, cls, semProgramada, indisp) {
-  const rot = {aberta: '<span class="chip c-zero">guia segue aberta</span>',
-               encerrada: '<span class="chip c-bom">guia encerrada no período</span>',
+  const rot = {concluida: '<span class="chip c-bom">guia concluída e executada</span>',
+               aberta: '<span class="chip c-zero">guia segue aberta</span>',
+               encerrada: '<span class="chip c-zero">guia encerrada no período</span>',
                sem: '<span class="chip c-ruim">sem guia</span>'};
   const busca = (sx.gdBusca || '').trim().toLowerCase();
   const filtrados = serv.filter(l => !busca ||
@@ -7874,11 +8123,16 @@ function listaGdis(serv, cls, semProgramada, indisp) {
     .slice(0, 600).map(l => {
       const d = String(l[GEQ] || '');
       const obs = l[GOBS] || '';
+      const k = cls(l), oc = k === 'concluida' ? CONC_EQ.get(d) : null;
+      /* na concluída dá para dizer de qual guia veio: o número está do lado */
+      const marca = rot[k] + (oc
+        ? ` <span class="l">${esc(oc.sols.slice(0, 2).join(', '))}${oc.n > 2 ? ' +' + fmt(oc.n - 2) : ''}</span>`
+        : '');
       return `<tr><td>${esc(String(l[GSERV]))}</td><td>${l[GDATA] ? dlonga(l[GDATA]) : '—'}</td>
         <td>${esc(l[GHORA] || '—')}</td><td>${esc(GD.veiculos[l[GVEIC]])}</td>
         <td>${esc(GD.polos[l[GPOLO]])}</td><td>${esc(d)}</td>
         <td>${esc(l[GALIM] || '—')}</td>
-        <td>${rot[cls(l)]}</td>
+        <td>${marca}</td>
         <td>${semProgramada.has(d) ? '<span class="prog-chip">sim</span>' : '—'}</td>
         <td>${indisp.has(d) ? '<span class="vinc-chip">indisp.</span>' : '—'}</td>` +
         (temObs ? `<td class="cel-obs">${obs
@@ -7923,7 +8177,10 @@ function montaControlesEx() {
       `<span class="sem-item">${dlonga(s)} · ${fmt(PORSEM_EX[EX.semanas.indexOf(s)].size)} guias` +
       `<button data-rm-sem="${s}" title="remover esta foto" type="button">×</button></span>`).join('') : '') +
     (p ? `<div style="margin-top:8px">Executados G-DIS OP: <b>${fmt(GD.linhas.length)}</b> serviços ` +
-         `de ${dlonga(p.de)} a ${dlonga(p.ate)}</div>` : '');
+         `de ${dlonga(p.de)} a ${dlonga(p.ate)}</div>` : '') +
+    (CONC.linhas.length ? `<div style="margin-top:8px">Concluídas: <b>${fmt(CONC.linhas.length)}</b> guias ` +
+         `em ${fmt(CONC.semanas.length)} data(s) · ${fmt(CONC.linhas.filter(execDe).length)} executadas em ` +
+         `campo, em ${fmt(CONC_EQ.size)} equipamento(s)</div>` : '');
 }
 function trocaAmbiente(a) {
   AMB = a;
@@ -8187,6 +8444,66 @@ $('#earq').addEventListener('change', async ev => {
     avisoEx(`<b>Erro na leitura.</b><br>${esc(String(e && e.message || e))}`, true);
   }
 });
+$('#carq').addEventListener('change', async ev => {
+  const arqs = Array.from(ev.target.files || []);
+  ev.target.value = '';
+  if (!arqs.length) return;
+  const data = $('#e-data').value || hojeISO();
+  avisoEx('Lendo as concluídas…', false);
+  try {
+    const mats = [], cascas = [];
+    for (const a of arqs) {
+      const fmtA = await formatoReal(a);
+      if (fmtA === 'xls-binario') { avisoEx(AVISO_BIN(a.name), true); return; }
+      const cw = fmtA === 'texto' ? await cascaWeb(a) : null;
+      if (cw) { cascas.push([a.name, cw]); continue; }
+      if (fmtA === 'zip' || /\.(xlsx|xlsm)$/i.test(a.name)) {
+        const buf = await a.arrayBuffer(), zip = abreZip(buf);
+        const sst = await extraiZip(zip, 'xl/sharedStrings.xml');
+        const textos = sst ? porNome(xmlDoc(sst), 'si').map(si => textoDe(si, 't')) : [];
+        const abas = Array.from(zip.itens.keys()).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n)).sort();
+        for (const ab of abas) { const x = await extraiZip(zip, ab); if (x) mats.push(matrizDaAba(x, textos)); }
+      } else {
+        mats.push(await leArquivoExec(a, codifDe(fmtA)));
+      }
+    }
+    if (!mats.length && cascas.length) { avisoEx(AVISO_CASCA(cascas[0][0], cascas[0][1]), true); return; }
+    const r = montaConc(mats.filter(Boolean), data);
+    if (r.erro) {
+      avisoEx(`<b>Não foi possível carregar as concluídas.</b><br>${r.erro}` +
+              (cascas.length ? '<br>' + AVISO_CASCA(cascas[0][0], cascas[0][1]) : ''), true);
+      return;
+    }
+    CONC = r.base; ORIGEM_CONC = 'de ' + arqs.map(a => a.name).join(', ');
+    indexaConc();
+    const coube = guardaConc();
+    montaControlesEx(); render();
+    const obs = [];
+    obs.push(r.comColuna
+      ? `data da coleta lida da coluna do arquivo em ${fmt(r.comColuna)} linha(s)`
+      : `o arquivo não traz coluna de data: vale a data carimbada aqui (${dlonga(data)})`);
+    if (r.datas.length > 1) obs.push('datas no arquivo: ' + r.datas.map(dcurta).join(', '));
+    if (r.refeitas.length) obs.push('já existiam e foram substituídas: ' + r.refeitas.map(dcurta).join(', '));
+    if (r.dup) obs.push(`${fmt(r.dup)} solicitação(ões) repetidas na mesma data foram ignoradas`);
+    if (r.ruins) obs.push(`${fmt(r.ruins)} linha(s) ignoradas por não ter solicitação`);
+    obs.push(`coluna Execução lida em ${r.colExec}` +
+      (r.porPosicao ? ' — pela posição, porque o cabeçalho não traz o nome' : ''));
+    if (r.valores.length) obs.push('valores encontrados na coluna Execução: ' + r.valores.join(' · '));
+    if (!coube) obs.push('não coube no navegador: esta base vale só nesta sessão');
+    const naoMarcados = r.valores.filter(v => CROT[v] == null);
+    const aviso = naoMarcados.length
+      ? `<div class="msg" style="margin:10px 0 0">Confira, na seção <b>Executado na semana</b>, o quadro
+         <b>Coluna Execução</b>: é lá que você marca quais destes valores contam como executado em campo.
+         Por enquanto o painel está no palpite dele.</div>` : '';
+    const comExec = CONC.linhas.filter(execDe).length;
+    avisoEx(`<b>${fmt(r.novas)} guias concluídas carregadas</b> em ${fmt(r.datas.length)} data(s) · ` +
+            `${fmt(CONC.linhas.length)} na base · ${fmt(comExec)} contam hoje como executadas em campo · ` +
+            `${fmt(CONC_EQ.size)} equipamento(s) distintos.` +
+            `<ul>${obs.map(o => `<li>${esc(o)}</li>`).join('')}</ul>${aviso}`, false);
+  } catch (e) {
+    avisoEx(`<b>Erro na leitura das concluídas.</b><br>${esc(String(e && e.message || e))}`, true);
+  }
+});
 $('#garq').addEventListener('change', async ev => {
   const arqs = Array.from(ev.target.files || []);
   ev.target.value = '';
@@ -8253,8 +8570,10 @@ $('#bt-eapaga').addEventListener('click', () => {
   if (!confirm('Apagar toda a base de execução carregada neste navegador?')) return;
   EX = {semanas: [], tipos: [], polos: [], municipios: [], solicitantes: [], linhas: []};
   GD = {veiculos: [], polos: [], linhas: []};
-  ORIGEM_EX = ''; ORIGEM_GD = ''; indexaEx();
-  try { localStorage.removeItem(CHAVE_EX); localStorage.removeItem(CHAVE_GD); } catch (e) {}
+  CONC = {semanas: [], tipos: [], polos: [], execs: [], linhas: []};
+  ORIGEM_EX = ''; ORIGEM_GD = ''; ORIGEM_CONC = ''; indexaEx(); indexaConc();
+  try { localStorage.removeItem(CHAVE_EX); localStorage.removeItem(CHAVE_GD);
+        localStorage.removeItem(CHAVE_CONC); } catch (e) {}
   sx.b = 0; sx.a = -1;
   montaControlesEx(); render();
   avisoEx('Base de execução apagada.', false);
@@ -9087,6 +9406,14 @@ $('#md-det').addEventListener('click', ev => {
   const c = th.dataset.mord;
   mx.dOrd = {col: c, dir: mx.dOrd.col === c ? -mx.dOrd.dir : (c === 'ns' ? 1 : 1)};
   render();
+});
+/* o que conta como executado na coluna Execução das concluídas */
+document.addEventListener('change', ev => {
+  const ck = ev.target.closest('.exec-ck');
+  if (!ck) return;
+  CROT[ck.dataset.chave] = ck.checked;
+  guardaCrot(); indexaConc();
+  setTimeout(render, 0);
 });
 /* rótulos editáveis: gravam ao sair do campo e valem em todas as telas */
 document.addEventListener('change', ev => {
@@ -11131,6 +11458,7 @@ function baseDemo() {
 recuperaAnotacoes();
 recuperaEx();
 recuperaGd();
+recuperaConc();
 recuperaMed();
 recuperaBat();
 recuperaPsv();

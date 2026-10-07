@@ -73,8 +73,11 @@ Cada linha dos arquivos é uma **guia de inspeção**, identificada pela solicit
 **tipo de serviço**. Os dois arquivos são carregados de uma vez e viram um conjunto só, com o
 estágio como coluna:
 
-- **Aberta** — em avaliação de programação.
-- **Andamento** — em rota de execução, já com recursos avaliados e guia disponibilizada no G-DIS OP.
+- **Aberta** — aguarda triagem do técnico regional.
+- **Andamento** — programada, em rota de execução, com guia disponibilizada no G-DIS OP.
+
+Há ainda um terceiro arquivo de guias, **Concluídas**, que não é carteira e sim registro de saída —
+a seção *Executado na semana* explica o que ele resolve.
 
 A data de cada linha é a **data da coleta** — é ela que monta o histórico. Há dois jeitos de
 informá-la:
@@ -126,9 +129,36 @@ indisponível.
 
 A programação é local, feita à mão, e não vai para o G-DIS OP.
 
+### Concluídas — o buraco da foto semanal
+
+A foto das guias é tirada **uma vez por semana**. Uma guia aberta na terça e concluída na quarta não
+aparece em foto nenhuma: nem na de segunda, que é anterior a ela, nem na da segunda seguinte, quando
+ela já saiu. O serviço que a equipe fez por causa dessa guia entrava no painel como **“sem guia”**, e
+o módulo subestimava exatamente o que existe para medir.
+
+O arquivo **Concluídas** fecha esse buraco. Tem a mesma estrutura das guias, mais a coluna
+**M · Execução**, que diz se a guia foi executada em campo. A regra é a que o processo usa: *se o
+serviço do G-DIS está num equipamento que já tem guia concluída e executada, o serviço é oriundo de
+guia*. O painel procura a coluna pelo nome e, se não achar, usa a posição **M** — e avisa qual dos
+dois caminhos usou.
+
+**O que conta como executado você define.** Logo abaixo da lista de serviços, o quadro *Coluna
+Execução* mostra cada valor que apareceu no arquivo, quantas guias e quantos equipamentos tem cada
+um, e uma caixa para marcar quais contam como executado em campo. Enquanto você não marcar, vale o
+palpite do painel, que lê `sim`, `executado`, `realizado`, `concluído` e parecidos como executado, e
+`não`, `pendente` e `cancelado` como não executado. A marcação fica salva no navegador e recalcula
+tudo na hora.
+
+**A coerência é verificada.** A foto de concluídas diz “esta guia já saiu até esta data”, não a hora
+em que saiu. Então o painel confere se a guia aparece concluída numa foto **igual ou posterior** ao
+serviço; quando ela já constava concluída **antes** do serviço, o casamento é contado e avisado na
+tela como provavelmente outro trabalho no mesmo equipamento.
+
+Carga igual à das guias: cada par **data + polo** do arquivo é reposto, o resto da base fica.
+
 ### Executado na semana · Inspeções SGE × G-DIS OP
 
-O terceiro arquivo é a lista do que as equipes **de fato executaram em campo**. São lidas as colunas
+O arquivo de executados é a lista do que as equipes **de fato executaram em campo**. São lidas as colunas
 **C** (tipo), **D** (nº do serviço), **E** (data designação), **F** (**data término**, que é a data
 de execução), **G** (veículo = **equipe**), **H** (situação), **I** (bairro), **K** (região = polo),
 **L** (alimentador), **M** (equipamento) e **N** (**observação de fechamento**). O cabeçalho é
@@ -154,12 +184,18 @@ de guias comparada e a foto selecionada — sem foto anterior, os sete dias ante
 
 O cruzamento usa o **equipamento** e responde o que o planejamento sozinho não responde. Vale
 registrar o limite: **não existe campo que ligue um serviço do G-DIS à guia que o originou**, então
-serviço em equipamento com guia aberta é indício forte, não prova — e o painel diz isso na tela.
+o casamento é sempre por número de equipamento — e o painel diz isso na tela. São três evidências,
+em ordem de força, e cada serviço recebe a primeira que couber:
 
-- quantos serviços foram executados em equipamento **com guia de inspeção** e quantos **sem guia
-  nenhuma** — estes últimos são execução fora do controle;
-- quantos foram feitos e a **guia continua aberta** (pode ser outra guia do mesmo equipamento, ou
-  falta de encerramento) e quantos tiveram a **guia encerrada na semana**;
+| | Evidência | O que significa |
+|---|---|---|
+| 1 | **guia concluída e executada** | a guia existiu e foi dada como feita em campo — a mais forte, e a única que pega a guia nascida e encerrada entre duas fotos |
+| 2 | **guia segue aberta** | há guia em aberto no equipamento; pode ser ela, pode ser outra guia do mesmo equipamento ou falta de encerramento |
+| 3 | **guia encerrada no período** | a guia estava na foto anterior e sumiu na atual |
+
+- quantos serviços foram executados em equipamento **com guia de inspeção** (as três evidências
+  somadas) e quantos **sem guia nenhuma** — estes últimos são execução fora do controle;
+- quantas **guias foram concluídas no período** e quantas delas constam executadas em campo;
 - **aderência à programação**: das guias programadas para aquela semana, quantas tiveram serviço
   executado no equipamento, quantas ficaram para trás e quantos serviços saíram sem estar
   programados;
@@ -375,7 +411,8 @@ escolha o recorte uma vez e ele acompanha a troca de aba.
 |---|---|---|---|---|
 | 1 | **Indisponibilidade** | a planilha única, com a semana na coluna A | substitui a base inteira | duas datas da coluna A, escolhidas nos seletores |
 | 2 | **Execução** · guias | `AbertoTR` + `AndamentoTR`, data da coleta na coluna A | repõe os pares **data + polo** do arquivo | foto atual × foto anterior |
-| 3 | **Execução** · executados | arquivo único acumulado do G-DIS OP | acrescenta, ignorando repetidos | janela entre as duas fotos de guias |
+| 3 | **Execução** · concluídas | `Concluídas`, mesma estrutura + coluna M · Execução | repõe os pares **data + polo** do arquivo | guias que saíram, e o casamento por equipamento |
+| 4 | **Execução** · executados | arquivo único acumulado do G-DIS OP | acrescenta, ignorando repetidos | janela entre as duas fotos de guias |
 | 4 | **Medidas SAP** | Gestão Campo + Gestão Equipamento, data na coluna A | repõe os pares **data + processo** | foto atual × foto anterior |
 | 5 | **Baterias** | cadastro de religadores | cada carga vira um arquivo novo | dois arquivos escolhidos nos seletores |
 | 6 | **PSVT** | a planilha de PSVT, data na coluna A | substitui as datas presentes no arquivo | foto atual × foto anterior |
@@ -435,8 +472,8 @@ Na aba **Medidas SAP**, botão **Carregar dados**: selecione as exportações (`
 ## Como carregar as guias de execução
 
 Na aba **Execução**, botão **Carregar dados** (no alto da página): confirme a data da foto e use
-**1 · AbertoTR e AndamentoTR** para as guias, ou **2 · Executados G-DIS OP** para a lista do que foi
-executado em campo. Os arquivos são lidos como saem do sistema — eles são tabelas HTML com extensão `.xls`, e o
+**1 · AbertoTR e AndamentoTR** para as guias, **2 · Concluídas** para as que saíram, ou
+**3 · Executados G-DIS OP** para a lista do que foi executado em campo. Os arquivos são lidos como saem do sistema — eles são tabelas HTML com extensão `.xls`, e o
 leitor abre esse formato direto, sem precisar reabrir e salvar no Excel. Também aceita `.xlsx` e
 `.csv`.
 
