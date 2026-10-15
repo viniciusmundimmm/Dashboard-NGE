@@ -7490,7 +7490,7 @@ function pintaExKPIs(mA, mB, entraram, sairam, fluxo) {
   const md = tB ? Math.round(soma / tB) : 0;
   const ref = sx.a >= 0 ? dcurta(EX.semanas[sx.a]) : '—';
   $('#ex-kpis').innerHTML = [
-    `<div class="tile hero"><span class="rot">Guias de inspeção</span><span class="val">${fmt(tB)}</span>
+    `<div class="tile hero"><span class="rot">Carteira Guias de Inspeção SGE</span><span class="val">${fmt(tB)}</span>
        ${sx.a >= 0 ? deltaGrande(dv) : ''}
        <span class="pe">${dlonga(EX.semanas[sx.b])}${sx.a >= 0 ? ' · vs ' + ref : ''}</span></div>`,
     `<div class="tile"><span class="rot">Entraram</span><span class="val" style="color:${sc ? COR.t3 : COR.ruim}">${ou(entraram)}</span>
@@ -10705,7 +10705,7 @@ function pintaBatKPIs(mB, mA, ref) {
      pe: b.semDep ? `${fmt(b.semDep)} religador(es) sem de-para ficaram de fora` : 'todos os modelos com de-para'},
     {rot: 'Vencem em ' + fmt(bx.horiz) + ' meses', val: fmt(bh.total),
      pe: `${fmt(dentro.length)} religador(es) entram no vencimento`},
-    {rot: 'Trocadas', val: mA.size ? fmt(trocadas) : '—',
+    {rot: 'Religadores com troca', val: mA.size ? fmt(trocadas) : '—',
      pe: mA.size ? 'a data da bateria mudou entre os dois arquivos' : 'carregue um segundo arquivo para comparar'}
   ];
   $('#bt-kpis').innerHTML = tiles.map(t =>
@@ -10975,13 +10975,13 @@ function pintaAvanco(mA, mB, refB, refA) {
      data de bateria diferente significa troca. Mudança de passivo sem troca quer dizer que o cadastro
      mudou, não o campo.</div>
      <div class="kpis" style="grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:14px">
-      <div class="tile"><span class="rot">Baterias trocadas</span><span class="val" style="color:#006300">${fmt(trocadas.length)}</span>
-        <span class="pe">${fmt(trocB.total)} unidades de bateria</span></div>
+      <div class="tile"><span class="rot">Com troca entre os arquivos</span><span class="val" style="color:#006300">${fmt(trocadas.length)}</span>
+        <span class="pe">${fmt(trocB.total)} unidade(s) de bateria</span></div>
       <div class="tile"><span class="rot">Venceram no intervalo</span><span class="val" style="color:${COR.ruim}">${fmt(novasVenc.length)}</span>
         <span class="pe">estavam válidas no arquivo anterior</span></div>
       <div class="tile"><span class="rot">Data preenchida</span><span class="val">${fmt(corrigidas.length)}</span>
         <span class="pe">estavam sem data e agora têm</span></div>
-      <div class="tile"><span class="rot">Passivo em baterias</span><span class="val">${fmt(bB.total)}</span>
+      <div class="tile"><span class="rot">Passivo × arquivo anterior</span><span class="val">${fmt(bB.total)}</span>
         <span class="pe">${seta(dv)} ${sinal(dv)} × ${fmt(bA.total)} do arquivo anterior</span></div>
       <div class="tile"><span class="rot">Entraram / saíram</span><span class="val">${fmt(entraram.length)} / ${fmt(sairam.length)}</span>
         <span class="pe">religadores novos no cadastro e que sumiram dele</span></div>
