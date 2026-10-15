@@ -1053,6 +1053,8 @@
       <div class="campo"><label for="m-ger">Gerência</label><select id="m-ger"></select></div>
       <div class="campo"><label for="m-polo">Polo</label><select id="m-polo"></select></div>
       <div class="campo" style="min-width:180px"><label for="m-proc">Processo</label><select id="m-proc"></select></div>
+      <div class="campo" style="min-width:200px"><label>Código da medida</label>
+        <div class="msel" id="m-cod-h" data-campo="cod" data-store="mx" data-rot="Todos os códigos"></div></div>
       <div class="campo" style="min-width:170px"><label for="m-fsu">Status do usuário</label><select id="m-fsu"></select></div>
       <div class="campo" style="min-width:160px"><label for="m-fresp">Responsável</label><select id="m-fresp"></select></div>
       <button class="btn" id="m-limpa" type="button">Limpar filtros</button>
@@ -1245,6 +1247,16 @@
           <button class="btn forte" id="md-xls" type="button">Exportar Excel</button>
           <span class="conta" id="md-conta"></span>
         </div>
+        <div class="card-hd" style="margin:6px 0 2px">
+          <h4 class="sub-tit" style="margin:0" id="md-dg-tit">Medidas por status</h4>
+          <span class="sub">sobre a lista filtrada abaixo</span>
+          <div class="abas" role="tablist" aria-label="abrir por">
+            <button class="aba" role="tab" data-mddg="su" aria-selected="true">Status</button>
+            <button class="aba" role="tab" data-mddg="cod" aria-selected="false">Tipo de medida</button>
+          </div>
+          <div class="tools"><button class="tbtn" data-tab="md-dg" aria-pressed="false">Tabela</button></div>
+        </div>
+        <div id="md-dg"></div>
         <div id="md-det"></div>
       </div>
     </section>
@@ -1458,12 +1470,20 @@
     <section class="secao">
       <h2>Resumo</h2>
       <div class="kpis" id="qs-kpis"></div>
-      <div class="card">
-        <div class="card-hd"><h3>Participação de cada responsável</h3>
-          <span class="sub" id="qs-sub-resp"></span>
-          <div class="tools"><button class="tbtn" data-tab="qs-resp" aria-pressed="false">Tabela</button></div>
+      <div class="grade g-2">
+        <div class="card">
+          <div class="card-hd"><h3 id="qs-tit-peso">Peso do TOP</h3><span class="sub" id="qs-sub-peso"></span>
+            <div class="tools"><button class="tbtn" data-tab="qs-peso" aria-pressed="false">Tabela</button></div>
+          </div>
+          <div id="qs-peso"></div>
         </div>
-        <div id="qs-resp"></div>
+        <div class="card">
+          <div class="card-hd"><h3>Participação de cada responsável</h3>
+            <span class="sub" id="qs-sub-resp"></span>
+            <div class="tools"><button class="tbtn" data-tab="qs-resp" aria-pressed="false">Tabela</button></div>
+          </div>
+          <div id="qs-resp"></div>
+        </div>
       </div>
     </section>
 
@@ -9099,7 +9119,7 @@ let MROT = {cod: {}, su: {}};              /* rótulos que o usuário escreve */
 const mx = {
   b: 0, a: -1, proc: '', su: '', resp: '', modo: 'tr', det: 'todos',
   dBusca: '', dOrd: {col: 'ns', dir: 1}, codFoco: '', poloModo: 'auto',
-  cobDet: 'fora', cobBusca: ''
+  cobDet: 'fora', cobBusca: '', cod: []
 };
 
 /* a família do status do usuário é o prefixo: ABER… ou ANDM… */
@@ -9405,6 +9425,7 @@ function passaMed(l) {
   if (st.ger && gerenciaDe(MED.polos[l[MPOLO]]) !== st.ger) return false;
   if (!passaLista(st.polo, MED.polos[l[MPOLO]])) return false;
   if (mx.proc && MED.processos[l[MPROC]] !== mx.proc) return false;
+  if (!passaLista(mx.cod, MED.codigos[l[MCOD]])) return false;
   if (mx.su && MED.su[l[MSU]] !== mx.su) return false;
   if (mx.resp && MED.resps[l[MRESP]] !== mx.resp) return false;
   return true;
@@ -9888,6 +9909,9 @@ function pintaMdDetalhe(mA, mB, entraram, sairam) {
     return c * dir || Number(a.l[MNS]) - Number(b.l[MNS]);
   });
   MD_LISTA = linhas;
+  $('#md-dg-tit').textContent = (mx.detG || 'su') === 'su' ? 'Medidas por status' : 'Medidas por tipo de medida';
+  $$('[data-mddg]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.mddg === (mx.detG || 'su'))));
+  pinta('md-dg', gMdDetBarras(linhas, mx.detG || 'su'));
   $('#md-conta').textContent = `${fmt(linhas.length)} de ${fmt(itens.length)} medidas`;
   $('#md-det-sub').textContent = MED.semanas.length ? 'foto de ' + dlonga(MED.semanas[mx.b]) : '';
 
@@ -9909,6 +9933,45 @@ function pintaMdDetalhe(mA, mB, entraram, sairam) {
   $('#md-det').innerHTML = `<div class="tab-wrap alta"><table class="dt"><thead><tr>${cab}</tr></thead>
     <tbody>${corpo}</tbody></table></div>` +
     (linhas.length > 900 ? `<div class="nota">Mostrando as 900 primeiras de ${fmt(linhas.length)}. Use os filtros para chegar no recorte.</div>` : '');
+}
+
+/* colunas da lista filtrada: por status ou por tipo de medida.
+   Responde "o que sobrou depois dos filtros, e em que estado está". */
+function gMdDetBarras(itens, modo) {
+  const chave = modo === 'su' ? (l => rotSu(MED.su[l[MSU]])) : (l => MED.codigos[l[MCOD]]);
+  const c = new Map();
+  itens.forEach(x => { const k = chave(x.l) || '—'; c.set(k, (c.get(k) || 0) + 1); });
+  const cats = Array.from(c.keys()).sort((a, b) => c.get(b) - c.get(a) ||
+    String(a).localeCompare(String(b), 'pt-BR'));
+  if (!cats.length) return {svg: '<div class="vazio">Nada na lista filtrada.</div>', tabela: null};
+  const teto = 14, mostra = cats.slice(0, teto), total = itens.length || 1;
+  const W = 1000, H = 290, ml = 52, mr = 20, mt = 40, mb = 72;
+  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
+  const max = escalaMax(Math.max(1, ...mostra.map(k => c.get(k))) * 1.12);
+  const y = v => py1 - (v / max) * (py1 - py0);
+  let s = grade(px0, px1, marcasY(max).map(y));
+  marcasY(max).forEach(v => s += txt(px0 - 9, y(v) + 4, fmt(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1}));
+  const banda = (px1 - px0) / mostra.length, bw = Math.min(54, banda * 0.56);
+  const chars = Math.max(7, Math.floor(banda / 7.2));
+  mostra.forEach((k, i) => {
+    const cx = px0 + banda * i + banda / 2, v = c.get(k);
+    const cor = modo === 'su' ? (COR_FAM[familiaSu(k)] || COR.t3) : COR.s1;
+    s += colunaSVG(cx - bw / 2, y(v), bw, Math.max(2, py1 - y(v)), cor,
+      `<b>${fmt(v)}</b><br><span class="l">${modo === 'su' ? k : codLongo(k)} · ${pct1(pct(v, total))}% da lista</span>`);
+    s += txt(cx, y(v) - 10, fmt(v), {cor: COR.t1, tam: 15, peso: 650, anc: 'middle'});
+    quebra(modo === 'su' ? k : codLongo(k), chars).slice(0, 2).forEach((ln, j) =>
+      s += txt(cx, py1 + 19 + j * 14, ln, {cor: COR.t1, tam: 11.5, anc: 'middle', peso: 600}));
+    s += txt(cx, py1 + 19 + 28, pct1(pct(v, total)) + '%', {cor: COR.t3, tam: 10.5, anc: 'middle'});
+  });
+  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+  return {svg: svgRoot(W, H, s),
+          pe: (modo === 'su' ? legenda(['ABER', 'ANDM', 'OUTRO']
+                .filter(fa => mostra.some(k => familiaSu(k) === fa))
+                .map(fa => ({cor: COR_FAM[fa], rot: 'família ' + fa}))) : '') +
+              (cats.length > teto ? `<div class="nota">Mostrando ${teto} de ${fmt(cats.length)}; a tabela traz todos.</div>` : ''),
+          tabela: {cab: [modo === 'su' ? 'Status do usuário' : 'Tipo de medida', 'Medidas', '% da lista'],
+                   linhas: cats.map(k => [esc(modo === 'su' ? k : codLongo(k)), fmt(c.get(k)),
+                                          pct1(pct(c.get(k), total)) + '%'])}};
 }
 
 /* ---------- cobrança × carteira ---------- */
@@ -10044,7 +10107,8 @@ function renderMed() {
     mA.forEach((l, k) => { if (!mB.has(k)) sairam.push(l); });
   }
   const escopo = [escopoBase(), rotuloSel(st.polo, 'Polo ', 'polos'),
-                  mx.proc || null, mx.su ? rotSu(mx.su) : null, mx.resp || null].filter(Boolean).join(' · ');
+                  mx.proc || null, rotuloSel(mx.cod, 'código ', 'códigos'),
+                  mx.su ? rotSu(mx.su) : null, mx.resp || null].filter(Boolean).join(' · ');
   $('#pill-ant').innerHTML = semComp ? 'Comparação <b>primeira foto</b>' : `Comparação <b>${dlonga(MED.semanas[mx.a])}</b>`;
   $('#pill-atu').innerHTML = `Semana <b>${dlonga(MED.semanas[mx.b])}</b>`;
   $('#pill-escopo').innerHTML = `Escopo <b>${esc(escopo)}</b>`;
@@ -10112,6 +10176,17 @@ function montaControlesMed() {
   opcoes($('#m-proc'), [{v: '', r: 'Todos os processos'}].concat(MED.processos.map(p => ({v: p, r: p}))), mx.proc);
   opcoes($('#m-fsu'), [{v: '', r: 'Todos os status'}].concat(MED.su.map(v => ({v, r: rotSu(v)}))), mx.su);
   opcoes($('#m-fresp'), [{v: '', r: 'Todos os responsáveis'}].concat(MED.resps.map(r => ({v: r, r}))), mx.resp);
+  /* contagem na semana atual, ignorando o próprio filtro de código */
+  const contaCod = {};
+  (PORSEM_MED[mx.b] || new Map()).forEach(l => {
+    if (st.ger && gerenciaDe(MED.polos[l[MPOLO]]) !== st.ger) return;
+    if (!passaLista(st.polo, MED.polos[l[MPOLO]])) return;
+    if (mx.proc && MED.processos[l[MPROC]] !== mx.proc) return;
+    if (mx.su && MED.su[l[MSU]] !== mx.su) return;
+    if (mx.resp && MED.resps[l[MRESP]] !== mx.resp) return;
+    const c = MED.codigos[l[MCOD]]; contaCod[c] = (contaCod[c] || 0) + 1;
+  });
+  montaMsel('m-cod-h', MED.codigos.slice(), contaCod);
 
   $('#m-semanas').innerHTML = MED.semanas.length
     ? 'Fotos de medidas: ' + MED.semanas.map((w, i) =>
@@ -10126,11 +10201,12 @@ $('#m-semana').addEventListener('change', e => { mx.b = +e.target.value; mx.a = 
 $('#m-comp').addEventListener('change', e => { mx.a = +e.target.value; render(); });
 $('#m-ger').addEventListener('change', e => { st.ger = e.target.value; st.polo = []; montaPolos(); montaControlesMed(); render(); });
 $('#m-polo').addEventListener('change', e => { setPoloUnico(e.target.value); montaPolos(); render(); });
+ligaMsel('m-cod-h');
 $('#m-proc').addEventListener('change', e => { mx.proc = e.target.value; render(); });
 $('#m-fsu').addEventListener('change', e => { mx.su = e.target.value; render(); });
 $('#m-fresp').addEventListener('change', e => { mx.resp = e.target.value; render(); });
 $('#m-limpa').addEventListener('click', () => {
-  st.ger = ''; st.polo = []; mx.proc = mx.su = mx.resp = '';
+  st.ger = ''; st.polo = []; mx.proc = mx.su = mx.resp = ''; mx.cod = [];
   mx.b = Math.max(0, MED.semanas.length - 1); mx.a = mx.b - 1;
   montaPolos(); montaControlesMed(); render();
 });
@@ -10160,6 +10236,7 @@ $('#md-limpa-lista').addEventListener('click', () => {
   mx.dBusca = ''; $('#md-busca').value = ''; render();
 });
 $('#md-foco').addEventListener('change', e => { mx.codFoco = e.target.value; render(); });
+$$('[data-mddg]').forEach(b => b.addEventListener('click', () => { mx.detG = b.dataset.mddg; render(); }));
 $$('[data-mdpolo]').forEach(b => b.addEventListener('click', () => {
   mx.poloModo = b.dataset.mdpolo; render();
 }));
@@ -11729,11 +11806,17 @@ function gPsvTop(mB, mA) {
   const antes = new Map(Array.from(mA.values()).map(l => [l[QPI], l[QVAL]]));
   const teto = Math.min(top.length, 20);
   const mostra = top.slice(0, teto);
-  const W = 1040, ml = 352, mr = 190, mt = 26, rh = 30;
+  /* três colunas de número à direita e duas de texto à esquerda: as margens
+     são largas de propósito, senão o acumulado encosta na variação */
+  const W = 1100, ml = 400, mr = 250, mt = 26, rh = 30;
   const H = mt + mostra.length * rh + 18;
   const px0 = ml, px1 = W - mr;
   const max = Math.max(1, mostra[0][QVAL]);
-  let s = '';
+  const totTela = somaDe(Array.from(mB.values())) || 1;
+  let acum = 0;
+  let s = txt(W - 170, mt - 12, 'compensação', {cor: COR.t3, tam: 10, anc: 'end'}) +
+          txt(W - 110, mt - 12, '% acum.', {cor: COR.t3, tam: 10, anc: 'end'}) +
+          txt(W - 8, mt - 12, '× anterior', {cor: COR.t3, tam: 10, anc: 'end'});
   mostra.forEach((l, i) => {
     const yc = mt + i * rh + rh / 2, h = 15;
     const polo = PSV.polos[l[QPOLO]];
@@ -11745,11 +11828,18 @@ function gPsvTop(mB, mA) {
     const nome = String(l[QCLI] || '').trim();
     const rotulo = [nome, semPi ? '' : 'PI ' + l[QPI]].filter(Boolean).join(' · ')
                    || PSV.acoes[l[QACAO]];
-    s += txt(30, yc + 4, corta(rotulo, 26), {cor: COR.t1, tam: 12, peso: 600});
-    s += txt(px0 - 10, yc + 4, polo + ' · ' + corta(PSV.cidades[l[QCID]], 13), {cor: COR.t3, tam: 10.5, anc: 'end'});
-    const dica = `<b>${brl(l[QVAL])}</b><br><span class="l">${esc(piRot(l))} · ${PSV.cidades[l[QCID]]} · ${PSV.resps[l[QRESP]]}</span>`;
-    s += barraSVG(px0, yc - h / 2, Math.max(2, (l[QVAL] / max) * (px1 - px0)), h, corGer(gerenciaDe(polo)), dica);
-    s += txt(W - 92, yc + 4, brlCurto(l[QVAL]), {cor: COR.t1, tam: 14, peso: 650, anc: 'end', tab: 1});
+    s += txt(30, yc + 4, corta(rotulo, 24), {cor: COR.t1, tam: 12, peso: 600});
+    s += txt(px0 - 10, yc + 4, polo + ' · ' + corta(PSV.cidades[l[QCID]], 11) + ' · ' +
+             corta(PSV.resps[l[QRESP]], 11), {cor: COR.t3, tam: 10.5, anc: 'end'});
+    acum += l[QVAL];
+    const dica = `<b>${brl(l[QVAL])}</b> · ${pct1(pct(l[QVAL], totTela))}% do total<br>` +
+      `<span class="l">${esc(piRot(l))} · ${PSV.cidades[l[QCID]]} · ${PSV.resps[l[QRESP]]} ·
+       acumulado até aqui ${pct1(pct(acum, totTela))}%</span>`;
+    s += barraSVG(px0, yc - h / 2, Math.max(2, (l[QVAL] / max) * (px1 - px0 - 14)), h,
+                  corGer(gerenciaDe(polo)), dica);
+    s += txt(W - 170, yc + 4, brlCurto(l[QVAL]), {cor: COR.t1, tam: 14, peso: 650, anc: 'end', tab: 1});
+    /* o acumulado é a leitura de Pareto: onde os primeiros param de mandar */
+    s += txt(W - 110, yc + 4, pct1(pct(acum, totTela)) + '%', {cor: COR.t2, tam: 11.5, anc: 'end', peso: 650, tab: 1});
     const a = antes.get(l[QPI]);
     const dv = a == null ? null : l[QVAL] - a;
     s += txt(W - 8, yc + 4, a == null ? (mA.size ? 'novo' : '') : (dv ? sinalBrl(dv) : '='),
@@ -11760,10 +11850,16 @@ function gPsvTop(mB, mA) {
   return {svg: svgRoot(W, H, s),
           pe: legenda(gers.map(g => ({cor: corGer(g), rot: g}))) +
               (top.length > teto ? `<div class="nota">Mostrando os 20 maiores dos ${fmt(top.length)} do TOP; a tabela abaixo traz todos.</div>` : ''),
-          tabela: {cab: ['#', 'PI', 'Cliente', 'Polo', 'Cidade', 'Responsável', 'Compensação', 'Foto anterior'],
-                   linhas: top.map((l, i) => [String(i + 1), esc(l[QPI]), esc(l[QCLI] || '—'),
-                     esc(PSV.polos[l[QPOLO]]), esc(PSV.cidades[l[QCID]]), esc(PSV.resps[l[QRESP]]),
-                     brl(l[QVAL]), antes.has(l[QPI]) ? brl(antes.get(l[QPI])) : '—'])}};
+          tabela: {cab: ['#', 'PI', 'Cliente', 'Polo', 'Cidade', 'Responsável', 'Compensação',
+                         '% do total', '% acumulado', 'Foto anterior'],
+                   linhas: (() => { let ac = 0;
+                     return top.map((l, i) => { ac += l[QVAL];
+                       return [String(i + 1), esc(l[QPI]), esc(l[QCLI] || '—'),
+                         esc(PSV.polos[l[QPOLO]]), esc(PSV.cidades[l[QCID]]), esc(PSV.resps[l[QRESP]]),
+                         brl(l[QVAL]), pct1(pct(l[QVAL], totTela)) + '%', pct1(pct(ac, totTela)) + '%',
+                         antes.has(l[QPI]) ? brl(antes.get(l[QPI])) : '—'];
+                     });
+                   })()}};
 }
 /* a tabela do TOP, com previsão e observação editáveis */
 function pintaTopTabela(mB) {
@@ -11771,16 +11867,11 @@ function pintaTopTabela(mB) {
   if (!top.length) { $('#qs-top-tab').innerHTML = ''; return; }
   const derivados = PSV.linhas.filter(l => String(l[QPI]).indexOf('S/PI') === 0).length;
   const notaPi = derivados
-    ? `<div class="explica alerta"><b>${fmt(derivados)} linha(s) sem número de PI.</b> O painel montou
-       a chave com polo + cidade (<i>S/PI · PO/Coromandel #2</i>) para conseguir comparar semanas e guardar
-       a tratativa. Enquanto a coluna PI vier vazia, duas semanas só se encontram se o polo, a cidade e a
-       ordem das linhas forem os mesmos — preencha a coluna PI para o acompanhamento ficar firme.</div>`
+    ? `<div class="nota">${fmt(derivados)} linha(s) sem número de PI: a chave é polo + cidade.</div>`
     : '';
   $('#qs-top-tab').innerHTML =
-    `<h4 class="sub-tit">Tratativa de cada PI do TOP</h4>
-     <div class="explica"><b>Previsão</b> e <b>Observação</b> são editáveis: o que você escrever vale por
-     cima do que veio na planilha, fica preso à chave da linha e sobrevive às próximas cargas.
-     A previsão aceita data (<i>12/03/2026</i>) ou texto (<i>Pendente</i>).</div>${notaPi}
+    `<h4 class="sub-tit">Tratativa de cada PI do TOP <span class="sub"> · previsão e observação editáveis</span></h4>
+     ${notaPi}
      <div class="tab-wrap"><table class="dt"><thead><tr>
        <th>#</th><th>PI</th><th>Cliente</th><th>Polo</th><th>Cidade</th><th>Compensação</th>
        <th>Ação proposta</th><th>Responsável</th><th>Previsão</th><th class="cel-rot">Observação</th>
@@ -11800,6 +11891,63 @@ function linhaPsvEditavel(l, pos) {
 }
 
 /* ---------- composição por recorte ---------- */
+/* quanto do dinheiro está concentrado no TOP: parte sobre o todo, em pizza,
+   com as colunas do TOP ao lado para ver de onde vem a concentração */
+function gPsvPeso(mB) {
+  const n = qx.topN;
+  const top = topoDe(mB, n), total = somaDe(Array.from(mB.values()));
+  const sTop = somaDe(top), resto = Math.max(0, total - sTop);
+  if (total <= 0) return {svg: '<div class="vazio">Sem compensação no filtro atual.</div>', tabela: null};
+  /* o TOP é o assunto e o resto é contexto: cinza neutro, e não uma cor de
+     gerência, que aqui significaria outra coisa */
+  const fatias = [{k: `TOP ${fmt(n)}`, v: sTop, c: COR.s1, pi: top.length},
+                  {k: 'Demais PI', v: resto, c: '#b9b8ae', pi: Math.max(0, mB.size - top.length)}];
+  /* a faixa precisa ser mais larga que o rótulo: com o anel fino o "50,6%"
+     escorrega para dentro do furo e o texto branco some no branco */
+  const W = 640, H = 300, cx = 152, cy = H / 2, ro = 114, ri = 64;
+  let s = '', ang = -Math.PI / 2;
+  fatias.forEach(f => {
+    if (f.v <= 0) { return; }
+    const a = (f.v / total) * Math.PI * 2, a1 = ang + a, gr = a > Math.PI ? 1 : 0;
+    const p = (r, x) => [cx + r * Math.cos(x), cy + r * Math.sin(x)];
+    const [x1, y1] = p(ro, ang), [x2, y2] = p(ro, a1), [x3, y3] = p(ri, a1), [x4, y4] = p(ri, ang);
+    s += `<path d="M${x1},${y1} A${ro},${ro} 0 ${gr} 1 ${x2},${y2} L${x3},${y3} A${ri},${ri} 0 ${gr} 0 ${x4},${y4} Z"
+            fill="${f.c}" stroke="${COR.surface}" stroke-width="2" class="hit"
+            data-t="${esc(`<b>${brl(f.v)}</b> · ${pct1(pct(f.v, total))}%<br><span class="l">${f.k} · ${fmt(f.pi)} PI</span>`)}"/>`;
+    if (a > 0.34) {
+      const [lx, ly] = p((ro + ri) / 2, ang + a / 2);
+      s += txt(lx, ly + 5, pct1(pct(f.v, total)) + '%',
+               {cor: tintaSobre(f.c), tam: 14, anc: 'middle', peso: 700});
+    }
+    ang = a1;
+  });
+  const rotC = brlCurto(total);
+  s += txt(cx, cy + 1, rotC, {cor: COR.t1, tam: rotC.length > 11 ? 16 : rotC.length > 8 ? 18 : 21,
+                              anc: 'middle', peso: 650});
+  s += txt(cx, cy + 20, 'total na tela', {cor: COR.t3, tam: 11.5, anc: 'middle'});
+  /* colunas: as dez maiores fatias do TOP, para ver de onde vem a concentração */
+  const dez = top.slice(0, 10);
+  if (dez.length) {
+    const px0 = 310, px1 = W - 16, py0 = 54, py1 = H - 54;
+    const max = Math.max(1, dez[0][QVAL]);
+    const banda = (px1 - px0) / dez.length, bw = Math.min(26, banda * 0.6);
+    s += txt(px0, 34, `Os ${fmt(dez.length)} maiores PI`, {cor: COR.t2, tam: 11.5, peso: 650});
+    dez.forEach((l, i) => {
+      const x = px0 + banda * i + banda / 2, alt = Math.max(2, (l[QVAL] / max) * (py1 - py0));
+      s += colunaSVG(x - bw / 2, py1 - alt, bw, alt, corGer(gerenciaDe(PSV.polos[l[QPOLO]])),
+        `<b>${brl(l[QVAL])}</b> · ${pct1(pct(l[QVAL], total))}%<br><span class="l">${esc(piRot(l))} ·
+         ${PSV.cidades[l[QCID]]}</span>`);
+      s += txt(x, py1 + 14, String(i + 1), {cor: COR.t3, tam: 10, anc: 'middle', tab: 1});
+    });
+    s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+    s += txt(px0, py1 + 32, `cor = gerência · maior ${brlCurto(dez[0][QVAL])}`, {cor: COR.t3, tam: 10.5});
+  }
+  return {svg: svgRoot(W, H, s),
+          tabela: {cab: ['Recorte', 'PI', 'Compensação', '% do total'],
+                   linhas: fatias.map(f => [f.k, fmt(f.pi), brl(f.v), pct1(pct(f.v, total)) + '%'])
+                     .concat([['<b>Total na tela</b>', `<b>${fmt(mB.size)}</b>`, `<b>${brl(total)}</b>`, '<b>100,0%</b>']])}};
+}
+
 /* quanto do dinheiro em tela está na mão de cada responsável.
    Pizza porque aqui a pergunta é de parte sobre o todo: as fatias somam 100%. */
 function gPsvResp(mB, mA) {
@@ -12016,6 +12164,9 @@ function renderPsv() {
   const nResp = new Set(Array.from(mB.values()).map(l => PSV.resps[l[QRESP]])).size;
   $('#qs-sub-resp').textContent =
     `${fmt(nResp)} responsável(is) na tela · % sobre a compensação total do filtro`;
+  $('#qs-tit-peso').textContent = `Peso do TOP ${fmt(qx.topN)}`;
+  $('#qs-sub-peso').textContent = 'parte sobre o total da tela';
+  pinta('qs-peso', gPsvPeso(mB));
   pinta('qs-resp', gPsvResp(mB, mA));
   pinta('qs-evo', gPsvEvo());
   pinta('qs-top', gPsvTop(mB, mA));
