@@ -6228,13 +6228,16 @@ $('#f-limpa').addEventListener('click', () => {
   st.b = SEMANAS.length - 1; st.a = Math.max(0, SEMANAS.length - 2);
   montaControles(); render();
 });
-$$('.tbtn').forEach(b => b.addEventListener('click', () => {
+/* delegado: alguns cards são recriados a cada pintura e o botão nasce depois */
+document.addEventListener('click', ev => {
+  const b = ev.target.closest && ev.target.closest('.tbtn');
+  if (!b || !b.dataset.tab) return;
   const on = b.getAttribute('aria-pressed') === 'true';
   b.setAttribute('aria-pressed', on ? 'false' : 'true');
   b.textContent = on ? 'Tabela' : 'Gráfico';
   const id = b.dataset.tab;
   if (st.tab[id]) pinta(id, st.tab[id]);
-}));
+});
 $('#d-busca').addEventListener('input', e => { st.dBusca = e.target.value; render(); });
 $('#d-limpa').addEventListener('click', () => {
   st.dResp = []; st.dGer = []; st.dPolo = []; st.dTipo = []; st.dBusca = '';
@@ -11512,7 +11515,7 @@ let ORIGEM_PSV = '';
 const qx = {b: 0, a: -1, topN: 20, cid: '', resp: '', acao: '',
             modo: 'polo', det: 'todos', dBusca: '', dOrd: {col: 'val', dir: -1},
             pxDe: '', pxAte: '', pxModo: 'dia', pxBusca: '',
-            pxPolo: '', pxEquipe: '', pxDia: ''};
+            pxPolo: '', pxEquipe: '', pxDia: '', pxTipo: ''};
 
 const brl = v => 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR');
 const brlCurto = v => {
@@ -12162,6 +12165,24 @@ function pintaPsvDetalhe(mB, mA) {
    Mesma leitura e mesma estrutura dos executados do G-DIS; o que muda é a
    base de destino e o cruzamento, que aqui é com a carteira de PI.
    ============================================================ */
+/* os tipos de serviço da execução PSVT, na coluna C. São dois pares:
+   cada medição é instalada e depois retirada, então a diferença entre os
+   dois diz quantas estão em campo agora. */
+const TIPO_PSVT = {
+  NSMG: {nome: 'Instalação 1ª Medição',      fam: '1ª Medição',   mov: 'in'},
+  NSRM: {nome: 'Retirada 1ª Medição',        fam: '1ª Medição',   mov: 'out'},
+  NSME: {nome: 'Instalação de comprobatória', fam: 'Comprobatória', mov: 'in'},
+  NSRC: {nome: 'Retirada de comprobatória',   fam: 'Comprobatória', mov: 'out'}
+};
+const FAM_PSVT = ['1ª Medição', 'Comprobatória'];
+const COR_FAM_PSVT = {'1ª Medição': '#2a78d6', 'Comprobatória': '#17996a', 'Outros': '#83827b'};
+/* o código pode vir com sufixo ou minúsculo: vale o prefixo de quatro letras */
+function tipoPsvt(bruto) {
+  const t = String(bruto == null ? '' : bruto).trim();
+  const k = t.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+  return TIPO_PSVT[k] ? Object.assign({cod: k, bruto: t}, TIPO_PSVT[k])
+                      : {cod: t || '—', bruto: t, nome: t || '(sem tipo)', fam: 'Outros', mov: ''};
+}
 let PEX = {veiculos: [], polos: [], linhas: []};
 let ORIGEM_PEX = '';
 const CHAVE_PEX = 'nge-pexec-v1';
@@ -12267,7 +12288,14 @@ function pintaPexec(mB) {
       <div class="tools"><button class="tbtn" data-tab="px-equipes" aria-pressed="false">Tabela</button></div>
     </div><div id="px-equipes"></div>`;
 
-  cx.innerHTML = ctrl + tiles + ritmoGdis(serv, ini, fim, PEX, 'px') + blocoEq + listaPex(serv, liga, temPi);
+  const blocoTipo = `<h4 class="sub-tit">Por tipo de serviço</h4>
+    <div class="card-hd" style="margin-bottom:6px">
+      <span class="sub">coluna C da exportação · instalação e retirada de cada medição</span>
+      <div class="tools"><button class="tbtn" data-tab="px-tipo" aria-pressed="false">Tabela</button></div>
+    </div><div id="px-tipo"></div>`;
+  cx.innerHTML = ctrl + tiles + blocoTipo + ritmoGdis(serv, ini, fim, PEX, 'px') + blocoEq +
+                 listaPex(serv, liga, temPi);
+  pinta('px-tipo', gPexTipo(serv));
   pinta('px-equipes', eq);
   ligaCtrlPex();
 }
@@ -12276,9 +12304,11 @@ function listaPex(serv, liga, temPi) {
   const passa = (l, exceto) =>
     (exceto === 'polo'   || !qx.pxPolo   || PEX.polos[l[GPOLO]] === qx.pxPolo) &&
     (exceto === 'equipe' || !qx.pxEquipe || PEX.veiculos[l[GVEIC]] === qx.pxEquipe) &&
+    (exceto === 'tipo'   || !qx.pxTipo   || tipoPsvt(l[GTIPO]).cod === qx.pxTipo) &&
     (exceto === 'dia'    || !qx.pxDia    || l[GDATA] === qx.pxDia);
   const opcoesDe = campo => {
-    const chave = {polo: l => PEX.polos[l[GPOLO]], equipe: l => PEX.veiculos[l[GVEIC]], dia: l => l[GDATA]};
+    const chave = {polo: l => PEX.polos[l[GPOLO]], equipe: l => PEX.veiculos[l[GVEIC]],
+                   tipo: l => tipoPsvt(l[GTIPO]).cod, dia: l => l[GDATA]};
     const c = new Map();
     serv.filter(l => passa(l, campo)).forEach(l => { const v = chave[campo](l);
       if (v) c.set(v, (c.get(v) || 0) + 1); });
@@ -12288,6 +12318,7 @@ function listaPex(serv, liga, temPi) {
   const filtrados = serv.filter(l => passa(l, null) && (!busca ||
     String(l[GSERV]).toLowerCase().indexOf(busca) >= 0 ||
     String(l[GPI] || '').toLowerCase().indexOf(busca) >= 0 ||
+    tipoPsvt(l[GTIPO]).nome.toLowerCase().indexOf(busca) >= 0 ||
     String(l[GOBS] || '').toLowerCase().indexOf(busca) >= 0 ||
     String(PEX.veiculos[l[GVEIC]]).toLowerCase().indexOf(busca) >= 0));
   PX_LISTA = filtrados;
@@ -12302,8 +12333,9 @@ function listaPex(serv, liga, temPi) {
   const corpo = filtrados.slice().sort((a, b) =>
       String(b[GDATA]).localeCompare(String(a[GDATA])) || String(a[GHORA]).localeCompare(String(b[GHORA])))
     .slice(0, 600).map(l => {
-      const c = liga(l);
+      const c = liga(l), t = tipoPsvt(l[GTIPO]);
       return `<tr><td>${esc(String(l[GSERV]))}</td><td>${l[GDATA] ? dlonga(l[GDATA]) : '—'}</td>
+        <td><code>${esc(t.cod)}</code> <span class="l">${esc(t.nome)}</span></td>
         <td>${esc(l[GHORA] || '—')}</td><td>${esc(PEX.veiculos[l[GVEIC]])}</td>
         <td>${esc(PEX.polos[l[GPOLO]])}</td><td>${esc(String(l[GPI] || '—'))}</td>
         <td>${c ? `<span class="chip c-bom">na carteira</span> <span class="l">${brl(c[QVAL])}</span>`
@@ -12314,6 +12346,8 @@ function listaPex(serv, liga, temPi) {
     }).join('');
   return `<h4 class="sub-tit">Serviços executados</h4>
     <div class="filtros-lista" style="padding-top:0">
+      ${sel('px-f-tipo', 'Tipo de serviço', 'tipo', qx.pxTipo || '',
+            v => { const t = tipoPsvt(v); return t.cod + ' · ' + t.nome; })}
       ${sel('px-f-polo', 'Polo', 'polo', qx.pxPolo || '')}
       ${sel('px-f-equipe', 'Equipe', 'equipe', qx.pxEquipe || '')}
       ${sel('px-f-dia', 'Dia', 'dia', qx.pxDia || '', dlonga)}
@@ -12324,7 +12358,8 @@ function listaPex(serv, liga, temPi) {
       <span class="conta">${fmt(filtrados.length)} de ${fmt(serv.length)} serviços</span>
     </div>
     <div class="tab-wrap alta"><table class="dt"><thead><tr>
-      <th>Serviço</th><th>Data</th><th>Hora</th><th>Equipe</th><th>Polo</th><th>PI</th><th>Carteira</th>
+      <th>Serviço</th><th>Data</th><th>Tipo de serviço</th><th>Hora</th><th>Equipe</th><th>Polo</th>
+      <th>PI</th><th>Carteira</th>
       ${temObs ? '<th class="cel-obs">Observação</th>' : ''}
     </tr></thead><tbody>${corpo}</tbody></table></div>` +
     (filtrados.length > 600 ? `<div class="nota">Mostrando os 600 primeiros de ${fmt(filtrados.length)}.</div>` : '');
@@ -12341,28 +12376,99 @@ function ligaCtrlPex() {
     else { qx.pxAte = pg.ate; qx.pxDe = somaDias(pg.ate, -parseInt(v, 10)); }
     render();
   }));
-  [['#px-f-polo', 'pxPolo'], ['#px-f-equipe', 'pxEquipe'], ['#px-f-dia', 'pxDia']].forEach(([id, k]) => {
+  [['#px-f-polo', 'pxPolo'], ['#px-f-equipe', 'pxEquipe'], ['#px-f-dia', 'pxDia'],
+   ['#px-f-tipo', 'pxTipo']].forEach(([id, k]) => {
     const el = $(id);
     if (el) el.addEventListener('change', e => { qx[k] = e.target.value; render(); });
   });
   const lp = $('#px-limpa');
   if (lp) lp.addEventListener('click', () => {
-    qx.pxPolo = qx.pxEquipe = qx.pxDia = ''; qx.pxBusca = ''; render();
+    qx.pxPolo = qx.pxEquipe = qx.pxDia = qx.pxTipo = ''; qx.pxBusca = ''; render();
   });
   const bu = $('#px-busca');
   if (bu) bu.addEventListener('input', e => { qx.pxBusca = e.target.value; render(); });
   const xl = $('#px-xls');
   if (xl) xl.addEventListener('click', () => {
     baixaExcel(nomeExcel('execucao_psvt'),
-      ['Serviço', 'Data', 'Hora', 'Equipe', 'Polo', 'Gerência', 'PI', 'Na carteira',
-       'Compensação do PI', 'Equipamento', 'Observação'],
-      PX_LISTA.map(l => { const c = PX_LIGA ? PX_LIGA(l) : null;
-        return [String(l[GSERV]), l[GDATA] || '', l[GHORA] || '', PEX.veiculos[l[GVEIC]] || '',
+      ['Serviço', 'Data', 'Código', 'Tipo de serviço', 'Família', 'Movimento', 'Hora', 'Equipe',
+       'Polo', 'Gerência', 'PI', 'Na carteira', 'Compensação do PI', 'Equipamento', 'Observação'],
+      PX_LISTA.map(l => { const c = PX_LIGA ? PX_LIGA(l) : null, t = tipoPsvt(l[GTIPO]);
+        return [String(l[GSERV]), l[GDATA] || '', t.cod, t.nome, t.fam,
+                t.mov === 'in' ? 'instalação' : t.mov === 'out' ? 'retirada' : '',
+                l[GHORA] || '', PEX.veiculos[l[GVEIC]] || '',
                 PEX.polos[l[GPOLO]] || '', gerenciaDe(PEX.polos[l[GPOLO]]) || '',
                 String(l[GPI] || ''), c ? 'sim' : 'não', c ? c[QVAL] : '',
                 String(l[GEQ] || ''), l[GOBS] || ''];
       }), 'Execução PSVT');
   });
+}
+
+/* instalações e retiradas por família: colunas agrupadas, porque a leitura
+   é a diferença dentro de cada par, não o total solto */
+function gPexTipo(serv) {
+  const c = new Map();                                  /* código -> contagem */
+  serv.forEach(l => { const t = tipoPsvt(l[GTIPO]);
+    c.set(t.cod, (c.get(t.cod) || 0) + 1); });
+  if (!c.size) return {svg: '<div class="vazio">Sem serviços no período.</div>', tabela: null};
+  const famUsadas = FAM_PSVT.filter(fa =>
+    Object.keys(TIPO_PSVT).some(k => TIPO_PSVT[k].fam === fa && c.get(k)));
+  const outros = Array.from(c.keys()).filter(k => !TIPO_PSVT[k]);
+  const grupos = famUsadas.map(fa => ({
+    fa,
+    cols: Object.keys(TIPO_PSVT).filter(k => TIPO_PSVT[k].fam === fa)
+      .map(k => ({cod: k, n: c.get(k) || 0, mov: TIPO_PSVT[k].mov, nome: TIPO_PSVT[k].nome}))
+  }));
+  if (outros.length) grupos.push({fa: 'Outros',
+    cols: outros.map(k => ({cod: k, n: c.get(k), mov: '', nome: k}))});
+
+  const total = serv.length;
+  const W = 1000, H = 320, ml = 52, mr = 20, mt = 42, mb = 96;
+  const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
+  const todas = [].concat.apply([], grupos.map(g => g.cols));
+  const max = escalaMax(Math.max(1, ...todas.map(x => x.n)) * 1.14);
+  const y = v => py1 - (v / max) * (py1 - py0);
+  let s = grade(px0, px1, marcasY(max).map(y));
+  marcasY(max).forEach(v => s += txt(px0 - 9, y(v) + 4, fmt(v), {cor: COR.t3, tam: 11, anc: 'end', tab: 1}));
+  const banda = (px1 - px0) / grupos.length;
+  grupos.forEach((g, i) => {
+    const cx = px0 + banda * i + banda / 2;
+    const grupoW = Math.min(banda * 0.7, g.cols.length * 108);
+    const colW = Math.max(14, grupoW / g.cols.length - 14);
+    g.cols.forEach((x, k) => {
+      const bx = cx - grupoW / 2 + k * (grupoW / g.cols.length) + 7;
+      const alt = Math.max(x.n ? 2 : 0, py1 - y(x.n));
+      /* a retirada sai em tom claro: é o mesmo assunto, no sentido inverso */
+      const cor = x.mov === 'out' ? clareia(COR_FAM_PSVT[g.fa], 0.45) : COR_FAM_PSVT[g.fa];
+      if (x.n) s += colunaSVG(bx, y(x.n), colW, alt, cor,
+        `<b>${fmt(x.n)}</b> serviços · ${pct1(pct(x.n, total))}%<br><span class="l">${x.cod} · ${x.nome}</span>`);
+      s += txt(bx + colW / 2, y(x.n) - 9, fmt(x.n), {cor: COR.t1, tam: 15, peso: 650, anc: 'middle'});
+      s += txt(bx + colW / 2, py1 + 18, x.cod, {cor: COR.t1, tam: 12, anc: 'middle', peso: 650});
+      s += txt(bx + colW / 2, py1 + 33, x.mov === 'in' ? 'instalação' : x.mov === 'out' ? 'retirada' : '',
+               {cor: COR.t3, tam: 10.5, anc: 'middle'});
+    });
+    s += txt(cx, py1 + 56, g.fa, {cor: COR.t2, tam: 12.5, anc: 'middle', peso: 650});
+    const ins = g.cols.filter(x => x.mov === 'in').reduce((a, x) => a + x.n, 0);
+    const ret = g.cols.filter(x => x.mov === 'out').reduce((a, x) => a + x.n, 0);
+    if (g.fa !== 'Outros') s += txt(cx, py1 + 73, `saldo ${sinal(ins - ret)} em campo`,
+      {cor: ins - ret > 0 ? COR.t2 : ins - ret < 0 ? '#006300' : COR.t3, tam: 11, anc: 'middle', peso: 650});
+    const totG = g.cols.reduce((a, x) => a + x.n, 0);
+    s += txt(cx, mt - 14, `${fmt(totG)} serviço(s)`, {cor: COR.t3, tam: 11, anc: 'middle'});
+  });
+  s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
+  const insT = todas.filter(x => x.mov === 'in').reduce((a, x) => a + x.n, 0);
+  const retT = todas.filter(x => x.mov === 'out').reduce((a, x) => a + x.n, 0);
+  return {svg: svgRoot(W, H, s),
+          pe: legenda(famUsadas.map(fa => ({cor: COR_FAM_PSVT[fa], rot: fa}))
+                .concat([{cor: clareia(COR_FAM_PSVT[famUsadas[0] || '1ª Medição'], 0.45), rot: 'tom claro: retirada'}])),
+          tabela: {cab: ['Código', 'Tipo de serviço', 'Família', 'Movimento', 'Serviços', '% do período'],
+                   linhas: Array.from(c.keys())
+                     .sort((a, b) => c.get(b) - c.get(a))
+                     .map(k => { const t = tipoPsvt(k);
+                       return [esc(t.cod), esc(t.nome), esc(t.fam),
+                               t.mov === 'in' ? 'instalação' : t.mov === 'out' ? 'retirada' : '—',
+                               fmt(c.get(k)), pct1(pct(c.get(k), total)) + '%']; })
+                     .concat([['<b>Total</b>', '', '', `<b>${fmt(insT)} in / ${fmt(retT)} out</b>`,
+                               `<b>${fmt(total)}</b>`, '<b>100,0%</b>']])}};
 }
 
 /* ---------- render ---------- */

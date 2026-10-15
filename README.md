@@ -366,7 +366,12 @@ As telas:
   podem ser sobrescritas, cada linha tem a coluna **Anotação**: é a nota do painel, que entra na
   seção *Anotações*, agrupada por polo, e sai no relatório.
 - **Execução PSVT** — os serviços que as equipes executaram, lidos com a mesma estrutura dos
-  executados do G-DIS OP. Quando a exportação traz uma coluna **PI**, o painel cruza serviço e
+  executados do G-DIS OP. A **coluna C** traz o tipo de serviço, e o painel conhece os quatro
+  códigos: `NSMG` instalação de 1ª medição, `NSRM` retirada de 1ª medição, `NSME` instalação de
+  comprobatória e `NSRC` retirada de comprobatória. Eles abrem em colunas agrupadas por família —
+  1ª Medição e Comprobatória —, com a instalação em tom cheio, a retirada em tom claro e o **saldo
+  em campo** (instaladas menos retiradas) embaixo de cada par. Qualquer outro código entra como
+  *Outros*, sem inventar classificação. O tipo também filtra a lista e sai no Excel. Quando a exportação traz uma coluna **PI**, o painel cruza serviço e
   carteira por ela e responde o que interessa: quantos PI foram atendidos e **quanto da compensação
   em tela foi coberta**. Sem a coluna PI a seção continua valendo como visão de produção — período
   em um clique, serviços por dia útil, produção por equipe, lista com filtros e exportação — e diz
