@@ -638,16 +638,16 @@
         <select id="f-ger"></select>
       </div>
       <div class="campo">
-        <label for="f-polo">Polo</label>
-        <select id="f-polo"></select>
+        <label>Polo</label>
+        <div class="msel" id="f-polo-f" data-campo="polo" data-rot="Todos os polos"></div>
       </div>
       <div class="campo">
-        <label for="f-tipo">Tipo</label>
-        <select id="f-tipo"></select>
+        <label>Tipo</label>
+        <div class="msel" id="f-tipo-f" data-campo="tipo" data-rot="Todos os tipos"></div>
       </div>
-      <div class="campo" style="min-width:200px">
-        <label for="f-resp">Responsabilidade</label>
-        <select id="f-resp"></select>
+      <div class="campo" style="min-width:210px">
+        <label>Responsabilidade</label>
+        <div class="msel" id="f-resp-f" data-campo="resp" data-rot="Todas as responsabilidades"></div>
       </div>
       <button class="btn" id="f-limpa" type="button">Limpar filtros</button>
       <button class="btn" id="bt-dados" type="button" aria-expanded="false">Dados da planilha</button>
@@ -819,8 +819,10 @@
       <div class="campo"><label for="e-semana">Semana</label><select id="e-semana"></select></div>
       <div class="campo"><label for="e-comp">Comparar com</label><select id="e-comp"></select></div>
       <div class="campo"><label for="e-ger">Gerência</label><select id="e-ger"></select></div>
-      <div class="campo"><label for="e-polo">Polo</label><select id="e-polo"></select></div>
-      <div class="campo" style="min-width:190px"><label for="e-tipo">Tipo de serviço</label><select id="e-tipo"></select></div>
+      <div class="campo"><label>Polo</label>
+        <div class="msel" id="e-polo-f" data-campo="polo" data-rot="Todos os polos"></div></div>
+      <div class="campo" style="min-width:200px"><label>Tipo de serviço</label>
+        <div class="msel" id="e-tipo-f" data-campo="tipo" data-store="sx" data-rot="Todos os tipos"></div></div>
       <div class="campo"><label for="e-estagio">Estágio</label><select id="e-estagio"></select></div>
       <button class="btn" id="e-limpa" type="button">Limpar filtros</button>
       <button class="btn" id="bt-edados" type="button" aria-expanded="false">Carregar dados</button>
@@ -4693,7 +4695,7 @@ function aplicaBase(b, origem) {
 
   st.b = Math.max(0, SEMANAS.length - 1);
   st.a = Math.max(0, SEMANAS.length - 2);
-  st.ger = st.polo = st.tipo = st.resp = '';
+  st.ger = ''; st.polo = []; st.tipo = []; st.resp = [];
   st.det = 'todos'; st.dResp = []; st.dGer = []; st.dPolo = []; st.dTipo = []; st.dBusca = '';
   st.dOrd = {col: 'dias', dir: -1}; st.dAssin = ''; st.tab = {};
 }
@@ -4896,7 +4898,7 @@ function baixaExcel(nomeArq, cab, linhas, aba) {
 function nomeExcel(base) {
   const p = [base];
   if (st.ger) p.push(st.ger.replace('/', '-'));
-  if (st.polo) p.push(st.polo);
+  if (st.polo.length === 1) p.push(st.polo[0]);
   p.push(hojeISO());
   return p.join('_').replace(/[^\w\-.]+/g, '_') + '.xlsx';
 }
@@ -4911,10 +4913,22 @@ function tintaSobre(hex) {
 /* ============================================================
    ESTADO E FILTROS
    ============================================================ */
+/* filtro de múltipla escolha: lista vazia quer dizer "tudo" */
+const passaLista = (lista, v) => !lista || !lista.length || lista.indexOf(v) >= 0;
+/* rótulo curto do que está marcado, para a pílula de escopo */
+function rotuloSel(lista, um, muitos) {
+  if (!lista || !lista.length) return null;
+  return lista.length === 1 ? (um || '') + lista[0] : fmt(lista.length) + ' ' + muitos;
+}
+/* os módulos que ainda usam um <select> simples de polo gravam e leem aqui */
+const poloUnico = () => (st.polo && st.polo.length === 1) ? st.polo[0] : '';
+/* o começo da pílula de escopo: a gerência, ou "TR" quando não há */
+const escopoBase = () => st.ger || (st.polo.length ? 'TR' : 'TR · todos os polos');
+const setPoloUnico = v => { st.polo = v ? [v] : []; };
 const st = {
   b: SEMANAS.length - 1,
   a: SEMANAS.length - 2,
-  ger: '', polo: '', tipo: '', resp: '',
+  ger: '', polo: [], tipo: [], resp: [],
   det: 'todos',
   respModo: 'tr',
   mapaDim: 'faixa',
@@ -4926,9 +4940,9 @@ const st = {
 
 function passa(l) {
   if (st.ger && POLO_GER[POLOS[l[P]]] !== st.ger) return false;
-  if (st.polo && POLOS[l[P]] !== st.polo) return false;
-  if (st.tipo && TIPOS[l[T]] !== st.tipo) return false;
-  if (st.resp && grupoResp(RESPONSAVEIS[l[R]]) !== st.resp) return false;
+  if (!passaLista(st.polo, POLOS[l[P]])) return false;
+  if (!passaLista(st.tipo, TIPOS[l[T]])) return false;
+  if (!passaLista(st.resp, grupoResp(RESPONSAVEIS[l[R]]))) return false;
   return true;
 }
 function fatia(wi) {
@@ -5286,7 +5300,7 @@ function gRespColuna(mA, mB) {
 
   const segs = modo === 'tr' ? ['total']
     : modo === 'ger' ? GERS.filter(g => (GER_POLOS[g] || []).length)
-    : POLOS.filter(p => !st.ger || POLO_GER[p] === st.ger).filter(p => !st.polo || p === st.polo);
+    : POLOS.filter(p => !st.ger || POLO_GER[p] === st.ger).filter(p => passaLista(st.polo, p));
   const segCor = s => modo === 'tr' ? null : (modo === 'ger' ? COR.ger[s] : COR.ger[POLO_GER[s]]);
   const segDe = l => modo === 'tr' ? 'total' : (modo === 'ger' ? POLO_GER[POLOS[l[P]]] : POLOS[l[P]]);
 
@@ -5297,9 +5311,15 @@ function gRespColuna(mA, mB) {
   mA.forEach(l => { const r = RESPONSAVEIS[l[R]]; if (r in totA) totA[r]++; });
   cats.sort((a, b) => totB[b] - totB[a] || a.localeCompare(b, 'pt-BR'));
 
-  const W = 1400, H = 430, ml = 58, mr = 24, mt = 44, mb = 108;
+  /* no modo polo a escala é o maior polo, não o total do responsável:
+     as colunas ficam lado a lado e precisam caber na própria altura */
+  const agrupado = modo === 'polo';
+  const W = 1400, H = agrupado ? 470 : 430, ml = 58, mr = 24, mt = 44, mb = agrupado ? 124 : 108;
   const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
-  const max = escalaMax(Math.max(1, ...cats.map(r => totB[r])) * 1.12);
+  const maxVal = agrupado
+    ? Math.max(1, ...cats.map(r => Math.max(0, ...segs.map(sg => mapa[r][sg]))))
+    : Math.max(1, ...cats.map(r => totB[r]));
+  const max = escalaMax(maxVal * 1.12);
   const y = v => py1 - (v / max) * (py1 - py0);
   const marcas = marcasY(max);
   let s = grade(px0, px1, marcas.map(y));
@@ -5308,9 +5328,28 @@ function gRespColuna(mA, mB) {
   const banda = (px1 - px0) / cats.length;
   const bw = Math.min(24, banda * 0.44);
   const maxChars = Math.max(9, Math.floor(banda / 7.4));
+  /* colunas lado a lado: a largura do grupo é 84% da banda */
+  const grupoW = banda * 0.84;
+  const colW = agrupado ? Math.max(3, grupoW / segs.length - 2) : bw;
 
   cats.forEach((r, i) => {
     const cx = px0 + banda * i + banda / 2, grupo = grupoResp(r);
+    if (agrupado) {
+      segs.forEach((sg, k) => {
+        const v = mapa[r][sg];
+        const x = cx - grupoW / 2 + k * (grupoW / segs.length) + 1;
+        const yTopo = y(v), alt = Math.max(v ? 2 : 0, py1 - yTopo);
+        const cor = segCor(sg);
+        if (v) s += colunaSVG(x, yTopo, colW, alt, cor,
+          `<b>${fmt(v)}</b><br><span class="l">${r} · Polo ${sg} · ${POLO_GER[sg] || ''}</span>`);
+        if (colW >= 13) s += txt(x + colW / 2, py1 + 13, sg,
+          {cor: v ? COR.t2 : COR.t3, tam: 10, anc: 'middle', peso: v ? 650 : 400});
+        if (v && colW >= 18 && alt >= 10) s += txt(x + colW / 2, yTopo - 5, fmt(v),
+          {cor: COR.t2, tam: 10.5, anc: 'middle', peso: 650, tab: 1});
+      });
+      s += txt(cx, y(Math.max(0, ...segs.map(sg => mapa[r][sg]))) - 22, fmt(totB[r]),
+               {cor: COR.t1, tam: 16, peso: 650, anc: 'middle'});
+    } else {
     let acum = 0;
     segs.forEach(sg => {
       const v = mapa[r][sg];
@@ -5318,23 +5357,24 @@ function gRespColuna(mA, mB) {
       const yTopo = y(acum + v), yBase = y(acum);
       const alt = Math.max(1, yBase - yTopo - (acum ? 2 : 0));       /* 2px de respiro entre faixas */
       const cor = modo === 'tr' ? corGrupo(grupo) : segCor(sg);
-      const rot = modo === 'tr' ? grupo : (modo === 'ger' ? sg : 'Polo ' + sg);
+      const rot = modo === 'tr' ? grupo : sg;
       const dica = `<b>${fmt(v)}</b><br><span class="l">${r} · ${rot}</span>`;
       const ultimo = acum + v >= totB[r] - 0.5;
       s += ultimo
         ? colunaSVG(cx - bw / 2, yTopo, bw, alt, cor, dica)
         : `<rect x="${cx - bw / 2}" y="${yTopo}" width="${bw}" height="${alt}" fill="${cor}" class="hit" data-t="${esc(dica)}"/>`;
-      if (modo === 'polo' && alt >= 15) {
-        s += txt(cx, yTopo + alt / 2 + 4, sg, {cor: tintaSobre(cor), tam: 10.5, anc: 'middle', peso: 700});
-      } else if (modo === 'ger' && alt >= 17) {
+      if (modo === 'ger' && alt >= 17) {
         s += txt(cx, yTopo + alt / 2 + 5, fmt(v), {cor: tintaSobre(cor), tam: 12, anc: 'middle', peso: 650});
       }
       acum += v;
     });
     s += txt(cx, y(totB[r]) - 11, fmt(totB[r]), {cor: COR.t1, tam: 19, peso: 650, anc: 'middle'});
+    }
+    const desloca = agrupado ? 16 : 0;
     const linhasRot = quebra(r, maxChars);
-    linhasRot.forEach((ln, k) => s += txt(cx, py1 + 21 + k * 15, ln, {cor: COR.t1, tam: 12.5, anc: 'middle', peso: 600}));
-    const baseY = py1 + 21 + linhasRot.length * 15;
+    linhasRot.forEach((ln, k) => s += txt(cx, py1 + 21 + desloca + k * 15, ln,
+      {cor: COR.t1, tam: 12.5, anc: 'middle', peso: 600}));
+    const baseY = py1 + 21 + desloca + linhasRot.length * 15;
     if (grupo !== r) s += txt(cx, baseY + 2, grupo, {cor: COR.t3, tam: 11, anc: 'middle'});
     else s += txt(cx, baseY + 2, 'individual', {cor: COR.t3, tam: 11, anc: 'middle'});
     const dv = totB[r] - totA[r];
@@ -5348,11 +5388,14 @@ function gRespColuna(mA, mB) {
     ? ['Execução Regional', 'NGE-TR', 'individual'].map(g => ({cor: corGrupo(g), rot: g}))
     : modo === 'ger'
       ? segs.map(g => ({cor: COR.ger[g], rot: g}))
-      : GERS.filter(g => segs.some(p => POLO_GER[p] === g))
-            .map(g => ({cor: COR.ger[g], rot: g + ' — faixas: ' + (GER_POLOS[g] || []).join(', ')}));
+      : GERS.filter(g => segs.some(p => POLO_GER[p] === g)).map(g => ({cor: COR.ger[g], rot: g}));
+  const aviso = agrupado && segs.length > 5
+    ? `<div class="nota">${fmt(segs.length)} polos lado a lado deixam as colunas finas. Escolha uma
+       gerência ou marque os polos no alto da página para comparar de perto.</div>` : '';
   return {
     svg: svgRoot(W, H, s),
-    pe: legenda(chaves),
+    /* uma gerência só na tela: a cor não distingue nada, a legenda sai */
+    pe: (chaves.length > 1 ? legenda(chaves) : '') + aviso,
     tabela: {
       cab: ['Responsável', 'Grupo'].concat(modo === 'tr' ? [] : segs).concat(['Total', 'Anterior', 'Variação']),
       linhas: cats.map(r => [esc(r), esc(grupoResp(r) === r ? 'individual' : grupoResp(r))]
@@ -5365,7 +5408,7 @@ function gRespColuna(mA, mB) {
 /* --- mapa de calor: responsabilidade x faixa --- */
 function gMapa(mB) {
   const porPolo = st.mapaDim === 'polo';
-  const polos = POLOS.filter(p => (!st.ger || POLO_GER[p] === st.ger) && (!st.polo || p === st.polo));
+  const polos = POLOS.filter(p => (!st.ger || POLO_GER[p] === st.ger) && passaLista(st.polo, p));
   const colunas = porPolo ? polos : FAIXAS;
   const idxCol = l => porPolo ? colunas.indexOf(POLOS[l[P]]) : faixaDe(l[D]);
   const cats = GRUPOS.slice();
@@ -5449,7 +5492,7 @@ function gPolo(mA, mB) {
   const cB = contaPor(mB, dim);
   const cats = porGerencia
     ? GERS.slice()
-    : (GER_POLOS[st.ger] || []).filter(p => !st.polo || p === st.polo);
+    : (GER_POLOS[st.ger] || []).filter(p => passaLista(st.polo, p));
   const W = 900, H = 330, ml = 50, mr = 20, mt = 44, mb = 66;
   const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
   const max = escalaMax(Math.max(1, ...cats.map(p => Math.max(pega(cB, p), pega(cA, p)))) * 1.12);
@@ -5617,8 +5660,15 @@ function rotuloMsel(cx, sel, rot) {
   return `${fmt(sel.length)} selecionados`;
 }
 const MSEL_CACHE = {};
+/* a loja do filtro: st por padrão, sx/mx para os que são de um módulo só */
+const lojaMsel = cx => {
+  /* resolvido só quando há loja nomeada: st existe antes de sx e mx */
+  const k = cx.dataset.store;
+  return k === 'sx' ? sx : k === 'mx' ? mx : st;
+};
 function montaMsel(id, itens, contagem) {
   const cx = $('#' + id), campo = cx.dataset.campo, rot = cx.dataset.rot;
+  const st = lojaMsel(cx);
   const sel = st[campo] || (st[campo] = []);
   const validos = sel.filter(v => itens.indexOf(v) >= 0);   /* some o que saiu da fatia */
   if (validos.length !== sel.length) st[campo] = validos;
@@ -5645,7 +5695,7 @@ function montaMsel(id, itens, contagem) {
   bt.classList.toggle('ativo', !!st[campo].length);
 }
 function ligaMsel(id) {
-  const cx = $('#' + id), campo = cx.dataset.campo;
+  const cx = $('#' + id), campo = cx.dataset.campo, st = lojaMsel(cx);
   cx.addEventListener('click', ev => {
     const bt = ev.target.closest('.msel-bt');
     if (bt) {
@@ -6033,10 +6083,10 @@ function renderIndisp() {
     : `Comparação <b>${dlonga(SEMANAS[st.a])}</b>`;
   $('#pill-atu').innerHTML = `Semana <b>${dlonga(SEMANAS[st.b])}</b>`;
   const escopo = [
-    st.ger || 'TR · todas as polos',
-    st.polo ? 'Polo ' + st.polo : null,
-    st.tipo || null,
-    st.resp || null
+    escopoBase(),
+    rotuloSel(st.polo, 'Polo ', 'polos'),
+    rotuloSel(st.tipo, '', 'tipos'),
+    rotuloSel(st.resp, '', 'responsabilidades')
   ].filter(Boolean).join(' · ');
   $('#pill-escopo').innerHTML = `Escopo <b>${esc(escopo)}</b>`;
   $('#sub-casc').textContent = `${dcurta(SEMANAS[st.a])} → ${dcurta(SEMANAS[st.b])}`;
@@ -6051,8 +6101,8 @@ function renderIndisp() {
   pintaKPIs(mA, mB, novos, reg);
   pinta('casc',  gCascata(mA.size, mB.size, novos.length, reg.length));
   const cardMP = $('#card-mov-polo');
-  cardMP.hidden = !!st.polo;                      /* com um polo só não há o que comparar */
-  if (!st.polo) {
+  cardMP.hidden = st.polo.length === 1;           /* com um polo só não há o que comparar */
+  if (!cardMP.hidden) {
     $('#tit-mov-polo').textContent = st.ger ? `Movimento por polo · ${st.ger}` : 'Movimento por gerência';
     $('#sub-mov-polo').textContent = `${dcurta(SEMANAS[st.a])} → ${dcurta(SEMANAS[st.b])}`;
     pinta('mov-polo', gMovPolo(mA, mB, novos, reg));
@@ -6091,10 +6141,24 @@ function renderIndisp() {
 function opcoes(sel, itens, valor) {
   sel.innerHTML = itens.map(i => `<option value="${esc(i.v)}"${i.v === valor ? ' selected' : ''}>${esc(i.r)}</option>`).join('');
 }
+/* contagem na semana atual, dentro do resto do escopo, para o número ao
+   lado de cada opção dizer alguma coisa */
+function contaIndisp(chave, exceto) {
+  const c = {};
+  const m = PORSEM[st.b] || new Map();
+  m.forEach(l => {
+    const polo = POLOS[l[P]];
+    if (st.ger && POLO_GER[polo] !== st.ger) return;
+    if (exceto !== 'polo' && !passaLista(st.polo, polo)) return;
+    if (exceto !== 'tipo' && !passaLista(st.tipo, TIPOS[l[T]])) return;
+    if (exceto !== 'resp' && !passaLista(st.resp, grupoResp(RESPONSAVEIS[l[R]]))) return;
+    const v = chave(l); c[v] = (c[v] || 0) + 1;
+  });
+  return c;
+}
 function montaPolos() {
-  const lista = st.ger ? GER_POLOS[st.ger] : POLOS;
-  if (st.polo && !lista.includes(st.polo)) st.polo = '';
-  opcoes($('#f-polo'), [{v:'', r:'Todos os polos'}].concat(lista.map(p => ({v:p, r:'Polo ' + p}))), st.polo);
+  const lista = (st.ger ? GER_POLOS[st.ger] : POLOS).slice();
+  montaMsel('f-polo-f', lista, contaIndisp(l => POLOS[l[P]], 'polo'));
 }
 function montaControles() {
   const semanas = SEMANAS.map((w, i) => ({v: String(i), r: dlonga(w)}));
@@ -6102,8 +6166,8 @@ function montaControles() {
   opcoes($('#f-comp'), semanas, String(st.a));
   opcoes($('#f-ger'), [{v:'', r:'TR · Superintendência'}].concat(GERS.map(g => ({v:g, r:g}))), st.ger);
   montaPolos();
-  opcoes($('#f-tipo'), [{v:'', r:'Todos os tipos'}].concat(TIPOS.map(t => ({v:t, r:t}))), st.tipo);
-  opcoes($('#f-resp'), [{v:'', r:'Todas as responsabilidades'}].concat(GRUPOS.map(g => ({v:g, r:g}))), st.resp);
+  montaMsel('f-tipo-f', TIPOS.slice(), contaIndisp(l => TIPOS[l[T]], 'tipo'));
+  montaMsel('f-resp-f', GRUPOS.slice(), contaIndisp(l => grupoResp(RESPONSAVEIS[l[R]]), 'resp'));
 }
 
 $('#f-semana').addEventListener('change', e => {
@@ -6113,11 +6177,9 @@ $('#f-semana').addEventListener('change', e => {
 });
 $('#f-comp').addEventListener('change', e => { st.a = +e.target.value; render(); });
 $('#f-ger').addEventListener('change', e => { st.ger = e.target.value; montaPolos(); render(); });
-$('#f-polo').addEventListener('change', e => { st.polo = e.target.value; render(); });
-$('#f-tipo').addEventListener('change', e => { st.tipo = e.target.value; render(); });
-$('#f-resp').addEventListener('change', e => { st.resp = e.target.value; render(); });
+['f-polo-f', 'f-tipo-f', 'f-resp-f'].forEach(ligaMsel);
 $('#f-limpa').addEventListener('click', () => {
-  st.ger = st.polo = st.tipo = st.resp = '';
+  st.ger = ''; st.polo = []; st.tipo = []; st.resp = [];
   st.b = SEMANAS.length - 1; st.a = Math.max(0, SEMANAS.length - 2);
   montaControles(); render();
 });
@@ -6776,7 +6838,7 @@ function semanasFuturas(iso, n) {
    EXECUÇÃO — estado, filtros e gráficos
    ============================================================ */
 const sx = {
-  b: 0, a: -1, tipo: '', estagio: '', modo: 'tr', det: 'todos',
+  b: 0, a: -1, tipo: [], estagio: '', modo: 'tr', det: 'todos',
   dTipo: '', dEst: '', dGer: '', dPolo: '', dEquipe: '', dBusca: '',
   dOrd: {col: 'idade', dir: -1}, dAssin: '', sel: new Set(), semProg: '', dVinc: '',
   gdDe: '', gdAte: '', gdModo: 'dia', gdBusca: '', gdTol: null,
@@ -6798,8 +6860,8 @@ const poloDe = l => EX.polos[l[XPOLO]];
 function passaEx(l) {
   const p = poloDe(l);
   if (st.ger && gerenciaDe(p) !== st.ger) return false;
-  if (st.polo && p !== st.polo) return false;
-  if (sx.tipo && EX.tipos[l[XTIPO]] !== sx.tipo) return false;
+  if (!passaLista(st.polo, p)) return false;
+  if (!passaLista(sx.tipo, EX.tipos[l[XTIPO]])) return false;
   if (sx.estagio && ESTAGIOS[l[XEST]] !== sx.estagio) return false;
   return true;
 }
@@ -6984,7 +7046,7 @@ function gExTipo(mA, mB) {
   const gers = gersEx();
   const segs = modo === 'tr' ? ['tipo', 'equip', 'nao']
     : modo === 'ger' ? gers
-    : EX.polos.filter(p => (!st.ger || gerenciaDe(p) === st.ger) && (!st.polo || p === st.polo));
+    : EX.polos.filter(p => (!st.ger || gerenciaDe(p) === st.ger) && passaLista(st.polo, p));
   const segDe = l => modo === 'tr' ? ligaDe(l)
     : (modo === 'ger' ? gerenciaDe(poloDe(l)) : poloDe(l));
   const segCor = s => modo === 'tr' ? COR_LIGA[s]
@@ -7056,7 +7118,7 @@ function gExPolo(mA, mB) {
   const porGer = !st.ger;
   const dim = l => porGer ? gerenciaDe(poloDe(l)) : poloDe(l);
   const cA = contaPor(mA, dim), cB = contaPor(mB, dim);
-  const cats = porGer ? gersEx() : polosDeGer(st.ger).filter(p => !st.polo || p === st.polo);
+  const cats = porGer ? gersEx() : polosDeGer(st.ger).filter(p => passaLista(st.polo, p));
   if (!cats.length) return {svg: '<div class="vazio">Sem guias no filtro atual.</div>', tabela: null};
   const W = 700, H = 330, ml = 50, mr = 20, mt = 44, mb = 66;
   const px0 = ml, px1 = W - mr, py0 = mt, py1 = H - mb;
@@ -7381,7 +7443,7 @@ function dadosCruz(mB) {
     const polo = POLOS[l[P]];
     todosInd.add(String(l[E]));
     if (st.ger && POLO_GER[polo] !== st.ger) return;
-    if (st.polo && polo !== st.polo) return;
+    if (!passaLista(st.polo, polo)) return;
     if (chaveTexto(RESPONSAVEIS[l[R]]) !== chaveTexto(RESP_COM_GUIA)) return;
     const eq = String(l[E]);
     setAuto.add(eq);
@@ -7590,8 +7652,8 @@ function renderEx() {
   if (!semComp) mA.forEach((l, s) => { if (!mB.has(s)) sairam++; });
   const fluxo = {avancou, voltou, semComp};
 
-  const escopo = [st.ger || 'TR · todas as polos', st.polo ? 'Polo ' + st.polo : null,
-                  sx.tipo || null, sx.estagio || null].filter(Boolean).join(' · ');
+  const escopo = [escopoBase(), rotuloSel(st.polo, 'Polo ', 'polos'),
+                  rotuloSel(sx.tipo, '', 'tipos'), sx.estagio || null].filter(Boolean).join(' · ');
   $('#pill-ant').innerHTML = sx.a < 0 ? 'Comparação <b>primeira foto</b>' : `Comparação <b>${dlonga(EX.semanas[sx.a])}</b>`;
   $('#pill-atu').innerHTML = `Semana <b>${dlonga(EX.semanas[sx.b])}</b>`;
   $('#pill-escopo').innerHTML = `Escopo <b>${esc(escopo)}</b>`;
@@ -7738,7 +7800,7 @@ function concNoPeriodo(ini, fim) {
     if (!l[CEXEC] || !(l[CEXEC] <= fim && (!ini || l[CEXEC] > ini))) return false;
     const p = CONC.polos[l[CPOLO]];
     if (st.ger && gerenciaDe(p) !== st.ger) return false;
-    if (st.polo && p !== st.polo) return false;
+    if (!passaLista(st.polo, p)) return false;
     return true;
   });
 }
@@ -8052,7 +8114,7 @@ function pintaGdis(mA, mB) {
   const ini = auto ? padraoIni : somaDias(sx.gdDe || periodoGd().de, -1);
   const fim = auto ? alvo : (sx.gdAte || periodoGd().ate);
   const escopo = l => (!st.ger || gerenciaDe(GD.polos[l[GPOLO]]) === st.ger) &&
-                      (!st.polo || GD.polos[l[GPOLO]] === st.polo);
+                      passaLista(st.polo, GD.polos[l[GPOLO]]);
   const serv = gdisNoPeriodo(ini, fim).filter(escopo);
   const tol = sx.gdTol == null ? TOL_CONC : sx.gdTol;
   const achaGuia = l => guiaDoServico(l[GEQ], l[GDATA], tol);
@@ -8555,9 +8617,19 @@ function montaControlesEx() {
   const gers = gersEx().length ? gersEx() : Object.keys(MAPA_GERENCIA);
   opcoes($('#e-ger'), [{v: '', r: 'TR · Superintendência'}].concat(gers.map(g => ({v: g, r: g}))), st.ger);
   const polos = st.ger ? polosDeGer(st.ger) : EX.polos;
-  if (st.polo && polos.indexOf(st.polo) < 0) st.polo = '';
-  opcoes($('#e-polo'), [{v: '', r: 'Todos os polos'}].concat(polos.map(p => ({v: p, r: 'Polo ' + p}))), st.polo);
-  opcoes($('#e-tipo'), [{v: '', r: 'Todos os tipos'}].concat(EX.tipos.map(t => ({v: t, r: t}))), sx.tipo);
+  const contaEx = (chave, exceto) => {
+    const c = {}, m = PORSEM_EX[sx.b] || new Map();
+    m.forEach(l => {
+      const polo = poloDe(l);
+      if (st.ger && gerenciaDe(polo) !== st.ger) return;
+      if (exceto !== 'polo' && !passaLista(st.polo, polo)) return;
+      if (exceto !== 'tipo' && !passaLista(sx.tipo, EX.tipos[l[XTIPO]])) return;
+      const v = chave(l); c[v] = (c[v] || 0) + 1;
+    });
+    return c;
+  };
+  montaMsel('e-polo-f', polos.slice(), contaEx(l => poloDe(l), 'polo'));
+  montaMsel('e-tipo-f', EX.tipos.slice(), contaEx(l => EX.tipos[l[XTIPO]], 'tipo'));
   opcoes($('#e-estagio'), [{v: '', r: 'Todos os estágios'}].concat(ESTAGIOS.map(e => ({v: e, r: e}))), sx.estagio);
   const fut = EX.semanas.length ? semanasFuturas(EX.semanas[sx.b], 8) : [];
   opcoes($('#ed-lote-eq'), [{v: '', r: 'escolha a equipe'}].concat(PROG.equipes.map(e => ({v: e.id, r: e.nome + ' · ' + e.ger}))), '');
@@ -8595,11 +8667,10 @@ $('#e-semana').addEventListener('change', e => {
 });
 $('#e-comp').addEventListener('change', e => { sx.a = +e.target.value; render(); });
 $('#e-ger').addEventListener('change', e => { st.ger = e.target.value; montaPolos(); montaControlesEx(); render(); });
-$('#e-polo').addEventListener('change', e => { st.polo = e.target.value; montaPolos(); render(); });
-$('#e-tipo').addEventListener('change', e => { sx.tipo = e.target.value; render(); });
+['e-polo-f', 'e-tipo-f'].forEach(ligaMsel);
 $('#e-estagio').addEventListener('change', e => { sx.estagio = e.target.value; render(); });
 $('#e-limpa').addEventListener('click', () => {
-  st.ger = st.polo = ''; sx.tipo = sx.estagio = '';
+  st.ger = ''; st.polo = []; sx.tipo = []; sx.estagio = '';
   sx.b = Math.max(0, EX.semanas.length - 1); sx.a = sx.b - 1;
   montaPolos(); montaControlesEx(); render();
 });
@@ -9196,7 +9267,7 @@ function cruzaCob(mB) {
   COB.linhas.forEach(l => {
     const polo = COB.polos[l[OPOLO]];
     if (st.ger && gerenciaDe(polo) !== st.ger) return;
-    if (st.polo && polo !== st.polo) return;
+    if (!passaLista(st.polo, polo)) return;
     cobradas.set(chaveCob(l[ONS], COB.cods[l[OCOD]]), l);
   });
   const dentro = [], fora = [], extra = [];
@@ -9332,7 +9403,7 @@ function montaMed(matrizes, dataISO) {
 /* ---------- filtro e fatia ---------- */
 function passaMed(l) {
   if (st.ger && gerenciaDe(MED.polos[l[MPOLO]]) !== st.ger) return false;
-  if (st.polo && MED.polos[l[MPOLO]] !== st.polo) return false;
+  if (!passaLista(st.polo, MED.polos[l[MPOLO]])) return false;
   if (mx.proc && MED.processos[l[MPROC]] !== mx.proc) return false;
   if (mx.su && MED.su[l[MSU]] !== mx.su) return false;
   if (mx.resp && MED.resps[l[MRESP]] !== mx.resp) return false;
@@ -9972,7 +10043,7 @@ function renderMed() {
     mB.forEach((l, k) => { if (!mA.has(k)) entraram.push(l); });
     mA.forEach((l, k) => { if (!mB.has(k)) sairam.push(l); });
   }
-  const escopo = [st.ger || 'TR · todas as polos', st.polo ? 'Polo ' + st.polo : null,
+  const escopo = [escopoBase(), rotuloSel(st.polo, 'Polo ', 'polos'),
                   mx.proc || null, mx.su ? rotSu(mx.su) : null, mx.resp || null].filter(Boolean).join(' · ');
   $('#pill-ant').innerHTML = semComp ? 'Comparação <b>primeira foto</b>' : `Comparação <b>${dlonga(MED.semanas[mx.a])}</b>`;
   $('#pill-atu').innerHTML = `Semana <b>${dlonga(MED.semanas[mx.b])}</b>`;
@@ -10036,8 +10107,8 @@ function montaControlesMed() {
   const gers = Object.keys(MAPA_GERENCIA).filter(g => MED.polos.some(p => gerenciaDe(p) === g));
   opcoes($('#m-ger'), [{v: '', r: 'TR · Superintendência'}].concat((gers.length ? gers : Object.keys(MAPA_GERENCIA)).map(g => ({v: g, r: g}))), st.ger);
   const polos = st.ger ? polosDeGerMed(st.ger) : MED.polos;
-  if (st.polo && polos.indexOf(st.polo) < 0) st.polo = '';
-  opcoes($('#m-polo'), [{v: '', r: 'Todos os polos'}].concat(polos.map(p => ({v: p, r: 'Polo ' + p}))), st.polo);
+  if (poloUnico() && polos.indexOf(poloUnico()) < 0) st.polo = [];
+  opcoes($('#m-polo'), [{v: '', r: 'Todos os polos'}].concat(polos.map(p => ({v: p, r: 'Polo ' + p}))), poloUnico());
   opcoes($('#m-proc'), [{v: '', r: 'Todos os processos'}].concat(MED.processos.map(p => ({v: p, r: p}))), mx.proc);
   opcoes($('#m-fsu'), [{v: '', r: 'Todos os status'}].concat(MED.su.map(v => ({v, r: rotSu(v)}))), mx.su);
   opcoes($('#m-fresp'), [{v: '', r: 'Todos os responsáveis'}].concat(MED.resps.map(r => ({v: r, r}))), mx.resp);
@@ -10053,13 +10124,13 @@ function avisoMed(html, erro) { $('#mmsg').innerHTML = `<div class="msg ${erro ?
 /* ---------- eventos do ambiente de medidas ---------- */
 $('#m-semana').addEventListener('change', e => { mx.b = +e.target.value; mx.a = mx.b - 1; montaControlesMed(); render(); });
 $('#m-comp').addEventListener('change', e => { mx.a = +e.target.value; render(); });
-$('#m-ger').addEventListener('change', e => { st.ger = e.target.value; st.polo = ''; montaPolos(); montaControlesMed(); render(); });
-$('#m-polo').addEventListener('change', e => { st.polo = e.target.value; montaPolos(); render(); });
+$('#m-ger').addEventListener('change', e => { st.ger = e.target.value; st.polo = []; montaPolos(); montaControlesMed(); render(); });
+$('#m-polo').addEventListener('change', e => { setPoloUnico(e.target.value); montaPolos(); render(); });
 $('#m-proc').addEventListener('change', e => { mx.proc = e.target.value; render(); });
 $('#m-fsu').addEventListener('change', e => { mx.su = e.target.value; render(); });
 $('#m-fresp').addEventListener('change', e => { mx.resp = e.target.value; render(); });
 $('#m-limpa').addEventListener('click', () => {
-  st.ger = st.polo = ''; mx.proc = mx.su = mx.resp = '';
+  st.ger = ''; st.polo = []; mx.proc = mx.su = mx.resp = '';
   mx.b = Math.max(0, MED.semanas.length - 1); mx.a = mx.b - 1;
   montaPolos(); montaControlesMed(); render();
 });
@@ -10514,7 +10585,7 @@ function montaBat(matrizes, nome) {
 /* ---------- filtro e fatia ---------- */
 function passaBat(l) {
   if (st.ger && gerenciaDe(BAT.polos[l[BPOLO]]) !== st.ger) return false;
-  if (st.polo && BAT.polos[l[BPOLO]] !== st.polo) return false;
+  if (!passaLista(st.polo, BAT.polos[l[BPOLO]])) return false;
   if (bx.mod && BAT.modelos[l[BMOD]] !== bx.mod) return false;
   if (bx.tipo) { const d = depDe(BAT.modelos[l[BMOD]]); if (!d || d.t !== bx.tipo) return false; }
   return true;
@@ -11093,7 +11164,7 @@ function renderBat() {
   const mB = fatiaBat(bx.b), mA = fatiaBat(bx.a);
   /* a referência de vencimento é a data em que o arquivo foi carregado */
   const refB = BAT.fotos[bx.b].quando, refA = bx.a >= 0 ? BAT.fotos[bx.a].quando : refB;
-  const escopo = [st.ger || 'TR · todas as polos', st.polo ? 'Polo ' + st.polo : null,
+  const escopo = [escopoBase(), rotuloSel(st.polo, 'Polo ', 'polos'),
                   bx.mod || null, bx.tipo || null].filter(Boolean).join(' · ');
   $('#pill-ant').innerHTML = bx.a < 0 ? 'Comparação <b>arquivo único</b>' : `Comparação <b>${esc(BAT.fotos[bx.a].nome)}</b>`;
   $('#pill-atu').innerHTML = `Arquivo <b>${esc(BAT.fotos[bx.b].nome)}</b>`;
@@ -11135,8 +11206,8 @@ function montaControlesBat() {
   const gers = Object.keys(MAPA_GERENCIA).filter(g => BAT.polos.some(p => gerenciaDe(p) === g));
   opcoes($('#b-ger'), [{v: '', r: 'TR · Superintendência'}].concat((gers.length ? gers : Object.keys(MAPA_GERENCIA)).map(g => ({v: g, r: g}))), st.ger);
   const polos = st.ger ? BAT.polos.filter(p => gerenciaDe(p) === st.ger) : BAT.polos;
-  if (st.polo && polos.indexOf(st.polo) < 0) st.polo = '';
-  opcoes($('#b-polo'), [{v: '', r: 'Todos os polos'}].concat(polos.map(p => ({v: p, r: 'Polo ' + p}))), st.polo);
+  if (poloUnico() && polos.indexOf(poloUnico()) < 0) st.polo = [];
+  opcoes($('#b-polo'), [{v: '', r: 'Todos os polos'}].concat(polos.map(p => ({v: p, r: 'Polo ' + p}))), poloUnico());
   opcoes($('#b-fmod'), [{v: '', r: 'Todos os modelos'}].concat(BAT.modelos.map(m => ({v: m, r: m}))), bx.mod);
   opcoes($('#b-ftipo'), [{v: '', r: 'Todos os tipos'}].concat(tiposBateria().map(t => ({v: t, r: t}))), bx.tipo);
   $('#b-fotos').innerHTML = BAT.fotos.length
@@ -11150,8 +11221,8 @@ function avisoBat(html, erro) { $('#bmsg').innerHTML = `<div class="msg ${erro ?
 /* ---------- eventos do ambiente de baterias ---------- */
 $('#b-foto').addEventListener('change', e => { bx.b = +e.target.value; bx.a = bx.b - 1; montaControlesBat(); render(); });
 $('#b-comp').addEventListener('change', e => { bx.a = +e.target.value; render(); });
-$('#b-ger').addEventListener('change', e => { st.ger = e.target.value; st.polo = ''; montaPolos(); montaControlesBat(); render(); });
-$('#b-polo').addEventListener('change', e => { st.polo = e.target.value; montaPolos(); render(); });
+$('#b-ger').addEventListener('change', e => { st.ger = e.target.value; st.polo = []; montaPolos(); montaControlesBat(); render(); });
+$('#b-polo').addEventListener('change', e => { setPoloUnico(e.target.value); montaPolos(); render(); });
 $('#b-fmod').addEventListener('change', e => { bx.mod = e.target.value; render(); });
 $('#b-ftipo').addEventListener('change', e => { bx.tipo = e.target.value; render(); });
 $('#b-horiz').addEventListener('change', e => {
@@ -11159,7 +11230,7 @@ $('#b-horiz').addEventListener('change', e => {
   e.target.value = bx.horiz; render();
 });
 $('#b-limpa').addEventListener('click', () => {
-  st.ger = st.polo = ''; bx.mod = bx.tipo = '';
+  st.ger = ''; st.polo = []; bx.mod = bx.tipo = '';
   bx.b = Math.max(0, BAT.fotos.length - 1); bx.a = bx.b - 1;
   montaPolos(); montaControlesBat(); render();
 });
@@ -11565,7 +11636,7 @@ function montaPsv(matrizes, dataISO) {
 function passaPsv(l) {
   const polo = PSV.polos[l[QPOLO]];
   if (st.ger && gerenciaDe(polo) !== st.ger) return false;
-  if (st.polo && polo !== st.polo) return false;
+  if (!passaLista(st.polo, polo)) return false;
   if (qx.cid && PSV.cidades[l[QCID]] !== qx.cid) return false;
   if (qx.resp && PSV.resps[l[QRESP]] !== qx.resp) return false;
   if (qx.acao && PSV.acoes[l[QACAO]] !== qx.acao) return false;
@@ -11929,7 +12000,7 @@ function renderPsv() {
   }
   if (qx.b >= PSV.semanas.length) { qx.b = PSV.semanas.length - 1; qx.a = qx.b - 1; }
   const mB = fatiaPsv(qx.b), mA = fatiaPsv(qx.a);
-  const escopo = [st.ger || 'TR · todas as polos', st.polo ? 'Polo ' + st.polo : null,
+  const escopo = [escopoBase(), rotuloSel(st.polo, 'Polo ', 'polos'),
                   qx.cid || null, qx.resp || null, qx.acao || null].filter(Boolean).join(' · ');
   $('#pill-ant').innerHTML = qx.a < 0 ? 'Comparação <b>primeira foto</b>' : `Comparação <b>${dlonga(PSV.semanas[qx.a])}</b>`;
   $('#pill-atu').innerHTML = `Semana <b>${dlonga(PSV.semanas[qx.b])}</b>`;
@@ -11971,8 +12042,8 @@ function montaControlesPsv() {
   const gers = Object.keys(MAPA_GERENCIA).filter(g => PSV.polos.some(p => gerenciaDe(p) === g));
   opcoes($('#q-ger'), [{v: '', r: 'TR · Superintendência'}].concat((gers.length ? gers : Object.keys(MAPA_GERENCIA)).map(g => ({v: g, r: g}))), st.ger);
   const polos = st.ger ? PSV.polos.filter(p => gerenciaDe(p) === st.ger) : PSV.polos;
-  if (st.polo && polos.indexOf(st.polo) < 0) st.polo = '';
-  opcoes($('#q-polo'), [{v: '', r: 'Todos os polos'}].concat(polos.map(p => ({v: p, r: 'Polo ' + p}))), st.polo);
+  if (poloUnico() && polos.indexOf(poloUnico()) < 0) st.polo = [];
+  opcoes($('#q-polo'), [{v: '', r: 'Todos os polos'}].concat(polos.map(p => ({v: p, r: 'Polo ' + p}))), poloUnico());
   opcoes($('#q-cid'), [{v: '', r: 'Todas as cidades'}].concat(PSV.cidades.map(c => ({v: c, r: c}))), qx.cid);
   opcoes($('#q-resp'), [{v: '', r: 'Todos os responsáveis'}].concat(PSV.resps.map(r => ({v: r, r}))), qx.resp);
   opcoes($('#q-acao'), [{v: '', r: 'Todas as ações'}].concat(PSV.acoes.map(a => ({v: a, r: a}))), qx.acao);
@@ -11988,8 +12059,8 @@ function avisoPsv(html, erro) { $('#qmsg').innerHTML = `<div class="msg ${erro ?
 /* ---------- eventos ---------- */
 $('#q-semana').addEventListener('change', e => { qx.b = +e.target.value; qx.a = qx.b - 1; montaControlesPsv(); render(); });
 $('#q-comp').addEventListener('change', e => { qx.a = +e.target.value; render(); });
-$('#q-ger').addEventListener('change', e => { st.ger = e.target.value; st.polo = ''; montaPolos(); montaControlesPsv(); render(); });
-$('#q-polo').addEventListener('change', e => { st.polo = e.target.value; montaPolos(); render(); });
+$('#q-ger').addEventListener('change', e => { st.ger = e.target.value; st.polo = []; montaPolos(); montaControlesPsv(); render(); });
+$('#q-polo').addEventListener('change', e => { setPoloUnico(e.target.value); montaPolos(); render(); });
 $('#q-cid').addEventListener('change', e => { qx.cid = e.target.value; render(); });
 $('#q-resp').addEventListener('change', e => { qx.resp = e.target.value; render(); });
 $('#q-acao').addEventListener('change', e => { qx.acao = e.target.value; render(); });
@@ -11998,7 +12069,7 @@ $('#q-top').addEventListener('change', e => {
   e.target.value = qx.topN; render();
 });
 $('#q-limpa').addEventListener('click', () => {
-  st.ger = st.polo = ''; qx.cid = qx.resp = qx.acao = ''; qx.topN = 20;
+  st.ger = ''; st.polo = []; qx.cid = qx.resp = qx.acao = ''; qx.topN = 20;
   qx.b = Math.max(0, PSV.semanas.length - 1); qx.a = qx.b - 1;
   montaPolos(); montaControlesPsv(); render();
 });
