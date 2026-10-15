@@ -362,7 +362,15 @@ As telas:
 - **Composição** — compensação somada por **polo**, **responsável**, **cidade** ou **ação proposta**,
   com a variação de cada recorte.
 - **Detalhe** — todos os PI, com filtros de múltipla escolha e abas para o TOP, os que entraram, os
-  que saíram e os sem data de previsão.
+  que saíram e os sem data de previsão. Além de **Previsão** e **Observação**, que vêm da planilha e
+  podem ser sobrescritas, cada linha tem a coluna **Anotação**: é a nota do painel, que entra na
+  seção *Anotações*, agrupada por polo, e sai no relatório.
+- **Execução PSVT** — os serviços que as equipes executaram, lidos com a mesma estrutura dos
+  executados do G-DIS OP. Quando a exportação traz uma coluna **PI**, o painel cruza serviço e
+  carteira por ela e responde o que interessa: quantos PI foram atendidos e **quanto da compensação
+  em tela foi coberta**. Sem a coluna PI a seção continua valendo como visão de produção — período
+  em um clique, serviços por dia útil, produção por equipe, lista com filtros e exportação — e diz
+  na tela que o cruzamento está fora.
 
 **O valor é lido em qualquer formato**: número puro com formatação de moeda, `R$ 1.234,56`,
 `1,234.56`, negativo entre parênteses, e o `529.80999999999995` que o Excel grava quando a célula é
@@ -377,7 +385,7 @@ inclusive a série histórica. Os filtros de gerência, polo, cidade, responsáv
 TOP dentro da seleção**: o TOP 20 de um polo é o dos 20 maiores daquele polo, não um recorte do TOP
 geral.
 
-**Previsão e Observação são editáveis** na tabela do TOP e no detalhe. A previsão aceita **data**
+**Previsão e Observação são editáveis** no detalhe. A previsão aceita **data**
 (`12/03/2026`, que vira data) ou **texto livre** (`Pendente`, `a definir`) — o KPI e a aba contam
 quem está **sem data**, então um `Pendente` aparece ali. O que você escreve vale por
 cima do que veio na planilha, fica preso à **chave da linha**, sobrevive às próximas cargas e ao

@@ -576,8 +576,11 @@
     #sec-notas.vazia{display:none}
     .ta-geral,.ev input{border:none;padding:0;background:#fff;resize:none}
     .ta-geral{min-height:0}
-    .evid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    /* no relatório as telas saem uma embaixo da outra, em sequência:
+       lado a lado elas ficam pequenas demais para a reunião ler */
+    .evid{grid-template-columns:minmax(0,1fr);gap:10px}
     .ev{break-inside:avoid}
+    .ev img{max-height:112mm;object-fit:contain;background:#fff}
     #sec-notas{break-before:page}
     .grupo-polo{break-inside:avoid;page-break-inside:avoid}
     .nota-item{break-inside:avoid}
@@ -1448,7 +1451,12 @@
       <div class="campo"><label for="q-data">Data da coleta</label><input type="date" id="q-data"
           title="usada apenas quando o arquivo não traz coluna de data"></div>
       <div class="carga">
-        <span class="carga-rot">PSVT</span>
+        <span class="carga-rot">2 · Execução PSVT</span>
+        <label class="btn forte" for="pxarq">Serviços executados</label>
+        <input type="file" id="pxarq" accept=".xls,.xlsx,.htm,.html,.csv,.txt" multiple hidden>
+      </div>
+      <div class="carga">
+        <span class="carga-rot">1 · PSVT</span>
         <label class="btn forte" for="qarq">Selecionar arquivo</label>
         <input type="file" id="qarq" accept=".xls,.xlsx,.htm,.html,.csv,.txt" multiple hidden>
       </div>
@@ -1503,7 +1511,6 @@
         <div class="card-hd"><h3 id="qs-tit-top">Os 20 maiores</h3><span class="sub" id="qs-sub-top"></span>
           <div class="tools"><button class="tbtn" data-tab="qs-top" aria-pressed="false">Tabela</button></div></div>
         <div id="qs-top"></div>
-        <div id="qs-top-tab"></div>
       </div>
     </section>
 
@@ -1548,6 +1555,14 @@
         <div id="qs-det"></div>
       </div>
     </section>
+
+    <section class="secao" id="sec-pexec">
+      <h2>Execução PSVT</h2>
+      <div class="card">
+        <div class="card-hd"><h3>Serviços executados × carteira PSVT</h3><span class="sub" id="px-sub"></span></div>
+        <div id="px-corpo"></div>
+      </div>
+    </section>
   </div>
 </div><!-- /amb-psv -->
 
@@ -1576,7 +1591,7 @@
         <textarea id="nota-geral" class="ta-geral" placeholder="pontos discutidos, encaminhamentos, prazos"></textarea>
       </div>
       <div id="lista-notas"></div>
-      <div class="nota so-tela">Para anotar um equipamento, clique na coluna <b>Anotação</b> da lista de detalhe.</div>
+      <div class="nota so-tela">Para anotar, clique na coluna <b>Anotação</b> da lista de detalhe.</div>
     </div>
   </section>
 
@@ -5903,6 +5918,14 @@ function editaNota(alvo, eq, aoFechar) {
   });
 }
 function achaItem(id) {
+  if (AMB === 'psv') {
+    for (let i = Math.min(qx.b, PSV.semanas.length - 1); i >= 0; i--) {
+      const l = PSV.linhas.find(x => x[QS] === i && String(x[QPI]) === id);
+      if (l) return {polo: PSV.polos[l[QPOLO]], sem: i, semanas: PSV.semanas,
+        ctx: `${brl(l[QVAL])} · ${PSV.cidades[l[QCID]]} · ${PSV.resps[l[QRESP]]}`};
+    }
+    return null;
+  }
   if (AMB === 'exec') {
     for (let i = Math.min(sx.b, PORSEM_EX.length - 1); i >= 0; i--) {
       const l = PORSEM_EX[i] && PORSEM_EX[i].get(id);
@@ -5930,14 +5953,16 @@ function pintaAnotacoes() {
     const ia = ordem.indexOf(a), ib = ordem.indexOf(b);
     return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || String(a).localeCompare(String(b), 'pt-BR');
   });
+  const QUE = {exec: ['guia(s)', 'nenhuma guia anotada'], psv: ['PI', 'nenhum PI anotado']}[AMB]
+    || ['equipamento(s)', 'nenhum equipamento anotado'];
   $('#sub-notas').textContent = eqs.length
-    ? `${fmt(eqs.length)} ${AMB === 'exec' ? 'guia(s)' : 'equipamento(s)'} em ${fmt(polos.length)} polo(s)`
-    : (AMB === 'exec' ? 'nenhuma guia anotada' : 'nenhum equipamento anotado');
+    ? `${fmt(eqs.length)} ${QUE[0]} em ${fmt(polos.length)} polo(s)` : QUE[1];
   $('#lista-notas').innerHTML = polos.map(polo => {
     const itens = grupos.get(polo);
     const ger = gerenciaDe(polo);
     const corpo = itens.map(({eq, r}) => {
-      const ctx = r ? r.ctx + (r.sem === (AMB === 'exec' ? sx.b : st.b) ? '' : ` · visto em ${dcurta(r.semanas[r.sem])}`)
+      const atual = AMB === 'exec' ? sx.b : AMB === 'psv' ? qx.b : st.b;
+      const ctx = r ? r.ctx + (r.sem === atual ? '' : ` · visto em ${dcurta(r.semanas[r.sem])}`)
                     : 'fora da base carregada';
       return `<div class="nota-item">
         <div class="ni-cab"><b>${esc(eq)}</b><span>${esc(ctx)}</span>
@@ -7725,6 +7750,7 @@ function renderEx() {
    ============================================================ */
 /* Cada linha guarda a própria data de execução: é um registro de eventos,
    não uma foto semanal. Assim um arquivo acumulado entra de uma vez. */
+const GPI = 12;
 const GDATA = 0, GHORA = 1, GSERV = 2, GVEIC = 3, GPOLO = 4, GEQ = 5,
       GDESIG = 6, GTIPO = 7, GSIT = 8, GBAIR = 9, GALIM = 10, GOBS = 11;
 /* posições da exportação do G-DIS, usadas quando o cabeçalho não for reconhecido */
@@ -7744,7 +7770,9 @@ const NOME_GDIS = {
   sit:    ['situacao'],
   bairro: ['bairro'],
   alim:   ['alimentador'],
-  obs:    ['observacao', 'observacoes', 'obs']
+  obs:    ['observacao', 'observacoes', 'obs'],
+  /* só a Execução PSVT costuma trazer: é o que liga o serviço ao PI da carteira */
+  pi:     ['pi', 'numero do pi', 'processo', 'nota', 'ns']
 };
 let GD = {veiculos: [], polos: [], linhas: []};
 let ORIGEM_GD = '';
@@ -7966,7 +7994,9 @@ function mapeiaGdis(linha) {
   Object.keys(COL_GDIS).forEach(k => { if (idx[k] == null || idx[k] < 0) idx[k] = COL_GDIS[k]; });
   return idx;
 }
-function montaGdis(matrizes, dataPadrao) {
+/* a mesma leitura serve ao G-DIS e à Execução PSVT: muda só a base de destino */
+function montaGdis(matrizes, dataPadrao, base) {
+  base = base || GD;
   const regs = [];
   let ruins = 0, semData = 0, porNome = 0;
   matrizes.forEach(m => {
@@ -7989,16 +8019,17 @@ function montaGdis(matrizes, dataPadrao) {
       regs.push({iso: dh.iso || dataPadrao, hora: dh.hora, serv, veic: v('veic') || '—',
                  polo: CONJ_POLO[chaveTexto(polo)] || (polo || '—'), eq,
                  desig: dg.iso ? dg.iso + (dg.hora ? ' ' + dg.hora : '') : '',
-                 tipo: v('tipo'), sit: v('sit'), bairro: v('bairro'), alim: v('alim'), obs: v('obs')});
+                 tipo: v('tipo'), sit: v('sit'), bairro: v('bairro'), alim: v('alim'), obs: v('obs'),
+                 pi: v('pi')});
     });
   });
   if (!regs.length) return {erro: 'Nenhum serviço reconhecido. Confira se as colunas D, F, G, K e M são as indicadas.'};
 
   /* junta com o que já existe, sem repetir o mesmo serviço no mesmo equipamento e dia */
-  const antigos = GD.linhas.map(l => ({iso: l[GDATA], hora: l[GHORA], serv: l[GSERV],
-    veic: GD.veiculos[l[GVEIC]], polo: GD.polos[l[GPOLO]], eq: l[GEQ],
+  const antigos = base.linhas.map(l => ({iso: l[GDATA], hora: l[GHORA], serv: l[GSERV],
+    veic: base.veiculos[l[GVEIC]], polo: base.polos[l[GPOLO]], eq: l[GEQ],
     desig: l[GDESIG] || '', tipo: l[GTIPO] || '', sit: l[GSIT] || '',
-    bairro: l[GBAIR] || '', alim: l[GALIM] || '', obs: l[GOBS] || ''}));
+    bairro: l[GBAIR] || '', alim: l[GALIM] || '', obs: l[GOBS] || '', pi: l[GPI] || ''}));
   /* o registro do arquivo recém-lido vence o que já estava na base: é a versão mais
      recente do mesmo serviço, e pode trazer campos que a carga antiga não tinha */
   const onde = new Map(), todos = [];
@@ -8022,11 +8053,12 @@ function montaGdis(matrizes, dataPadrao) {
   const pos = l => { const o = {}; l.forEach((v, i) => o[v] = i); return o; };
   const iV = pos(veiculos), iP = pos(polos);
   const linhas = todos.map(x => [x.iso, x.hora, x.serv, iV[x.veic], iP[x.polo], x.eq,
-    x.desig || '', x.tipo || '', x.sit || '', x.bairro || '', x.alim || '', x.obs || '']);
+    x.desig || '', x.tipo || '', x.sit || '', x.bairro || '', x.alim || '', x.obs || '', x.pi || '']);
   const datas = Array.from(new Set(regs.map(r => r.iso))).sort();
   return {base: {veiculos, polos, linhas}, novos, lidos: regs.length, dup, ruins, semData,
           modo: porNome ? 'cabeçalho' : 'letras das colunas',
           comObs: regs.filter(r => r.obs).length, comDesig: regs.filter(r => r.desig).length,
+          comPi: regs.filter(r => r.pi).length,
           atualizados,
           de: datas[0], ate: datas[datas.length - 1],
           amostra: regs.slice(0, 5)};
@@ -8308,6 +8340,8 @@ function pintaGdis(mA, mB) {
 document.addEventListener('click', ev => {
   const aba = ev.target.closest('[data-gdmodo]');
   if (aba) { sx.gdModo = aba.dataset.gdmodo; render(); return; }
+  const abaPx = ev.target.closest('[data-pxmodo]');
+  if (abaPx) { qx.pxModo = abaPx.dataset.pxmodo; render(); return; }
   const lupa = ev.target.closest('.obs-bt');
   if (lupa) {
     $('#lupa-img').hidden = true;
@@ -8373,20 +8407,21 @@ function ligaCtrlGdis() {
    A pergunta é de magnitude entre equipes, então barra horizontal ordenada.
    A cor é a gerência (identidade), e os números ao lado dão o ritmo por dia
    útil e por semana sem precisar de um segundo gráfico. */
-function gEquipes(serv, ini, fim, cls) {
+function gEquipes(serv, ini, fim, cls, base) {
+  base = base || GD;
   if (!serv.length) return {svg: '<div class="vazio">Sem serviços no período.</div>', tabela: null};
   const du = Math.max(1, diasUteis(ini, fim));
   const sem = Math.max(1, diasEntre(ini, fim) / 7);
   const m = new Map();
   serv.forEach(l => {
-    const k = GD.veiculos[l[GVEIC]] || '—';
+    const k = base.veiculos[l[GVEIC]] || '—';
     if (!m.has(k)) m.set(k, {t: 0, g: 0, dias: new Set(), polos: new Set(), semanas: new Map()});
     const o = m.get(k);
     o.t++;
     if (cls(l) !== 'sem') o.g++;
     if (l[GDATA]) { o.dias.add(l[GDATA]); const w = segunda(l[GDATA]);
       o.semanas.set(w, (o.semanas.get(w) || 0) + 1); }
-    o.polos.add(GD.polos[l[GPOLO]]);
+    o.polos.add(base.polos[l[GPOLO]]);
   });
   const cats = Array.from(m.entries()).sort((a, b) => b[1].t - a[1].t ||
     String(a[0]).localeCompare(String(b[0]), 'pt-BR'));
@@ -8431,8 +8466,11 @@ function gEquipes(serv, ini, fim, cls) {
 }
 
 /* ---------- serviços por dia útil: dia, semana, equipe ou polo ---------- */
-function ritmoGdis(serv, ini, fim) {
-  const modo = sx.gdModo || 'dia';
+function ritmoGdis(serv, ini, fim, base, pref) {
+  base = base || GD; pref = pref || 'gd';
+  const estado = pref === 'px' ? qx : sx;
+  const campoModo = pref === 'px' ? 'pxModo' : 'gdModo';
+  const modo = estado[campoModo] || 'dia';
   const du = Math.max(1, diasUteis(ini, fim));
   const ehUtil = iso => { const w = new Date(iso + 'T00:00:00').getDay(); return w >= 1 && w <= 5; };
 
@@ -8450,7 +8488,7 @@ function ritmoGdis(serv, ini, fim) {
     rotulo = k => modo === 'dia' ? dcurta(k) : 'sem ' + dcurta(k);
     dica = k => `<b>${fmt(valor(k))}</b> serviços<br><span class="l">${dlonga(k)}${modo === 'semana' ? ' — semana' : ''}</span>`;
   } else {
-    const chave = modo === 'equipe' ? (l => GD.veiculos[l[GVEIC]]) : (l => GD.polos[l[GPOLO]]);
+    const chave = modo === 'equipe' ? (l => base.veiculos[l[GVEIC]]) : (l => base.polos[l[GPOLO]]);
     const m = new Map(), dias = new Map();
     serv.forEach(l => {
       const k = chave(l);
@@ -8494,15 +8532,14 @@ function ritmoGdis(serv, ini, fim) {
   s += `<line x1="${px0}" y1="${py1}" x2="${px1}" y2="${py1}" stroke="${COR.eixo}" stroke-width="1"/>`;
 
   const abas = [['dia', 'Por dia'], ['semana', 'Por semana'], ['equipe', 'Por equipe'], ['polo', 'Por polo']]
-    .map(([v, r]) => `<button class="aba" type="button" role="tab" data-gdmodo="${v}" aria-selected="${modo === v}">${r}</button>`).join('');
+    .map(([v, r]) => `<button class="aba" type="button" role="tab" data-${pref}modo="${v}" aria-selected="${modo === v}">${r}</button>`).join('');
   return `<h4 class="sub-tit">Serviços por dia útil</h4>
     <div class="card-hd" style="padding:0;margin:0 0 8px">
       <span class="sub">${modo === 'dia' ? 'cada dia do período' : modo === 'semana' ? 'total de cada semana'
         : modo === 'equipe' ? 'média por dia útil de cada equipe (veículo)' : 'média por dia útil de cada polo'}</span>
       <div class="abas" role="tablist" style="margin-left:auto">${abas}</div>
     </div>
-    <div class="explica">A <b>equipe é o veículo</b> da exportação do G-DIS. O denominador é sempre o número de
-    dias úteis do período (${fmt(du)}), para que semanas de tamanhos diferentes possam ser comparadas.</div>
+    <div class="nota" style="margin:0 0 8px">Equipe é o veículo da exportação · denominador: ${fmt(du)} dia(s) úteis.</div>
     ${svgRoot(W, H, s)}`;
 }
 
@@ -11473,7 +11510,9 @@ let PSV = {semanas: [], polos: [], cidades: [], acoes: [], resps: [], linhas: []
 let PSED = {};                 /* edições do usuário, presas ao número do PI */
 let ORIGEM_PSV = '';
 const qx = {b: 0, a: -1, topN: 20, cid: '', resp: '', acao: '',
-            modo: 'polo', det: 'todos', dBusca: '', dOrd: {col: 'val', dir: -1}};
+            modo: 'polo', det: 'todos', dBusca: '', dOrd: {col: 'val', dir: -1},
+            pxDe: '', pxAte: '', pxModo: 'dia', pxBusca: '',
+            pxPolo: '', pxEquipe: '', pxDia: ''};
 
 const brl = v => 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR');
 const brlCurto = v => {
@@ -11861,23 +11900,6 @@ function gPsvTop(mB, mA) {
                      });
                    })()}};
 }
-/* a tabela do TOP, com previsão e observação editáveis */
-function pintaTopTabela(mB) {
-  const top = topoDe(mB, qx.topN);
-  if (!top.length) { $('#qs-top-tab').innerHTML = ''; return; }
-  const derivados = PSV.linhas.filter(l => String(l[QPI]).indexOf('S/PI') === 0).length;
-  const notaPi = derivados
-    ? `<div class="nota">${fmt(derivados)} linha(s) sem número de PI: a chave é polo + cidade.</div>`
-    : '';
-  $('#qs-top-tab').innerHTML =
-    `<h4 class="sub-tit">Tratativa de cada PI do TOP <span class="sub"> · previsão e observação editáveis</span></h4>
-     ${notaPi}
-     <div class="tab-wrap"><table class="dt"><thead><tr>
-       <th>#</th><th>PI</th><th>Cliente</th><th>Polo</th><th>Cidade</th><th>Compensação</th>
-       <th>Ação proposta</th><th>Responsável</th><th>Previsão</th><th class="cel-rot">Observação</th>
-     </tr></thead><tbody>` +
-    top.map((l, i) => linhaPsvEditavel(l, i + 1)).join('') + `</tbody></table></div>`;
-}
 function linhaPsvEditavel(l, pos) {
   const ed = PSED[l[QPI]] || {};
   const marca = c => c ? ' class="ed-feito" title="editado no painel"' : '';
@@ -12068,7 +12090,6 @@ function pintaPsvDetalhe(mB, mA) {
   const tit = {todos: 'Todos os PI', top: `Só o TOP ${fmt(qx.topN)}`, novos: 'PI que entraram',
                sai: 'PI que saíram', semprev: 'PI sem previsão'};
   $('#qs-det-tit').textContent = tit[qx.det];
-  const noTop = new Set(topoDe(mB, qx.topN).map(l => l[QPI]));
   let itens;
   if (qx.det === 'top') itens = topoDe(mB, qx.topN).map(l => ({l}));
   else if (qx.det === 'novos') itens = Array.from(mB.values()).filter(l => !mA.has(l[QPI])).map(l => ({l}));
@@ -12115,22 +12136,233 @@ function pintaPsvDetalhe(mB, mA) {
                 ['val', 'Compensação'], ['acao', 'Ação proposta'], ['resp', 'Responsável'], ['prev', 'Previsão']];
   const cab = cols.map(([k, r]) =>
     `<th scope="col" class="ord" data-qord="${k}">${esc(r)}${col === k ? (dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')
-    + '<th class="cel-rot">Observação</th>';
+    + '<th class="cel-rot">Observação</th><th class="cel-nota">Anotação</th>';
   const corpo = linhas.slice(0, 600).map(x => {
     const l = x.l, ed = PSED[l[QPI]] || {};
     const marca = c => c ? ' class="ed-feito" title="editado no painel"' : '';
-    return `<tr${x.fora ? ' class="tsub"' : ''}><td><b>${esc(l[QPI])}</b>${noTop.has(l[QPI]) && !x.fora ? ' <span class="vinc-chip">TOP</span>' : ''}</td>
+    const pi = String(l[QPI]);
+    const cls = [x.fora ? 'tsub' : '', notas()[pi] ? 'tem-nota' : ''].filter(Boolean).join(' ');
+    return `<tr${cls ? ` class="${cls}"` : ''}><td><b>${esc(l[QPI])}</b></td>
       <td>${esc(l[QCLI] || '—')}</td><td>${esc(PSV.polos[l[QPOLO]])}</td><td>${esc(PSV.cidades[l[QCID]])}</td>
       <td><b>${brl(l[QVAL])}</b></td><td>${esc(PSV.acoes[l[QACAO]])}</td><td>${esc(PSV.resps[l[QRESP]])}</td>
       <td${marca(ed.prev != null)}>${x.fora ? esc(prevTxt(l))
         : `<input class="psv-in" data-campo="prev" data-pi="${esc(l[QPI])}" value="${esc(prevEdit(l))}"
              placeholder="dd/mm/aaaa ou texto" autocomplete="off">`}</td>
       <td class="cel-rot"${marca(ed.obs != null)}>${x.fora ? esc(obsDe(l) || '—')
-        : `<input class="psv-in" data-campo="obs" data-pi="${esc(l[QPI])}" value="${esc(obsDe(l))}" placeholder="observação" autocomplete="off">`}</td></tr>`;
+        : `<input class="psv-in" data-campo="obs" data-pi="${esc(l[QPI])}" value="${esc(obsDe(l))}" placeholder="observação" autocomplete="off">`}</td>
+      <td class="cel-nota" data-eq="${esc(pi)}">${celulaNota(pi)}</td></tr>`;
   }).join('');
   $('#qs-det').innerHTML = `<div class="tab-wrap alta"><table class="dt"><thead><tr>${cab}</tr></thead>
     <tbody>${corpo}</tbody></table></div>` +
     (linhas.length > 600 ? `<div class="nota">Mostrando os 600 primeiros de ${fmt(linhas.length)}.</div>` : '');
+}
+
+/* ============================================================
+   EXECUÇÃO PSVT
+   Mesma leitura e mesma estrutura dos executados do G-DIS; o que muda é a
+   base de destino e o cruzamento, que aqui é com a carteira de PI.
+   ============================================================ */
+let PEX = {veiculos: [], polos: [], linhas: []};
+let ORIGEM_PEX = '';
+const CHAVE_PEX = 'nge-pexec-v1';
+function guardaPex() {
+  try { localStorage.setItem(CHAVE_PEX, JSON.stringify({base: PEX, origem: ORIGEM_PEX})); return true; }
+  catch (e) { return false; }
+}
+function recuperaPex() {
+  try {
+    const s = localStorage.getItem(CHAVE_PEX);
+    if (s) { const o = JSON.parse(s);
+      if (o && o.base && Array.isArray(o.base.linhas)) { PEX = o.base; ORIGEM_PEX = o.origem || ''; } }
+  } catch (e) {}
+}
+const pexNoPeriodo = (ini, fim) =>
+  PEX.linhas.filter(l => l[GDATA] && l[GDATA] <= fim && (!ini || l[GDATA] > ini));
+function periodoPex() {
+  const ds = PEX.linhas.map(l => l[GDATA]).filter(Boolean).sort();
+  return ds.length ? {de: ds[0], ate: ds[ds.length - 1]} : null;
+}
+
+let PX_LISTA = [], PX_LIGA = null;
+function pintaPexec(mB) {
+  const cx = $('#px-corpo');
+  if (!PEX.linhas.length) {
+    cx.innerHTML = `<div class="vazio">Nenhum arquivo de execução carregado. Use
+      <b>Carregar dados → Execução PSVT</b>. A estrutura é a mesma dos executados do G-DIS OP;
+      se a exportação tiver uma coluna <b>PI</b>, o painel cruza serviço e carteira por ela.</div>`;
+    $('#px-sub').textContent = '';
+    return;
+  }
+  const pg = periodoPex();
+  const auto = !qx.pxDe && !qx.pxAte;
+  const fim = auto ? pg.ate : (qx.pxAte || pg.ate);
+  const ini = auto ? somaDias(fim, -7) : somaDias(qx.pxDe || pg.de, -1);
+  const escopo = l => (!st.ger || gerenciaDe(PEX.polos[l[GPOLO]]) === st.ger) &&
+                      passaLista(st.polo, PEX.polos[l[GPOLO]]);
+  const serv = pexNoPeriodo(ini, fim).filter(escopo);
+  $('#px-sub').textContent = `${dlonga(somaDias(ini, 1))} a ${dlonga(fim)}` +
+    (auto ? ' · últimos 7 dias da base' : ' · período fixado');
+
+  const atalhos = [{d: 0, r: 'Dia'}, {d: 6, r: '7 dias'}, {d: 13, r: '14 dias'}, {d: 29, r: '30 dias'}];
+  const ctrl = `<div class="param-linha gd-periodo">
+    <div class="abas" role="group" aria-label="período">
+      <button class="aba" type="button" data-pxatalho="auto" aria-selected="${auto}">Automático</button>
+      ${atalhos.map(a => { const de = somaDias(pg.ate, -a.d);
+        const on = !auto && qx.pxDe === de && qx.pxAte === pg.ate;
+        return `<button class="aba" type="button" data-pxatalho="${a.d}" aria-selected="${on}">${a.r}</button>`;
+      }).join('')}
+    </div>
+    <label>de <input type="date" id="px-de" value="${esc(auto ? somaDias(ini, 1) : (qx.pxDe || pg.de))}"></label>
+    <label>até <input type="date" id="px-ate" value="${esc(fim)}"></label>
+    <span class="nota">base de ${dlonga(pg.de)} a ${dlonga(pg.ate)}</span>
+  </div>`;
+
+  if (!serv.length) {
+    cx.innerHTML = ctrl + `<div class="vazio">Nenhum serviço nesse período.</div>`;
+    ligaCtrlPex();
+    return;
+  }
+
+  /* o PI é o que liga o serviço à carteira; sem a coluna, a seção continua
+     valendo como visão de produção e o painel diz que o cruzamento está fora */
+  const temPi = PEX.linhas.some(l => l[GPI]);
+  const carteira = new Map();
+  mB.forEach(l => carteira.set(String(l[QPI]).trim(), l));
+  const liga = l => { const pi = String(l[GPI] || '').trim();
+    return pi && carteira.has(pi) ? carteira.get(pi) : null; };
+  PX_LIGA = liga;
+  const comPi = serv.filter(l => l[GPI]).length;
+  const naCart = serv.filter(l => liga(l)).length;
+  const pisAtend = new Set(serv.map(l => liga(l)).filter(Boolean).map(l => String(l[QPI])));
+  const valAtend = Array.from(pisAtend).reduce((a, pi) => {
+    const l = carteira.get(pi); return a + (l ? l[QVAL] : 0); }, 0);
+  const totCart = somaDe(Array.from(mB.values()));
+  const du = Math.max(1, diasUteis(ini, fim));
+  const equipes = new Set(serv.map(l => PEX.veiculos[l[GVEIC]]));
+
+  const tiles = `<div class="kpis" style="grid-template-columns:repeat(${temPi ? 5 : 4},minmax(0,1fr));margin-bottom:14px">
+    <div class="tile hero"><span class="rot">Serviços Executados PSVT</span>
+      <span class="val" style="color:var(--verde-forte)">${fmt(serv.length)}</span>
+      <span class="pe">${fmt(equipes.size)} equipes · ${fmt(du)} dias úteis</span></div>
+    ${temPi ? `<div class="tile"><span class="rot">Ligados a PI da carteira</span>
+      <span class="val" style="color:#006300">${fmt(naCart)}</span>
+      <span class="pe">${pct1(pct(naCart, serv.length))}% · ${fmt(comPi)} com PI informado</span></div>` : ''}
+    <div class="tile"><span class="rot">PI atendidos</span><span class="val">${fmt(pisAtend.size)}</span>
+      <span class="pe">de ${fmt(mB.size)} na carteira da semana</span></div>
+    <div class="tile"><span class="rot">Compensação atendida</span>
+      <span class="val" style="color:var(--verde-forte)">${brlCurto(valAtend)}</span>
+      <span class="pe">${pct1(pct(valAtend, totCart || 1))}% dos ${brlCurto(totCart)} em tela</span></div>
+    <div class="tile"><span class="rot">Serviços por dia/equipe</span>
+      <span class="val">${pct1(serv.length / du / Math.max(1, equipes.size))}</span>
+      <span class="pe">${pct1(serv.length / du)} por dia útil no total</span></div>
+  </div>
+  ${temPi ? '' : `<div class="nota" style="margin:-6px 0 14px">A exportação não traz coluna <b>PI</b>,
+    então não há como ligar serviço e carteira: os números acima são de produção. Com a coluna PI,
+    o painel passa a dizer quanto da compensação foi atendida.</div>`}`;
+
+  const cls = l => liga(l) ? 'liga' : 'sem';
+  const eq = gEquipes(serv, ini, fim, cls, PEX);
+  const blocoEq = `<h4 class="sub-tit">Produção por equipe</h4>
+    <div class="card-hd" style="margin-bottom:6px"><span class="sub">ordenado pelo total · cor = gerência</span>
+      <div class="tools"><button class="tbtn" data-tab="px-equipes" aria-pressed="false">Tabela</button></div>
+    </div><div id="px-equipes"></div>`;
+
+  cx.innerHTML = ctrl + tiles + ritmoGdis(serv, ini, fim, PEX, 'px') + blocoEq + listaPex(serv, liga, temPi);
+  pinta('px-equipes', eq);
+  ligaCtrlPex();
+}
+function listaPex(serv, liga, temPi) {
+  const busca = (qx.pxBusca || '').trim().toLowerCase();
+  const passa = (l, exceto) =>
+    (exceto === 'polo'   || !qx.pxPolo   || PEX.polos[l[GPOLO]] === qx.pxPolo) &&
+    (exceto === 'equipe' || !qx.pxEquipe || PEX.veiculos[l[GVEIC]] === qx.pxEquipe) &&
+    (exceto === 'dia'    || !qx.pxDia    || l[GDATA] === qx.pxDia);
+  const opcoesDe = campo => {
+    const chave = {polo: l => PEX.polos[l[GPOLO]], equipe: l => PEX.veiculos[l[GVEIC]], dia: l => l[GDATA]};
+    const c = new Map();
+    serv.filter(l => passa(l, campo)).forEach(l => { const v = chave[campo](l);
+      if (v) c.set(v, (c.get(v) || 0) + 1); });
+    return Array.from(c.entries()).sort((a, b) => campo === 'dia'
+      ? (a[0] < b[0] ? 1 : -1) : String(a[0]).localeCompare(String(b[0]), 'pt-BR'));
+  };
+  const filtrados = serv.filter(l => passa(l, null) && (!busca ||
+    String(l[GSERV]).toLowerCase().indexOf(busca) >= 0 ||
+    String(l[GPI] || '').toLowerCase().indexOf(busca) >= 0 ||
+    String(l[GOBS] || '').toLowerCase().indexOf(busca) >= 0 ||
+    String(PEX.veiculos[l[GVEIC]]).toLowerCase().indexOf(busca) >= 0));
+  PX_LISTA = filtrados;
+  const sel = (id, rot, campo, atual, fmtRot) => {
+    const o = opcoesDe(campo);
+    return `<div class="campo"><label for="${id}">${rot}</label><select id="${id}">
+      <option value="">todos</option>
+      ${o.map(([v, n]) => `<option value="${esc(v)}"${v === atual ? ' selected' : ''}>` +
+        `${esc(fmtRot ? fmtRot(v) : v)} (${fmt(n)})</option>`).join('')}</select></div>`;
+  };
+  const temObs = serv.some(l => l[GOBS]);
+  const corpo = filtrados.slice().sort((a, b) =>
+      String(b[GDATA]).localeCompare(String(a[GDATA])) || String(a[GHORA]).localeCompare(String(b[GHORA])))
+    .slice(0, 600).map(l => {
+      const c = liga(l);
+      return `<tr><td>${esc(String(l[GSERV]))}</td><td>${l[GDATA] ? dlonga(l[GDATA]) : '—'}</td>
+        <td>${esc(l[GHORA] || '—')}</td><td>${esc(PEX.veiculos[l[GVEIC]])}</td>
+        <td>${esc(PEX.polos[l[GPOLO]])}</td><td>${esc(String(l[GPI] || '—'))}</td>
+        <td>${c ? `<span class="chip c-bom">na carteira</span> <span class="l">${brl(c[QVAL])}</span>`
+                : (temPi ? '<span class="chip c-zero">fora da carteira</span>' : '—')}</td>
+        ${temObs ? `<td class="cel-obs">${l[GOBS]
+          ? `<button class="obs-bt" type="button" data-obs="${esc(l[GOBS])}" data-serv="${esc(String(l[GSERV]))}"
+               title="ler a observação">🔍</button><span class="obs-txt">${esc(l[GOBS])}</span>` : '—'}</td>` : ''}</tr>`;
+    }).join('');
+  return `<h4 class="sub-tit">Serviços executados</h4>
+    <div class="filtros-lista" style="padding-top:0">
+      ${sel('px-f-polo', 'Polo', 'polo', qx.pxPolo || '')}
+      ${sel('px-f-equipe', 'Equipe', 'equipe', qx.pxEquipe || '')}
+      ${sel('px-f-dia', 'Dia', 'dia', qx.pxDia || '', dlonga)}
+      <div class="campo"><label for="px-busca">Serviço, PI ou observação</label>
+        <input id="px-busca" type="search" placeholder="buscar" autocomplete="off" value="${esc(qx.pxBusca || '')}"></div>
+      <button class="btn" id="px-limpa" type="button">Limpar</button>
+      <button class="btn forte" id="px-xls" type="button">Exportar Excel</button>
+      <span class="conta">${fmt(filtrados.length)} de ${fmt(serv.length)} serviços</span>
+    </div>
+    <div class="tab-wrap alta"><table class="dt"><thead><tr>
+      <th>Serviço</th><th>Data</th><th>Hora</th><th>Equipe</th><th>Polo</th><th>PI</th><th>Carteira</th>
+      ${temObs ? '<th class="cel-obs">Observação</th>' : ''}
+    </tr></thead><tbody>${corpo}</tbody></table></div>` +
+    (filtrados.length > 600 ? `<div class="nota">Mostrando os 600 primeiros de ${fmt(filtrados.length)}.</div>` : '');
+}
+function ligaCtrlPex() {
+  const de = $('#px-de'), ate = $('#px-ate');
+  if (de) de.addEventListener('change', e => { qx.pxDe = e.target.value;
+    if (!qx.pxAte) qx.pxAte = $('#px-ate').value; render(); });
+  if (ate) ate.addEventListener('change', e => { qx.pxAte = e.target.value;
+    if (!qx.pxDe) qx.pxDe = $('#px-de').value; render(); });
+  $$('[data-pxatalho]').forEach(b => b.addEventListener('click', () => {
+    const v = b.dataset.pxatalho, pg = periodoPex();
+    if (v === 'auto' || !pg) { qx.pxDe = qx.pxAte = ''; }
+    else { qx.pxAte = pg.ate; qx.pxDe = somaDias(pg.ate, -parseInt(v, 10)); }
+    render();
+  }));
+  [['#px-f-polo', 'pxPolo'], ['#px-f-equipe', 'pxEquipe'], ['#px-f-dia', 'pxDia']].forEach(([id, k]) => {
+    const el = $(id);
+    if (el) el.addEventListener('change', e => { qx[k] = e.target.value; render(); });
+  });
+  const lp = $('#px-limpa');
+  if (lp) lp.addEventListener('click', () => {
+    qx.pxPolo = qx.pxEquipe = qx.pxDia = ''; qx.pxBusca = ''; render();
+  });
+  const bu = $('#px-busca');
+  if (bu) bu.addEventListener('input', e => { qx.pxBusca = e.target.value; render(); });
+  const xl = $('#px-xls');
+  if (xl) xl.addEventListener('click', () => {
+    baixaExcel(nomeExcel('execucao_psvt'),
+      ['Serviço', 'Data', 'Hora', 'Equipe', 'Polo', 'Gerência', 'PI', 'Na carteira',
+       'Compensação do PI', 'Equipamento', 'Observação'],
+      PX_LISTA.map(l => { const c = PX_LIGA ? PX_LIGA(l) : null;
+        return [String(l[GSERV]), l[GDATA] || '', l[GHORA] || '', PEX.veiculos[l[GVEIC]] || '',
+                PEX.polos[l[GPOLO]] || '', gerenciaDe(PEX.polos[l[GPOLO]]) || '',
+                String(l[GPI] || ''), c ? 'sim' : 'não', c ? c[QVAL] : '',
+                String(l[GEQ] || ''), l[GOBS] || ''];
+      }), 'Execução PSVT');
+  });
 }
 
 /* ---------- render ---------- */
@@ -12170,9 +12402,9 @@ function renderPsv() {
   pinta('qs-resp', gPsvResp(mB, mA));
   pinta('qs-evo', gPsvEvo());
   pinta('qs-top', gPsvTop(mB, mA));
-  pintaTopTabela(mB);
   pinta('qs-comp', gPsvComp(mB, mA));
   pintaPsvDetalhe(mB, mA);
+  pintaPexec(mB);
   pintaAnotacoes();
 
   const agora = new Date();
@@ -12250,6 +12482,17 @@ $('#qs-limpa-lista').addEventListener('click', () => {
   qx.dBusca = ''; $('#qs-busca').value = ''; render();
 });
 $('#qs-det').addEventListener('click', ev => {
+  const td = ev.target.closest && ev.target.closest('td.cel-nota');
+  if (td) {
+    const pi = td.dataset.eq;
+    editaNota(td, pi, () => {
+      td.innerHTML = celulaNota(pi);
+      const tr = td.closest('tr');
+      if (tr) tr.classList.toggle('tem-nota', !!notas()[pi]);
+      pintaAnotacoes();
+    });
+    return;
+  }
   const th = ev.target.closest('[data-qord]');
   if (!th) return;
   const c = th.dataset.qord;
@@ -12357,6 +12600,53 @@ function baseExemploPsv() {
           linhas: regs.map(x => [iS[x.sem], iP[x.polo], iC[x.cid], x.pi, x.cli, x.val,
                                  iA[x.acao], iR[x.resp], x.prev, x.obs])};
 }
+$('#pxarq').addEventListener('change', async ev => {
+  const arqs = Array.from(ev.target.files || []);
+  ev.target.value = '';
+  if (!arqs.length) return;
+  const data = $('#q-data').value || hojeISO();
+  avisoPsv('Lendo a execução PSVT…', false);
+  try {
+    const mats = [], cascas = [];
+    for (const a of arqs) {
+      const fmtA = await formatoReal(a);
+      if (fmtA === 'xls-binario') { avisoPsv(AVISO_BIN(a.name), true); return; }
+      const cw = fmtA === 'texto' ? await cascaWeb(a) : null;
+      if (cw) { cascas.push([a.name, cw]); continue; }
+      if (fmtA === 'zip' || /\.(xlsx|xlsm)$/i.test(a.name)) {
+        const buf = await a.arrayBuffer(), zip = abreZip(buf);
+        const sst = await extraiZip(zip, 'xl/sharedStrings.xml');
+        const textos = sst ? porNome(xmlDoc(sst), 'si').map(si => textoDe(si, 't')) : [];
+        const abas = Array.from(zip.itens.keys()).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n)).sort();
+        for (const ab of abas) { const x = await extraiZip(zip, ab); if (x) mats.push(matrizDaAba(x, textos)); }
+      } else {
+        mats.push(await leArquivoExec(a, codifDe(fmtA)));
+      }
+    }
+    if (!mats.length && cascas.length) { avisoPsv(AVISO_CASCA(cascas[0][0], cascas[0][1]), true); return; }
+    const r = montaGdis(mats.filter(Boolean), data, PEX);
+    if (r.erro) {
+      avisoPsv(`<b>Não foi possível carregar a execução.</b><br>${esc(r.erro)}` +
+               (cascas.length ? '<br>' + AVISO_CASCA(cascas[0][0], cascas[0][1]) : ''), true);
+      return;
+    }
+    PEX = r.base; ORIGEM_PEX = 'de ' + arqs.map(a => a.name).join(', ');
+    const coube = guardaPex();
+    render();
+    const obs = [];
+    obs.push(`lido pelo ${r.modo}`);
+    if (r.comPi) obs.push(`${fmt(r.comPi)} com PI informado — o cruzamento com a carteira usa essa coluna`);
+    else obs.push('nenhuma coluna PI encontrada: a seção vale como visão de produção, sem cruzamento');
+    if (r.atualizados) obs.push(`${fmt(r.atualizados)} já estavam na base e foram atualizados`);
+    if (r.ruins) obs.push(`${fmt(r.ruins)} linha(s) sem equipamento`);
+    if (r.semData) obs.push(`${fmt(r.semData)} sem data legível`);
+    if (!coube) obs.push('não coube no navegador: vale só nesta sessão');
+    avisoPsv(`<b>${fmt(r.lidos)} serviços lidos</b>, ${fmt(r.novos)} novos · ${fmt(PEX.linhas.length)} na base · ` +
+             `de ${dlonga(r.de)} a ${dlonga(r.ate)}.<ul>${obs.map(o => `<li>${esc(o)}</li>`).join('')}</ul>`, false);
+  } catch (e) {
+    avisoPsv(`<b>Erro na leitura da execução.</b><br>${esc(String(e && e.message || e))}`, true);
+  }
+});
 $('#qarq').addEventListener('change', async ev => {
   const arqs = Array.from(ev.target.files || []);
   ev.target.value = '';
@@ -12438,6 +12728,7 @@ recuperaAnotacoes();
 recuperaEx();
 recuperaGd();
 recuperaConc();
+recuperaPex();
 recuperaMed();
 recuperaCob();
 recuperaBat();
